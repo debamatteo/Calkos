@@ -1,0 +1,104 @@
+﻿@using Calkos.web.Models.Admin
+@model IEnumerable<UserWithRolesViewModel>
+
+@{
+    ViewData["Title"] = "Gestione Utenti";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-people-fill text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Gestione Utenti</h1>
+        <small class="text-muted">Visualizza, modifica e gestisci gli utenti registrati</small>
+    </div>
+</div>
+
+<div class="mb-3 text-end">
+    <a asp-area="Admin"
+       asp-controller="Users"
+       asp-action="Create"
+       class="btn btn-success">
+        <i class="bi bi-person-plus"></i> Nuovo Utente
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 35%">Email</th>
+                    <th style="width: 35%">Ruoli</th>
+                    <th style="width: 30%" class="text-end">Azioni</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>
+                            <i class="bi bi-person-circle me-2"></i>
+                            @user.Email
+                        </td>
+
+                        <td>
+                            @if (user.Roles.Any())
+                            {
+                                foreach (var role in user.Roles)
+                                {
+                                    <span class="badge bg-primary me-1">@role</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Nessun ruolo</span>
+                            }
+                        </td>
+
+                        <td class="text-end">
+
+                            <a asp-area="Admin"
+                               asp-controller="Users"
+                               asp-action="ManageRoles"
+                               asp-route-id="@user.UserId"
+                               class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-shield-lock"></i> Ruoli
+                            </a>
+
+                            <a asp-area="Admin"
+                               asp-controller="Users"
+                               asp-action="Edit"
+                               asp-route-id="@user.UserId"
+                               class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil-square"></i> Modifica
+                            </a>
+
+                            <a asp-area="Admin"
+                               asp-controller="Users"
+                               asp-action="Details"
+                               asp-route-id="@user.UserId"
+                               class="btn btn-sm btn-outline-secondary me-2">
+                                <i class="bi bi-info-circle"></i> Dettagli
+                            </a>
+
+                            <a asp-area="Admin"
+                               asp-controller="Users"
+                               asp-action="Delete"
+                               asp-route-id="@user.UserId"
+                               class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Elimina
+                            </a>
+
+                        </td>
+
+
+
+
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

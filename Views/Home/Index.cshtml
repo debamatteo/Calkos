@@ -1,0 +1,53 @@
+﻿@* @{
+    ViewData["Title"] = "Benvenuto";
+}
+
+<div class="container py-5">
+
+    <div class="text-center mb-5">
+        <h1 class="fw-bold mb-3">Benvenuto in Calkos</h1>
+        <p class="text-muted fs-5">
+            Sistema gestionale per calcolo delle Provvigioni.
+        </p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-arrow-in-right text-primary" style="font-size: 2.5rem;"></i>
+                    <h5 class="fw-bold mt-3">Accedi al Pannello Admin</h5>
+                    <p class="text-muted">Gestisci utenti, ruoli e statistiche.</p>
+                    <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-primary">
+                        Vai al pannello
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+ *@
+@{
+    ViewData["Title"] = "Benvenuto";
+}
+
+<div class="text-center mt-5">
+    <h1 class="display-5 fw-bold">Benvenuto in Calkos</h1>
+    <p class="lead text-muted">Sistema gestionale per il calcolo delle provvigioni.</p>
+
+    @if (!User.Identity.IsAuthenticated)
+    {
+        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary btn-lg mt-3">
+            Accedi
+        </a>
+    }
+    else
+    {
+        <a asp-controller="Home" asp-action="Index" class="btn btn-secondary btn-lg mt-3">
+            Vai alla tua area
+        </a>
+    }
+</div>

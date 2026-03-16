@@ -1,0 +1,48 @@
+﻿@model IEnumerable<IdentityRole>
+
+@{
+    ViewData["Title"] = "Gestione Ruoli";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-shield-lock-fill text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 fw-bold mb-0">Gestione Ruoli</h1>
+        <small class="text-muted">Crea, modifica o elimina i ruoli del sistema</small>
+    </div>
+</div>
+
+<div class="mb-3 text-end">
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nuovo Ruolo
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Nome Ruolo</th>
+                    <th class="text-end">Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var role in Model)
+                {
+                    <tr>
+                        <td>@role.Name</td>
+                        <td class="text-end">
+                            <a asp-action="Edit" asp-route-id="@role.Id" class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil-square"></i> Modifica
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@role.Id" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Elimina
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

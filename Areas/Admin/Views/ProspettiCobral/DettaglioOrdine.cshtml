@@ -1,0 +1,446 @@
+﻿@model CalkosManager.Domain.Entities.ProspettoCobral
+
+@{
+    ViewData["Title"] = "Dettaglio Ordine COBRAL";
+    bool isAdmin = User.IsInRole("Admin");
+}
+
+<div class="d-flex align-items-center mb-4">
+    <h1 class="h3 fw-bold">Dettaglio Ordine COBRAL</h1>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        <form method="post">
+
+            <input type="hidden" asp-for="IdProspettoCobral" />
+
+            <!-- ============================
+                 SEZIONE 1 — DOCUMENTO
+                 ============================ -->
+            <h5 class="fw-bold mt-3">Dati Documento</h5>
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Numero Ordine</label>
+                    @if (isAdmin)
+                    {
+                        <input  asp-for="NumeroOrdine" type="text" class="form-control input-readonly" readonly />
+                    }
+                    else
+                    {
+                        <input  asp-for="NumeroOrdine" type="text" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Numero DDT</label>
+                    @if (isAdmin)
+                    {
+                        <input class="form-control" asp-for="NumeroDDT" type="text" />
+                    }
+                    else
+                    {
+                        <input  asp-for="NumeroDDT" type="text" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Numero Fattura</label>
+                    @if (isAdmin)
+                    {
+                        <input class="form-control" asp-for="NumeroFattura" type="text" />
+                    }
+                    else
+                    {
+                        <input  asp-for="NumeroFattura" type="text" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+            </div>
+
+            <!-- ============================
+                 SEZIONE 2 — CLIENTE / MATERIALE
+                 ============================ -->
+            <h5 class="fw-bold mt-4">Cliente e Materiale</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Cliente</label>
+
+                    @if (isAdmin)
+                    {
+                        <!-- Admin può scegliere Cliente -->
+                        <select asp-for="IdCliente"
+                                asp-items="ViewBag.Clienti"
+                                class="form-select">
+                        </select>
+                    }
+                    else
+                    {
+                        <!-- Operatore vede ma non modifica -->
+                        <select asp-for="IdCliente"
+                                asp-items="ViewBag.Clienti"
+                                class="form-select input-readonly"
+                                disabled>
+                        </select>
+
+                        <!-- Hidden per mantenere il valore in POST -->
+                        <input type="hidden" asp-for="IdCliente" />
+                    }
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Materiale</label>
+
+                    @if (isAdmin)
+                    {
+                        <select asp-for="IdMateriale"
+                                asp-items="ViewBag.Materiali"
+                                class="form-select">
+                        </select>
+                    }
+                    else
+                    {
+                        <select asp-for="IdMateriale"
+                                asp-items="ViewBag.Materiali"
+                                class="form-select input-readonly"
+                                disabled>
+                        </select>
+
+                        <input type="hidden" asp-for="IdMateriale" />
+                    }
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Unità di Misura</label>
+
+                    @if (isAdmin)
+                    {
+                        <select asp-for="IdUnitaMisura"
+                                asp-items="ViewBag.UnitaMisura"
+                                class="form-select">
+                        </select>
+                    }
+                    else
+                    {
+                        <select asp-for="IdUnitaMisura"
+                                asp-items="ViewBag.UnitaMisura"
+                                class="form-select input-readonly"
+                                disabled>
+                        </select>
+
+                        <input type="hidden" asp-for="IdUnitaMisura" />
+                    }
+                </div>
+
+            </div>
+
+            <!-- ============================
+                 SEZIONE 3 — QUANTITÀ E PREZZI
+                 ============================ -->
+            <h5 class="fw-bold mt-4">Quantità e Prezzi</h5>
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Quantità (Kg)</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="Quantita" type="number" step="0.01" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="Quantita" type="number" step="0.01" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Prezzo</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="Prezzo" type="number" step="0.01" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="Prezzo" type="number" step="0.01" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Commissioni € </label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="ValoreCommissioni" type="number" step="0.01" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="ValoreCommissioni" type="number" step="0.01" class="form-control input-readonly" readonly />
+                    }
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Provvigione Agente</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="ProvvigioneAgente" type="number" step="0.01" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="ProvvigioneAgente" type="number" step="0.01" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Prezzo Vendita</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="PrezzoVendita" type="number" step="0.01" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="PrezzoVendita" type="number" step="0.01" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Differenza</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="Differenza" type="number" step="0.01" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="Differenza" type="number" step="0.01" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+            </div>
+
+            <!-- ============================
+                 SEZIONE 4 — DATE
+                 ============================ -->
+            <h5 class="fw-bold mt-4">Date</h5>
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Data Riferimento Prezzo</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="DataRiferimentoPrezzo" type="date" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="DataRiferimentoPrezzo" type="date" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Data Consegna Ipotetica</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="DataConsegnaIpotetica" type="date" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="DataConsegnaIpotetica" type="date" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Scadenza</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="Scadenza" type="date" class="form-control" />
+                    }
+                    else
+                    {
+                        <input asp-for="Scadenza" type="date" class="form-control input-readonly" readonly />
+                    }
+                </div>
+
+            </div>
+
+            <!-- ============================
+                 SEZIONE 5 — CAMPI TECNICI
+                 ============================ -->
+            <h5 class="fw-bold mt-4">Campi Tecnici</h5>
+
+            <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#tecnici">
+                Mostra / Nascondi Campi Tecnici
+            </button>
+
+            <div class="collapse" id="tecnici">
+                <div class="row g-3">
+                    @foreach (var prop in typeof(CalkosManager.Domain.Entities.ProspettoCobral).GetProperties())
+                    {
+                        // ============================
+                        // ELENCO DEI CAMPI DA ESCLUDERE
+                        // ============================
+                        // Tutti i campi presenti in questa lista NON verranno mostrati
+                        // nella sezione "Campi Tecnici", perché:
+                        // - sono già mostrati in altre sezioni
+                        // - sono lookup gestite altrove
+                        // - sono campi chiave o tecnici che non devono essere editati
+                        var skip = new[] {
+
+                                        // 🔹 Campi chiave / ID tecnici
+                                        "IdProspettoCobral",
+                                        "IdFileImportato",
+                                        "IdImportCobral",
+
+                                        // 🔹 Lookup principali (gestite in sezioni dedicate)
+                                        "IdCliente",
+                                        "IdMateriale",
+                                        "IdUnitaMisura",
+
+                                        // 🔹 Campi documento (già mostrati nella sezione Documento)
+                                        "NumeroOrdine",
+                                        "NumeroDDT",
+                                        "NumeroFattura",
+
+                                        // 🔹 Quantità e prezzi principali (già mostrati nella sezione Quantità e Prezzi)
+                                        "Quantita",
+                                        "Prezzo",
+                                        "ValoreCommissioni",
+                                        "PrezzoVendita",
+                                        "Differenza",
+
+                                        // 🔹 Date principali (già mostrate nella sezione Date)
+                                        "DataRiferimentoPrezzo",
+                                        "DataConsegnaIpotetica",
+                                        "Scadenza",
+
+                                        // 🔹 Valori lookup (solo visualizzazione, già mostrati nella sezione Cliente/Materiale)
+                                        "RagioneSociale",
+                                        "DescrizioneMateriale",
+                                        "UnitaMisura",
+
+                                        // 🔥 Campi relativi ad Agente e Pagamento (gestiti nella sezione dedicata)
+                                        "Agente",
+                                        "PercentualeDefaultAgente",
+                                        "ProvvigioneAgente",   // Spostato nella sezione Quantità e Prezzi
+                                        "TipoPagamento",
+                                        "IdAgente",
+                                        "IdTipoPagamento"
+                                        };
+
+                        // Se il campo è nella lista skip → non mostrarlo
+                        if (skip.Contains(prop.Name))
+                            continue;
+
+                        // ============================
+                        // TIPOLOGIA DEL CAMPO
+                        // ============================
+                        // Impostiamo automaticamente il tipo di input HTML
+                        // in base al tipo della proprietà del modello
+                        string inputType =
+                        prop.PropertyType == typeof(decimal?) ? "number" :
+                        prop.PropertyType == typeof(int?) ? "number" :
+                        prop.PropertyType == typeof(DateTime?) ? "date" :
+                        "text";
+
+                        // Se è un decimal → aggiungiamo step="0.01"
+                        string step =
+                        prop.PropertyType == typeof(decimal?) ? "step=\"0.01\"" : "";
+
+                        // ============================
+                        // RENDERING DEL CAMPO
+                        // ============================
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">@prop.Name</label>
+
+                            @if (isAdmin)
+                            {
+                                // Campo editabile
+                                <input class="form-control"
+                                       name="@prop.Name"
+                                       type="@inputType"
+                                       @step
+                                       value="@prop.GetValue(Model)" />
+                            }
+                            else
+                            {
+                                // Campo in sola lettura
+                                <input class="form-control input-readonly"
+                                       name="@prop.Name"
+                                       type="@inputType"
+                                       @step
+                                       value="@prop.GetValue(Model)"
+                                       readonly />
+                            }
+                        </div>
+                    }
+
+
+                </div>
+            </div>
+
+            <!-- ============================
+                 SEZIONE 6 — LOOKUP (DA SISTEMARE DOPO)
+                 ============================ -->
+            <h5 class="fw-bold mt-4">Agente e Pagamento</h5>
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Agente</label>
+
+                    @if (isAdmin)
+                    {
+                        <!-- Admin può scegliere l’agente -->
+                        <select asp-for="IdAgente"
+                                asp-items="ViewBag.Agenti"
+                                class="form-select">
+                        </select>
+                    }
+                    else
+                    {
+                        <!-- Operatore vede ma non modifica -->
+                        <select asp-for="IdAgente"
+                                asp-items="ViewBag.Agenti"
+                                class="form-select input-readonly"
+                                disabled>
+                        </select>
+
+                        <!-- Hidden per mantenere il valore in POST -->
+                        <input type="hidden" asp-for="IdAgente" />
+                    }
+                </div>
+
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Id Tipo Pagamento</label>
+                    @if (isAdmin)
+                    {
+                        <input class="form-control input-readonly" asp-for="IdTipoPagamento" type="number" />
+                    }
+                    else
+                    {
+                        <input class="form-control input-readonly" asp-for="IdTipoPagamento" type="number" readonly />
+                    }
+                </div>
+
+            </div>
+
+            <hr />
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="/Admin/ProspettiCobral/ListaOrdini" class="btn btn-secondary">Torna alla lista</a>
+
+                @if (isAdmin)
+                {
+                    <button type="submit" class="btn btn-primary">Salva modifiche</button>
+                }
+            </div>
+
+        </form>
+
+
+    </div>
+</div>
+@section Scripts {
+    <!-- Bootstrap JS (se lo metto nel layout  non funziona   devo caricarlo nella vista e remmarlo nel layout ) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+}
+

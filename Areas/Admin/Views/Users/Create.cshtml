@@ -1,0 +1,16 @@
+﻿<h2>Nuovo Utente</h2>
+@* autocomplete="off" disattiva l’autocompletamento del form
+autocomplete="new-email" e autocomplete="new-password" dicono al browser che non deve usare credenziali salvate *@
+<form method="post" autocomplete="off">
+    <div class="mb-3">
+        <label>Email</label>
+        <input name="email" class="form-control" autocomplete="new-email" />
+    </div>
+
+    <div class="mb-3">
+        <label>Password temporanea</label>
+        <input name="password" type="password" class="form-control" autocomplete="new-password" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Crea</button>
+</form>

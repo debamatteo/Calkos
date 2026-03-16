@@ -1,0 +1,10 @@
+﻿@model Calkos.Web.Models.ApplicationUser
+
+<h2>Elimina Utente</h2>
+
+<p>Sei sicuro di voler eliminare l’utente <strong>@Model.Email</strong>?</p>
+
+<form method="post">
+    <button type="submit" class="btn btn-danger">Elimina</button>
+    <a asp-action="Index" class="btn btn-secondary">Annulla</a>
+</form>

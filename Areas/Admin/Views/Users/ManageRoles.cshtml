@@ -1,0 +1,65 @@
+﻿@using Calkos.Web.Models.Admin
+@model ManageUserRolesViewModel
+
+@{
+    ViewData["Title"] = "Assegnazione Ruoli";
+}
+
+<!-- Header moderno -->
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-toggle-on text-warning me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Assegnazione Ruoli</h1>
+        <small class="text-muted">Modifica i ruoli assegnati all’utente</small>
+    </div>
+</div>
+
+<!-- Info utente -->
+<div class="mb-3">
+    <span class="text-muted">Utente:</span>
+    <strong>@Model.Email</strong>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-area="Admin" asp-controller="Users" asp-action="ManageRoles" method="post">
+            @Html.AntiForgeryToken()
+
+            <!-- Id utente nascosto -->
+            <input type="hidden" asp-for="UserId" />
+
+            <div class="list-group">
+                @for (int i = 0; i < Model.Roles.Count; i++)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <!-- Nome ruolo -->
+                            <strong>@Model.Roles[i].RoleName</strong>
+                        </div>
+
+                        <div class="form-check form-switch">
+                            <!-- Checkbox stile switch -->
+                            <input class="form-check-input"
+                                   asp-for="Roles[i].IsSelected" />
+                            <input type="hidden" asp-for="Roles[i].RoleId" />
+                            <input type="hidden" asp-for="Roles[i].RoleName" />
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-3 d-flex justify-content-between">
+                <a asp-area="Admin"
+                   asp-controller="Users"
+                   asp-action="Index"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Torna alla lista
+                </a>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Salva modifiche
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,67 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36915.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Calkos.web", "Calkos.web.csproj", "{E88A5942-BD90-45BF-97A6-B43192840268}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0309C74E-2662-4D46-8EA1-FB95C9E68C4A} = {0309C74E-2662-4D46-8EA1-FB95C9E68C4A}
+		{21E184E5-2D20-4D1E-AE66-F2D7D188F1A1} = {21E184E5-2D20-4D1E-AE66-F2D7D188F1A1}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalkosManager.Domain", "..\CalkosManager.Domain\CalkosManager.Domain.csproj", "{0309C74E-2662-4D46-8EA1-FB95C9E68C4A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalkosManager.Application", "..\CalkosManager.Application\CalkosManager.Application.csproj", "{21E184E5-2D20-4D1E-AE66-F2D7D188F1A1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0309C74E-2662-4D46-8EA1-FB95C9E68C4A} = {0309C74E-2662-4D46-8EA1-FB95C9E68C4A}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CalkosManager.Infrastructure", "..\CalkosManager.Infrastructure\CalkosManager.Infrastructure.csproj", "{513DC687-334E-426C-B30F-5FA56A0E75AE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0309C74E-2662-4D46-8EA1-FB95C9E68C4A} = {0309C74E-2662-4D46-8EA1-FB95C9E68C4A}
+		{21E184E5-2D20-4D1E-AE66-F2D7D188F1A1} = {21E184E5-2D20-4D1E-AE66-F2D7D188F1A1}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentazione", "Documentazione", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		Documentazione\2026 03 12- 01-FLUSSO LOGICO DI IMPORTAZIONE 2026 03 12.docx = Documentazione\2026 03 12- 01-FLUSSO LOGICO DI IMPORTAZIONE 2026 03 12.docx
+		Documentazione\2026 03 12- 02 -Guida E CheckList  per Nuove Importazioni Mandadari.docx = Documentazione\2026 03 12- 02 -Guida E CheckList  per Nuove Importazioni Mandadari.docx
+		Documentazione\Documentazione1.docx = Documentazione\Documentazione1.docx
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTestImportazione", "..\ConsoleTestImportazione\ConsoleTestImportazione.csproj", "{516E5A5D-F633-444C-AA5E-918A0C334439}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E88A5942-BD90-45BF-97A6-B43192840268}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E88A5942-BD90-45BF-97A6-B43192840268}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E88A5942-BD90-45BF-97A6-B43192840268}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E88A5942-BD90-45BF-97A6-B43192840268}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0309C74E-2662-4D46-8EA1-FB95C9E68C4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0309C74E-2662-4D46-8EA1-FB95C9E68C4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0309C74E-2662-4D46-8EA1-FB95C9E68C4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0309C74E-2662-4D46-8EA1-FB95C9E68C4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21E184E5-2D20-4D1E-AE66-F2D7D188F1A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E184E5-2D20-4D1E-AE66-F2D7D188F1A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21E184E5-2D20-4D1E-AE66-F2D7D188F1A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21E184E5-2D20-4D1E-AE66-F2D7D188F1A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{513DC687-334E-426C-B30F-5FA56A0E75AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{513DC687-334E-426C-B30F-5FA56A0E75AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{513DC687-334E-426C-B30F-5FA56A0E75AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{513DC687-334E-426C-B30F-5FA56A0E75AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{516E5A5D-F633-444C-AA5E-918A0C334439}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{516E5A5D-F633-444C-AA5E-918A0C334439}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{516E5A5D-F633-444C-AA5E-918A0C334439}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{516E5A5D-F633-444C-AA5E-918A0C334439}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CAAC2D47-075C-4CBB-B4D7-F69BCEEA83AC}
+	EndGlobalSection
+EndGlobal

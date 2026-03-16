@@ -1,0 +1,32 @@
+﻿@{
+    ViewData["Title"] = "Crea Ruolo";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-plus-circle-fill text-success me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 fw-bold mb-0">Crea Nuovo Ruolo</h1>
+        <small class="text-muted">Inserisci il nome del nuovo ruolo</small>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Nome Ruolo</label>
+                <input type="text" name="roleName" class="form-control" />
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Annulla
+                </a>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Salva
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
