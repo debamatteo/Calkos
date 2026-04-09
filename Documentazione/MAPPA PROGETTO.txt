@@ -1,0 +1,238 @@
+Apri il Terminale della Soluzione in Visual Studio (premi Ctrl + ò oppure vai su Visualizza > Terminale).
+
+1. Il comando "Copia negli Appunti" (Il più rapido)
+Esegui questo comando nel terminale. Non vedrai nulla a schermo, ma la struttura verrà copiata nella memoria del PC. Poi vai su un file di testo (o qui in chat) e premi CTRL+V.
+
+PowerShell
+tree /f /a | Select-String -Pattern "bin|obj|.vs|Properties|wwwroot|Migrations" -NotMatch | clip
+| clip: È il comando magico che prende tutto il risultato e lo "incolla" nei tuoi appunti.
+
+
+
+
+
+Elenco del percorso delle cartelle
+Numero di serie del volume: 3AF4-B0AB
+C:.
+
++---Areas
+|   +---Admin
+|   |   +---Controllers
+|   |   |       DashboardController.cs
+|   |   |       ProspettiCobralController.cs
+|   |   |       ProspettiController.cs
+|   |   |       ProspettiDeAngeliController.cs
+|   |   |       RolesController.cs
+|   |   |       TestController.cs
+|   |   |       UsersController.cs
+|   |   |       
+|   |   \---Views
+|   |       |   _ViewImports.cshtml
+|   |       |   _ViewStart.cshtml
+|   |       |   
+|   |       +---Dashboard
+|   |       |       Index.cshtml
+|   |       |       
+|   |       +---Prospetti
+|   |       |       Errori.cshtml
+|   |       |       Index.cshtml
+|   |       |       
+|   |       +---ProspettiCobral
+|   |       |       DettaglioOrdine.cshtml
+|   |       |       Importa.cshtml
+|   |       |       ListaOrdini.cshtml
+|   |       |       
+|   |       +---ProspettiDeAngeli
+|   |       |       ListaOrdini.cshtml
+|   |       |       
+|   |       +---Roles
+|   |       |       Create.cshtml
+|   |       |       Delete.cshtml
+|   |       |       Edit.cshtml
+|   |       |       Index.cshtml
+|   |       |       
+|   |       +---Shared
+|   |       |       ReportStatistiche.cshtml
+|   |       |       _AdminLayout.cshtml
+|   |       |       
+|   |       +---Test
+|   |       |       DataTables.cshtml
+|   |       |       pippo.cshtml
+|   |       |       
+|   |       \---Users
+|   |               Create.cshtml
+|   |               Delete.cshtml
+|   |               Details.cshtml
+|   |               Edit.cshtml
+|   |               Index.cshtml
+|   |               ManageRoles.cshtml
+|   |               
+|   \---Identity
+|       \---Pages
+|           |   _ValidationScriptsPartial.cshtml
+|           |   _ViewImports.cshtml
+|           |   _ViewStart.cshtml
+|           |   
+|           \---Account
+|               |   AccessDenied.cshtml
+|               |   AccessDenied.cshtml.cs
+|               |   ForceChangePassword.cshtml
+|               |   ForceChangePassword.cshtml.cs
+|               |   Login.cshtml
+|               |   Login.cshtml.cs
+|               |   Logout.cshtml
+|               |   Logout.cshtml.cs
+|               |   Register.cshtml
+|               |   Register.cshtml.cs
+|               |   _ViewImports.cshtml
+|               |   
+|               \---Manage
+|                       ChangePassword.cshtml
+|                       ChangePassword.cshtml.cs
+|                       Email.cshtml
+|                       Email.cshtml.cs
+|                       Index.cshtml
+|                       Index.cshtml.cs
+|                       ManageNavPages.cs
+|                       _ManageNav.cshtml
+|                       _ViewImports.cshtml
+|                       
+|  
++---Config
+|   \---Prospetti
+|           cobral.json
+|           
++---Controllers
+|       ClientiController.cs
+|       DashboardProvvigioniController.cs
+|       ErrorController.cs
+|       HomeController.cs
+|       MandatariController.cs
+|       
++---Documentazione
+
++---Helpers
+|       ExcelHelper.cs
+|       Utility.cs
+|       
++---Identity
+|       ApplicationDbContext.cs
+|       IdentitySeeder.cs
+|       UserSeeder.cs
+|       
+|     
+|       ApplicationDbContextModelSnapshot.cs
+|       
++---Models
+|   |   ApplicationUser.cs
+|   |   ErrorViewModel.cs
+|   |   
+|   +---Admin
+|   |       ManageUserRoleItemViewModel.cs
+|   |       ManageUserRolesViewModel.cs
+|   |       UserDetailsViewModel.cs
+|   |       UserWithRolesViewModel.cs
+|   |       
+|   +---Dashboard
+|   |       DashboardProvvigioniViewModel.cs
+|   |       DashboardRigaDTO.cs
+|   |       RigaCliente.cs
+|   |       
+|   +---DTO
+|   |       AgenteSelectItem.cs
+|   |       
+|   \---Prospetti
+|           ProspettoCobralListaViewModel.cs
+|           ProspettoConfig.cs
+|           RigaReportAnnuale.cs
+|           
+|   |   Calkos.web.csproj.nuget.dgspec.json
+|   |   Calkos.web.csproj.nuget.g.props
+|   |   Calkos.web.csproj.nuget.g.targets
+|   |   project.assets.json
+|   |   
+|   \---Debug
+|       \---net8.0
+|       
+|       
++---Services
+|   |   DashboardProvvigioniService.cs
+|   |   
+|   +---Export
+|   |   |   ExcelExportService.cs
+|   |   |   PdfExportService.cs
+|   |   |   
+|   |   \---Templates
+|   |           AgentiPdfTemplate.cs
+|   |           ClientiPdfTemplate.cs
+|   |           
+|   \---Prospetti
+|           ProspettoConfigService.cs
+|           
++---Views
+|   |   _ViewImports.cshtml
+|   |   _ViewStart.cshtml
+|   |   
+|   +---DashboardProvvigioni
+|   |       Index.cshtml
+|   |       _TabellaProvvigioni.cshtml
+|   |       
+|   +---Error
+|   |       GenericError.cshtml
+|   |       NotFound.cshtml
+|   |       ServerError.cshtml
+|   |       
+|   +---Home
+|   |       Index.cshtml
+|   |       Privacy.cshtml
+|   |       
+|   \---Shared
+|           Error.cshtml
+|           _Layout.cshtml
+|           _Layout.cshtml.css
+|           _LoginPartial.cshtml
+|           _ValidationScriptsPartial.cshtml
+|           
+    |   favicon.ico
+    |   
+    +---css
+    |       site.css
+    |       
+    +---img
+    |       logo.png
+    |       
+    +---js
+    |       site.js
+    |       
+    +---lib
+    |   +---bootstrap
+    |   |   +---css
+   
+    |   |   |       
+    |   |   \---js
+  
+    |   |           
+    |   +---jquery
+    |   |   |   LICENSE.txt
+    |   |   |   
+    |   |   \---dist
+   
+    |   +---jquery-validation
+    |   |   |   LICENSE.md
+    |   |   |   
+    |   |   \---dist
+    |   |           additional-methods.js
+    |   |           additional-methods.min.js
+    |   |           jquery.validate.js
+    |   |           jquery.validate.min.js
+    |   |           
+    |   \---jquery-validation-unobtrusive
+    |           jquery.validate.unobtrusive.js
+    |           jquery.validate.unobtrusive.min.js
+    |           LICENSE.txt
+    |           
+    \---tempCobral
+            
+            
+
+

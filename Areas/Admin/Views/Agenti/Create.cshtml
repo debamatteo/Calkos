@@ -1,0 +1,116 @@
+﻿@model CalkosManager.Domain.Entities.Agente
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuovo Agente";
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi bi-person-plus-fill me-2"></i> @ViewData["Title"]
+    </h3>
+
+    @* 
+      AntiForgeryToken
+      Il Tag Helper <form> di ASP.NET Core inserisce AUTOMATICAMENTE il token.
+       Manteniamo la chiamata esplicita per sicurezza nel caso si usino script custom.
+    *@
+    <form asp-area="Admin" asp-controller="Agenti" asp-action="Save" method="post">
+        @Html.AntiForgeryToken()
+
+        @* IdAgente a 0 indica al controller che è un nuovo inserimento *@
+        <input type="hidden" asp-for="IdAgente" value="0" />
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+                        <label asp-for="Nome" class="form-label fw-bold required-label">Nome</label>
+                        <input asp-for="Nome" class="form-control" placeholder="Inserisci nome" />
+                        <span asp-validation-for="Nome" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Cognome" class="form-label fw-bold required-label">Cognome</label>
+                        <input asp-for="Cognome" class="form-control" placeholder="Inserisci cognome" />
+                        <span asp-validation-for="Cognome" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="PartitaIva" class="form-label fw-bold">Partita IVA</label>
+                        <input asp-for="PartitaIva" class="form-control" maxlength="11" />
+                        <span asp-validation-for="PartitaIva" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="CodiceFiscale" class="form-label fw-bold">Codice Fiscale</label>
+                        <input asp-for="CodiceFiscale" class="form-control" maxlength="16" />
+                        <span asp-validation-for="CodiceFiscale" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label fw-bold">Email</label>
+                        <input asp-for="Email" type="email" class="form-control" placeholder="email@esempio.it" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="PercentualeDefault" class="form-label fw-bold">Provvigione Default (%)</label>
+                        <input asp-for="PercentualeDefault" type="number" step="0.01" class="form-control" />
+                        <span asp-validation-for="PercentualeDefault" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Telefono1" class="form-label fw-bold">Telefono Principale</label>
+                        <input asp-for="Telefono1" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Telefono2" class="form-label fw-bold">Telefono Secondario</label>
+                        <input asp-for="Telefono2" class="form-control" />
+                    </div>
+
+                </div>
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Agente
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY (Coerenza Progetto)
+             * Anche se qui usiamo un form POST standard, configuriamo jQuery AJAX
+             * per supportare eventuali future chiamate asincrone in questa pagina.
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // Inizializzazione eventuali componenti UI
+            if ($.fn.select2) {
+                $('.select2').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%'
+                });
+            }
+        });
+    </script>
+}

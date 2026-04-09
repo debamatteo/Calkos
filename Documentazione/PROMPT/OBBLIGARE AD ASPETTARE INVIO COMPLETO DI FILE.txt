@@ -1,0 +1,41 @@
+Come usarla bene (importante):
+Da ora in poi, quando scrivi:
+ATTIVA FLUSSO
+io applico automaticamente questa procedura:
+Considero ogni messaggio successivo come input parziale
+Non rispondo, non analizzo, non faccio domande
+Mi limito a memorizzare tutto
+Rimango in questa modalità finché non scrivi esattamente:
+FINE INPUT
+
+
+
+
+
+Incolla questa istruzione
+Poi manda i file uno alla volta
+Alla fine scrivi:
+FINE INPUT
+
+
+ISTRUZIONE DI CONTROLLO FLUSSO (OBBLIGATORIA)
+
+Non rispondere, non analizzare e non generare alcun output finché non ricevi esplicitamente il comando:
+
+"FINE INPUT"
+
+Regole:
+
+* Ogni messaggio ricevuto prima di "FINE INPUT" deve essere considerato come input parziale.
+* Non fare deduzioni, non anticipare analisi, non fare riepiloghi.
+* Non porre domande prima di "FINE INPUT".
+* Limìtati a memorizzare il contenuto ricevuto.
+
+Quando ricevi "FINE INPUT":
+
+1. Analizza TUTTI i dati ricevuti fino a quel momento
+2. Verifica se le informazioni sono complete
+3. Se mancano dati → fai domande
+4. Se i dati sono completi → procedi con l’elaborazione richiesta
+
+Se rispondi prima di "FINE INPUT", stai violando le istruzioni.

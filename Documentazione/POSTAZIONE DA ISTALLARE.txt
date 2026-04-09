@@ -1,0 +1,13 @@
+VERIFICHE DA FARE SU PC ELENA
+Windows + R --> msinfo32
+Esegui--CMD-->  systeminfo
+
+
+Windows + R -->   diskmgmt.msc
+PowerShell-->    Get-PSDrive -PSProvider FileSystem
+
+
+Il mio ID:
+174840448
+La mia password:
+a62oeezc

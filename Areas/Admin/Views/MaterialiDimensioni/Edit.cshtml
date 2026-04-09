@@ -1,0 +1,104 @@
+﻿@model CalkosManager.Domain.Entities.MaterialiDimensioni
+
+@inject CalkosManager.Application.Services.MaterialeService MaterialeService
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Modifica Dimensione Materiale";
+
+    var materiali = MaterialeService.GetAll()?.ToList()
+        ?? new List<CalkosManager.Domain.Entities.Materiale>();
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-pencil-square text-warning me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Modifica Dimensione</h1>
+        <small class="text-muted">Aggiorna i dati della dimensione selezionata</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* CORREZIONE: Punti a "Save" invece di "Edit" *@
+        <form asp-action="Save" method="post">
+
+            @* L'IdDimensione è FONDAMENTALE qui per l'UPDATE *@
+            <input type="hidden" asp-for="IdDimensione" />
+
+            @* Riepilogo errori se il salvataggio fallisce *@
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="row g-3">
+
+                <!-- MATERIALI -->
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Materiale</label>
+                    <select asp-for="IdMateriale" class="form-select" id="ddlMateriale">
+                        <option value="">-- Seleziona Materiale --</option>
+                        @foreach (var m in materiali)
+                        {
+                            <option value="@m.IdMateriale">@m.DescrizioneMateriale</option>
+                        }
+                    </select>
+                    <span asp-validation-for="IdMateriale" class="text-danger"></span>
+                </div>
+
+                <!-- TIPO -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Tipo</label>
+                    <input asp-for="Tipo" class="form-control" />
+                    <span asp-validation-for="Tipo" class="text-danger"></span>
+                </div>
+
+                <!-- VALORE -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Valore</label>
+                    <input asp-for="Valore" class="form-control" />
+                    <span asp-validation-for="Valore" class="text-danger"></span>
+                </div>
+
+                <!-- ORDINE -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Ordine</label>
+                    <input asp-for="Ordine" type="number" class="form-control" />
+                    <span asp-validation-for="Ordine" class="text-danger"></span>
+                </div>
+
+            </div>
+
+            <div class="mt-4 d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Indietro
+                </a>
+
+                <button type="submit" class="btn btn-warning fw-bold text-white px-4">
+                    <i class="bi bi-check-circle"></i> Aggiorna
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    @* Validazione client-side *@
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#ddlMateriale').select2({
+                width: '100%',
+                placeholder: "Seleziona materiale",
+                allowClear: true
+            });
+        });
+    </script>
+}

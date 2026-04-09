@@ -1,0 +1,26 @@
+Red Lorry Yellow Lorry
+The Names
+Tomne
+
+MEMORIZZA FILE
+NON RISPONDERE - PARTE 1 DI 2
+
+
+
+
+**OPERAZIONE: BONIFICA MODULO (ANTIFORGERY CENTRALIZZATO)**
+
+Agisci come esperto .NET Core. Analizza i file che ti passerò (Controller o View) e applica esclusivamente le correzioni necessarie per la **gestione centralizzata dell'Antiforgery** (Program.cs + Layout).
+
+**REGOLE DI INTERVENTO:**
+1. **LATO CONTROLLER:** Rimuovi gli attributi `[ValidateAntiForgeryToken]` dai metodi POST (diventati ridondanti).
+2. **LATO VIEW (Salvataggio):** Se c'è un tag `<form>`, rimuovi eventuali `@Html.AntiForgeryToken()` manuali. Assicurati che l'ID del modello sia presente come `input hidden`.
+3. **LATO VIEW (Elenchi/AJAX):** Rimuovi form/input nascosti dedicati solo al token (es. `#antiForgeryForm`). Nelle chiamate `$.post`/`$.ajax`, elimina il parametro del token: deve passare solo l'ID (o i dati di business), poiché l'header viene gestito globalmente.
+4. **INTEGRITÀ:** Non omettere mai porzioni di codice. **MANTYENI TUTTI I MIEI COMMENTI** originali.
+
+**PROCEDI CON IL SEGUENTE FILE:**
+[Incolla qui il codice]
+
+***
+
+**Siamo pronti.** Incolla pure il prossimo file (Controller o View) del modulo su cui vuoi lavorare e applicherò subito questo schema.

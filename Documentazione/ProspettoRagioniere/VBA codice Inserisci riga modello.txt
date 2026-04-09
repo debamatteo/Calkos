@@ -1,0 +1,458 @@
+
+Private Sub cmdDuplicaRigaSelezionata_Click()
+'Duplica la riga selezionata Copiando sia le formule che i Valori
+Call DuplicaRigaSelezionata
+End Sub
+
+Private Sub CmdNuovaRiga_Click()
+'Inserisci una nuova  riga contenente solo le formule ( senza dati) conetenute nella Riga Modello
+Call InserisciRigaDaModello
+End Sub
+
+
+Private Sub CmdEliminaERipristinaRiga_Click()
+'    - EliminaERipristinaRiga: Elimina la riga selezionata e ne aggiunge una nuova
+'      pulita in fondo (riga 1208) usando il Modello.
+Call EliminaERipristinaRiga
+End Sub
+
+
+
+
+Option Explicit
+' ======================================================================================
+' ISTRUZIONI OPERATIVE AGGIORNATE - MODULO "GESTIONE RIGA MODELLO"
+' ======================================================================================
+' 1. CONFIGURAZIONE INIZIALE:
+'    - Modifica 'RIGA_MODELLO' (es. 6) e 'PASSWORD_FOGLIO' (es. "123") nelle costanti sotto.
+'
+' 2. PREPARAZIONE (Solo la prima volta o se cambi struttura):
+'    - Esegui 'PreparaRigaModello_Completa' per pulire la riga 6 e caricarvi le formule.
+'    - Esegui 'ProteggiFoglioPerMacro' per attivare i permessi speciali (UserInterfaceOnly).
+'
+' 3. FUNZIONALITÀ DISPONIBILI:
+'    - InserisciRigaDaModelloConID: Crea riga vuota chiedendo l'ID da mettere in Colonna A.
+'    - DuplicaRigaSelezionata: Copia i dati e le formule della riga attuale in una nuova.
+'    - EliminaERipristinaRiga: Elimina la riga scelta e ne crea una "pulita" in fondo
+'      (posizione 1208) per mantenere costante il numero di righe.
+'
+' 4. CREAZIONE PULSANTI:
+'    - Usa Forme o Pulsanti e assegna le macro. Se il doppio clic apre il VBA,
+'      disattiva "Modalità Progettazione" nella scheda Sviluppo.
+'
+' 5. SALVATAGGIO: Il file DEVE essere salvato come .xlsm (Cartella abilitata per macro).
+' ======================================================================================
+
+
+' --- CONFIGURAZIONE UTENTE ---
+Const RIGA_INIZIO_BLOCCO As Long = 3  ' La prima riga da bloccare (Intestazioni)
+Const RIGA_MODELLO       As Long = 6  ' La riga Master da cui copiare (fissa)
+Const PASSWORD_FOGLIO    As String = ""
+' -----------------------------
+
+Sub ProteggiFoglioPerMacro()
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    
+    ' 1. Sblocca tutto il foglio
+    ws.Cells.Locked = False
+    
+    ' 2. Blocca l'intervallo dalle intestazioni alla riga modello
+    ' Risultato dinamico: blocca dalla riga 4 alla riga 6
+    ws.Rows(RIGA_INIZIO_BLOCCO & ":" & RIGA_MODELLO).Locked = True
+    
+    ' 3. Applica la protezione UserInterfaceOnly
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowInsertingRows:=True, _
+               AllowDeletingRows:=True, _
+               AllowFormattingCells:=True, _
+               AllowFormattingColumns:=True, _
+               AllowFormattingRows:=True, _
+               AllowFiltering:=True
+               
+    MsgBox "PROTEZIONE ATTIVA!" & vbCrLf & _
+           "- Righe da " & RIGA_INIZIO_BLOCCO & " a " & RIGA_MODELLO & " bloccate.", vbInformation
+End Sub
+Sub InserisciRigaDaModelloConID()
+    Dim ws As Worksheet
+    Dim rigaSelezionata As Long
+    Dim nuovoID As Variant
+    
+    Set ws = ActiveSheet
+    rigaSelezionata = Selection.Row
+    
+    ' --- NUOVA PARTE: RICHIESTA ID ---
+    ' Chiede l'ID prima di bloccare lo schermo con ScreenUpdating
+    nuovoID = InputBox("Inserisci il numero Id per la nuova riga:", "Inserimento ID Colonna A")
+    
+    ' Se l'utente preme Annulla, l'InputBox restituisce una stringa vuota
+    If nuovoID = "" Then
+        MsgBox "Inserimento annullato. Nessuna riga inserita.", vbInformation
+        Exit Sub
+    End If
+    ' --------------------------------
+    
+    Application.ScreenUpdating = False
+    
+    On Error GoTo Errore
+    
+    ' 1. SBLOCCO TEMPORANEO
+    ws.Unprotect Password:=PASSWORD_FOGLIO
+    
+    ' 2. Inserimento riga
+    ws.Rows(rigaSelezionata + 1).Insert Shift:=xlDown
+    
+    ' 3. Copia Formule e Formati dal Modello (Riga 6)
+    ws.Rows(RIGA_MODELLO).Copy
+    ws.Rows(rigaSelezionata + 1).PasteSpecial Paste:=xlPasteFormulas
+    ws.Rows(rigaSelezionata + 1).PasteSpecial Paste:=xlPasteFormats
+    
+    ' --- NUOVA PARTE: SCRITTURA ID ---
+    ' Inserisce il valore nella colonna A (colonna 1) della nuova riga
+    ws.Cells(rigaSelezionata + 1, 1).Value = nuovoID
+    ' --------------------------------
+    
+    ' 4. SBLOCCO DELLA NUOVA RIGA
+    ws.Rows(rigaSelezionata + 1).Locked = False
+    
+    ' 5. RIPRISTINO PROTEZIONE
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowInsertingRows:=True, _
+               AllowDeletingRows:=True, _
+               AllowFormattingCells:=True
+    
+    Application.CutCopyMode = False
+    
+    ' Seleziona la cella accanto (Colonna B) per iniziare a scrivere,
+    ' dato che l'ID lo abbiamo già messo.
+    ws.Cells(rigaSelezionata + 1, 2).Select
+    
+    Application.ScreenUpdating = True
+    Exit Sub
+
+Errore:
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowFormattingCells:=True
+    Application.ScreenUpdating = True
+    MsgBox "Errore: " & Err.Description, vbCritical
+End Sub
+Sub InserisciRigaDaModello()
+    Dim ws As Worksheet
+    Dim rigaSelezionata As Long
+    
+    Set ws = ActiveSheet
+    rigaSelezionata = Selection.Row
+    
+    Application.ScreenUpdating = False
+    
+    On Error GoTo Errore
+    
+    ' 1. SBLOCCO TEMPORANEO
+    ws.Unprotect Password:=PASSWORD_FOGLIO
+    
+    ' 2. Inserimento riga
+    ws.Rows(rigaSelezionata + 1).Insert Shift:=xlDown
+    
+    ' 3. Copia Formule e Formati dal Modello (Riga 6)
+    ws.Rows(RIGA_MODELLO).Copy
+    ws.Rows(rigaSelezionata + 1).PasteSpecial Paste:=xlPasteFormulas
+    ws.Rows(rigaSelezionata + 1).PasteSpecial Paste:=xlPasteFormats
+    
+    ' 4. SBLOCCO DELLA NUOVA RIGA (permettendo la scrittura dei dati)
+    ws.Rows(rigaSelezionata + 1).Locked = False
+    
+    ' 5. RIPRISTINO PROTEZIONE CON PERMESSO DI FORMATTAZIONE
+    ' Aggiunto: AllowFormattingCells:=True per permettere Grassetto, Colori, ecc.
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowInsertingRows:=True, _
+               AllowDeletingRows:=True, _
+               AllowFormattingCells:=True ' <--- QUESTA È LA RIGA CHIAVE
+    
+    Application.CutCopyMode = False
+    ws.Cells(rigaSelezionata + 1, 1).Select
+    
+    Application.ScreenUpdating = True
+    Exit Sub
+
+Errore:
+    ' In caso di errore, protegge comunque il foglio con i permessi corretti
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowFormattingCells:=True
+    Application.ScreenUpdating = True
+    MsgBox "Errore: " & Err.Description, vbCritical
+End Sub
+Sub DuplicaRigaSelezionata()
+    Dim ws As Worksheet
+    Dim rigaSelezionata As Long
+    
+    Set ws = ActiveSheet
+    rigaSelezionata = Selection.Row
+    
+    ' Controllo di sicurezza: evita di duplicare righe vuote o intestazioni se necessario
+    If rigaSelezionata < 1 Then Exit Sub
+    
+    Application.ScreenUpdating = False
+    
+    On Error GoTo Errore
+    
+    ' 1. SBLOCCO TEMPORANEO
+    ws.Unprotect Password:=PASSWORD_FOGLIO
+    
+    ' 2. Inserimento di una riga vuota subito sotto quella selezionata
+    ws.Rows(rigaSelezionata + 1).Insert Shift:=xlDown
+    
+    ' 3. COPIA DELLA RIGA SELEZIONATA
+    ' Copiamo la riga corrente (quella dove si trova il cursore)
+    ws.Rows(rigaSelezionata).Copy
+    
+    ' 4. INCOLLA NELLA NUOVA RIGA
+    ' Incolliamo tutto: formule, valori e formati
+    With ws.Rows(rigaSelezionata + 1)
+        .PasteSpecial Paste:=xlPasteFormulas
+        .PasteSpecial Paste:=xlPasteFormats
+        ' Nota: xlPasteFormulas incolla sia le formule che i valori costanti
+    End With
+    
+    ' 5. SBLOCCO DELLA NUOVA RIGA
+    ws.Rows(rigaSelezionata + 1).Locked = False
+    
+    ' 6. RIPRISTINO PROTEZIONE
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowInsertingRows:=True, _
+               AllowDeletingRows:=True, _
+               AllowFormattingCells:=True
+    
+    Application.CutCopyMode = False
+    
+    ' Seleziona la prima cella della nuova riga duplicata
+    ws.Cells(rigaSelezionata + 1, 1).Select
+    
+    Application.ScreenUpdating = True
+    Exit Sub
+
+Errore:
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowFormattingCells:=True
+    Application.ScreenUpdating = True
+    MsgBox "Errore durante la duplicazione: " & Err.Description, vbCritical
+End Sub
+Sub PreparaRigaModello_Completa()
+    Dim ws As Worksheet
+    Dim rigaOrigine As Long
+    Dim rigaDest As Long
+    Dim ultimaCol As Long
+    Dim c As Long
+    
+    ' --- CONFIGURAZIONE ---
+    Set ws = ActiveSheet
+    rigaOrigine = 7 ' La riga dove hai i dati completi oggi
+    rigaDest = 6    ' La riga che diventerà il tuo "Modello Master" protetto
+    ' ----------------------
+
+    Application.ScreenUpdating = False
+    
+    ' 1. Sblocca temporaneamente per permettere la scrittura sul modello
+    ws.Unprotect Password:=PASSWORD_FOGLIO
+    
+    ' Trova l'ultima colonna della riga origine
+    ultimaCol = ws.Cells(rigaOrigine, ws.Columns.Count).End(xlToLeft).Column
+    
+    ' 2. Copia prima l'intero FORMATO (Decimali, Grassetto, Colori, Bordi)
+    ws.Rows(rigaOrigine).Copy
+    ws.Rows(rigaDest).PasteSpecial Paste:=xlPasteFormats
+    
+    ' 3. Ciclo per le formule e pulizia dati
+    For c = 1 To ultimaCol
+        If ws.Cells(rigaOrigine, c).HasFormula Then
+            ' Copia la formula mantenendo i riferimenti relativi corretti (R1C1)
+            ws.Cells(rigaDest, c).FormulaR1C1 = ws.Cells(rigaOrigine, c).FormulaR1C1
+        Else
+            ' Se non è una formula, svuota la cella del modello (deve essere pulita)
+            ws.Cells(rigaDest, c).ClearContents
+        End If
+    Next c
+    
+    ' 4. Protegge la riga modello affinché non venga cancellata per sbaglio
+    ws.Rows(rigaDest).Locked = True
+    
+    ' 5. Riattiva la protezione generale del foglio
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowFormattingCells:=True, _
+               AllowInsertingRows:=True, _
+               AllowDeletingRows:=True
+               
+    Application.CutCopyMode = False
+    Application.ScreenUpdating = True
+    
+    MsgBox "OPERAZIONE COMPLETATA!" & vbCrLf & _
+           "La riga " & rigaDest & " ora contiene Formule e Formati corretti della riga " & rigaOrigine & "." & vbCrLf & _
+           "I dati testuali sono stati rimossi per avere un modello pulito.", vbInformation
+End Sub
+
+
+Sub EliminaERipristinaRiga()
+'    - EliminaERipristinaRiga: Elimina la riga selezionata e ne aggiunge una nuova
+'      pulita in fondo (riga 1208) usando il Modello.
+    Dim ws As Worksheet
+    Dim rigaDaEliminare As Long
+    Const RIGA_FINALE_TABELLA As Long = 1208 ' La riga che deve rimanere l'ultima
+    
+    Set ws = ActiveSheet
+    rigaDaEliminare = Selection.Row
+    
+    ' --- CONTROLLI DI SICUREZZA ---
+    ' Impedisce di eliminare le intestazioni o la riga modello
+    If rigaDaEliminare <= RIGA_MODELLO Then
+        MsgBox "Non puoi eliminare le righe di intestazione o il modello!", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Impedisce di eliminare oltre il limite della tabella
+    If rigaDaEliminare > RIGA_FINALE_TABELLA Then
+        MsgBox "La riga selezionata è fuori dall'area dati.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Richiesta di conferma
+    If MsgBox("Vuoi eliminare la riga " & rigaDaEliminare & " e ripristinarne una vuota in fondo?", _
+              vbQuestion + vbYesNo, "Conferma Eliminazione") = vbNo Then Exit Sub
+              
+    Application.ScreenUpdating = False
+    On Error GoTo Errore
+    
+    ' 1. SBLOCCO TEMPORANEO
+    ws.Unprotect Password:=PASSWORD_FOGLIO
+    
+    ' 2. ELIMINAZIONE DELLA RIGA SELEZIONATA
+    ws.Rows(rigaDaEliminare).Delete
+    
+    ' Dopo l'eliminazione, tutto è salito di una riga.
+    ' Ora inseriamo una riga nuova esattamente alla posizione 1208 (che era diventata 1207)
+    ws.Rows(RIGA_FINALE_TABELLA).Insert Shift:=xlDown
+    
+    ' 3. COPIA DAL MODELLO NELLA NUOVA RIGA IN FONDO
+    ws.Rows(RIGA_MODELLO).Copy
+    With ws.Rows(RIGA_FINALE_TABELLA)
+        .PasteSpecial Paste:=xlPasteFormulas
+        .PasteSpecial Paste:=xlPasteFormats
+        .Locked = False ' Sblocca la nuova riga per l'inserimento dati
+    End With
+    
+    ' 4. RIPRISTINO PROTEZIONE
+    ws.Protect Password:=PASSWORD_FOGLIO, _
+               UserInterfaceOnly:=True, _
+               AllowInsertingRows:=True, _
+               AllowDeletingRows:=True, _
+               AllowFormattingCells:=True
+               
+    Application.CutCopyMode = False
+    Application.ScreenUpdating = True
+    
+    MsgBox "Riga " & rigaDaEliminare & " eliminata. Nuova riga aggiunta alla posizione " & RIGA_FINALE_TABELLA, vbInformation
+    Exit Sub
+
+Errore:
+    ws.Protect Password:=PASSWORD_FOGLIO, UserInterfaceOnly:=True, AllowFormattingCells:=True
+    Application.ScreenUpdating = True
+    MsgBox "Errore: " & Err.Description, vbCritical
+End Sub
+
+
+
+
+
+
+'Sub CopiaSoloFormuleManuale_R1C1()
+'    Dim ws As Worksheet
+'    Dim rigaOrigine As Long
+'    Dim rigaDest As Long
+'    Dim ultimaCol As Long
+'    Dim c As Long
+'    'CopiaSoloFormuleManuale_R1C1 DA ESEGUIRE SOLO LA PRIMA VOLTA PER CREARE LA RIGA MODELLO
+'    Set ws = ActiveSheet
+'
+'    rigaOrigine = 7 ' riga da cui copiare
+'    rigaDest = 6    ' riga modello
+'
+'    ' Trova ultima colonna usata nella riga origine
+'    ultimaCol = ws.Cells(rigaOrigine, ws.Columns.Count).End(xlToLeft).Column
+'
+'    ' Copia solo le formule adattandole alla nuova riga
+'    For c = 1 To ultimaCol
+'        If ws.Cells(rigaOrigine, c).HasFormula Then
+'            ws.Cells(rigaDest, c).FormulaR1C1 = ws.Cells(rigaOrigine, c).FormulaR1C1
+'        Else
+'            ws.Cells(rigaDest, c).ClearContents
+'        End If
+'    Next c
+'
+'    MsgBox "Riga modello pronta e formule corrette!"
+'End Sub
+
+
+'----------------------------------------------------------------------------------------------------------------------------------------------------
+'----------------------------------------------------------------------------------------------------------------------------------------------------
+'CONTROLLO NOMI Allarme "ERRORE KG"
+'----------------------------------------------------------------------------------------------------------------------------------------------------
+'----------------------------------------------------------------------------------------------------------------------------------------------------
+'Allarme "ERRORE KG" ti dice che c'è un problema, ma non ti dice dove.
+'Colorare di rosso il nome del cliente sbagliato ti farebbe risparmiare un sacco di tempo.
+'Per farlo in modo automatico su Excel 2016, devi usare la Formattazione Condizionale. Ecco come impostarla sulla Colonna C (quella dei clienti):
+'
+'1. Seleziona l'area
+'Evidenzia tutte le celle della colonna C dove inserisci i nomi (es. da C7 fino a C1035).
+'
+'2. Imposta la regola
+'Vai nella scheda Home > Formattazione condizionale > Nuova regola...
+'
+'Scegli l 'ultima opzione: "Utilizza una formula per determinare le celle da formattare".
+'
+'Nella casella della formula, incolla questa:
+'
+'Excel
+'=E(C7<>""; CONTA.SE($C$1044:$C$1131; C7)=0)
+'(Assicurati che C7 sia la prima cella dell'area che hai selezionato).
+'
+'3. Scegli il colore
+'Clicca sul tasto Formato...
+'
+'Vai nella scheda Riempimento e scegli il Rosso.
+'
+'Se vuoi, vai nella scheda Carattere e imposta il colore del testo su Bianco (così si legge meglio).
+'
+'Premi OK su tutte le finestre.
+'
+'Cosa fa questa formula in parole semplici?
+'La formula controlla due cose per ogni cella della colonna C:
+'
+'C7<>"": Controlla che la cella non sia vuota (altrimenti colorerebbe di rosso anche le righe che devi ancora compilare).
+'
+'CONTA.SE($C$1044:$C$1131; C7)=0: Cerca il nome del cliente che hai appena scritto nella tabella riassuntiva in basso (quella dei totali). Se il conteggio è zero, significa che il cliente non esiste o è scritto male, e quindi fa scattare il colore rosso.
+'
+'Il vantaggio immediato
+'Se scrivi "Rossi" sopra e sotto c'è scritto "Rossi srl", la cella diventa rossa.
+'
+'Se fai un errore di battitura, diventa rossa.
+'
+'Appena aggiungi il cliente nuovo nella tabella in basso (riga 1044-1131), la cella in alto torna bianca automaticamente.
+'
+'Così, oltre all'avviso "ERRORE KG" in fondo, avrai un segnale visivo immediato proprio dove stai lavorando!
+
+
+
+
+
+
+
+
+
+
+

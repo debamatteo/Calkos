@@ -1,0 +1,262 @@
+﻿@model IEnumerable<CalkosManager.Domain.Entities.Materiale>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestione Materiali";
+}
+
+@* HEADER PAGINA: titolo, icona e descrizione contestuale *@
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-box-seam text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Anagrafica Materiali</h1>
+        <small class="text-muted">Gestione codici e descrizioni dei materiali</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* TOOLBAR: azioni principali (creazione + reset filtri) *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+
+                @* Pulsante per inserimento nuovo materiale *@
+                <a asp-area="Admin" asp-controller="Materiali" asp-action="Create"
+                   class="btn btn-primary fw-bold shadow-sm">
+                    <i class="bi bi-plus-circle me-1"></i> Nuovo Materiale
+                </a>
+
+                @* Reset rapido dei filtri DataTables *@
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+        </div>
+
+        @* STILI PERSONALIZZATI: uniformano header, filtri e hover *@
+        <style>
+            #materialiTable thead tr:first-child th {
+                background-color: #0d6efd !important;
+                color: white !important;
+                border: none !important;
+                padding: 12px 10px !important;
+            }
+
+            #materialiTable thead tr.filters th {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                padding: 8px !important;
+            }
+
+            #materialiTable tbody tr:hover {
+                background-color: #f0f7ff !important;
+                cursor: pointer;
+            }
+
+            .filters input {
+                width: 100%;
+                font-size: 0.75rem;
+                padding: 3px 6px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+            }
+
+            .ps-custom {
+                padding-left: 1.2rem !important;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="materialiTable" class="table table-hover align-middle w-100">
+                <thead>
+
+                    @* RIGA 1: intestazioni principali usate da DataTables *@
+                    <tr>
+                        <th style="display:none;">ID</th>
+                        <th class="ps-custom">Codice</th>
+                        <th>Descrizione</th>
+                        <th>Utente</th>
+                        <th style="width:160px;">Data Inserimento</th>
+                        <th class="text-center" style="width:110px;">Azioni</th>
+                    </tr>
+
+                    @* RIGA 2: filtri per colonna (regex "starts with") *@
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th class="ps-custom"><input type="text" placeholder="Inizia con..." data-col="1" /></th>
+                        <th><input type="text" placeholder="Cerca..." data-col="2" /></th>
+                        <th><input type="text" placeholder="Cerca..." data-col="3" /></th>
+                        <th><input type="text" placeholder="AAAA-MM-GG" data-col="4" /></th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @* RENDERING RIGHE: ogni riga rappresenta un materiale *@
+                    @foreach (var m in Model)
+                    {
+                        <tr data-id="@m.IdMateriale">
+                            <td style="display:none;">@m.IdMateriale</td>
+
+                            @* Codice materiale evidenziato *@
+                            <td class="fw-bold text-dark ps-custom">@m.CodiceMateriale</td>
+
+                            @* Descrizione testuale *@
+                            <td>@m.DescrizioneMateriale</td>
+
+                            @* Utente che ha inserito/modificato *@
+                            <td><small class="text-muted">@m.Utente</small></td>
+
+                            @* Data inserimento formattata *@
+                            <td>@m.DataInserimento.ToString("yyyy-MM-dd HH:mm")</td>
+
+                            @* Azioni: modifica + eliminazione AJAX *@
+                            <td class="text-center text-nowrap">
+                                <a asp-action="Edit" asp-route-id="@m.IdMateriale"
+                                   class="btn btn-link text-warning p-0 me-2"
+                                   title="Modifica materiale">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+
+                                <button type="button"
+                                        class="btn btn-link text-danger p-0"
+                                        onclick="eliminaMateriale(@m.IdMateriale, this)"
+                                        title="Elimina materiale">
+                                    <i class="bi bi-trash-fill fs-5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+@* TOKEN ANTIFORGERY: centralizzato per tutte le chiamate AJAX *@
+<div id="antiForgeryForm" style="display:none;">
+    @Html.AntiForgeryToken()
+</div>
+
+@section Scripts {
+
+    @* Librerie DataTables *@
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+
+            /**
+             * CONFIGURAZIONE ANTIFORGERY
+             * Imposta automaticamente il token in ogni chiamata AJAX.
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken":
+                        $('#antiForgeryForm input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            /**
+             * INIZIALIZZAZIONE DATATABLES
+             * Ordinamento, lingua, colonne non ordinabili e filtri.
+             */
+            var table = $('#materialiTable').DataTable({
+                dom: '<"d-flex justify-content-between mb-2"l>rtip',
+                orderCellsTop: true,
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
+                },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 5, orderable: false, searchable: false }
+                ],
+                order: [[1, 'asc']]
+            });
+
+            /**
+             * FILTRI PER COLONNA
+             * Ricerca con regex "starts with" per coerenza con altre anagrafiche.
+             */
+            $('#materialiTable thead tr.filters input').on('keyup change', function () {
+                var col = $(this).data('col');
+                var val = this.value;
+
+                table.column(col).search(
+                    val ? "^" + val : "",
+                    true,
+                    false
+                ).draw();
+            });
+
+            @* Evita che il click sui filtri attivi l'ordinamento *@
+            $('.filters th').on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            /**
+             * DOPPIO CLICK → EDIT
+             * Navigazione rapida alla pagina di modifica.
+             */
+            $('#materialiTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).closest('a, button').length > 0) return;
+
+                var id = $(this).data('id');
+                if (id) window.location.href = '@Url.Action("Edit", "Materiali")/' + id;
+            });
+        });
+
+        /**
+         * RESET FILTRI
+         * Ripristina la tabella allo stato iniziale.
+         */
+        function resetFiltri() {
+            $('.filters input').val('');
+            $('#materialiTable').DataTable().search('').columns().search('').draw();
+        }
+
+        /**
+         * ELIMINAZIONE MATERIALE (AJAX)
+         * Mostra modale di conferma, invia la richiesta e aggiorna la tabella.
+         */
+        function eliminaMateriale(id, btn) {
+            $('#confirmDeleteModal .modal-body').html(
+                "Sei sicuro di voler eliminare questo materiale?<br>" +
+                "<span class='text-danger fw-bold'>L'operazione è definitiva.</span>"
+            );
+
+            var modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+            modal.show();
+
+            $('#confirmDeleteBtn').off('click').on('click', function () {
+                modal.hide();
+
+                $.post('@Url.Action("Delete", "Materiali")', { id: id })
+                    .done(function (res) {
+                        if (res.success) {
+
+                            @* Rimozione riga da DataTables senza refresh *@
+                            $('#materialiTable').DataTable()
+                                .row($(btn).closest('tr'))
+                                .remove()
+                                .draw(false);
+
+                            $('#modalOperazioneCompletata .modal-body')
+                                .text("Materiale eliminato con successo.");
+
+                            new bootstrap.Modal(document.getElementById('modalOperazioneCompletata')).show();
+                        } else {
+                            alert(res.message || "Errore durante l'eliminazione.");
+                        }
+                    })
+                    .fail(function () {
+                        alert("Errore tecnico durante la richiesta al server.");
+                    });
+            });
+        }
+    </script>
+}

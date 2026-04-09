@@ -1,0 +1,125 @@
+﻿@model CalkosManager.Domain.Entities.Cliente
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = Model.IdCliente == 0 ? "Nuovo Cliente" : "Modifica Cliente";
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-secondary">
+        <i class="bi @(Model.IdCliente == 0 ? "bi-person-plus-fill" : "bi-pencil-square") me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            @* 
+               Il Tag Helper asp-action genera automaticamente il token Antiforgery hidden.
+               Rimosso @Html.AntiForgeryToken() manuale per coerenza con la gestione centralizzata.
+            *@
+            <form asp-action="Save" method="post">
+                <input type="hidden" asp-for="IdCliente" />
+
+                @* Riepilogo errori in alto *@
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="row g-3">
+                    @* Prima Riga: Ragione Sociale (8) e Agente (4) *@
+                    <div class="col-md-8">
+                        <label asp-for="RagioneSociale" class="form-label fw-bold required-label">Ragione Sociale</label>
+                        <input asp-for="RagioneSociale" class="form-control" placeholder="Inserisci il nome dell'azienda o del privato" />
+                        <span asp-validation-for="RagioneSociale" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="IdAgente" class="form-label fw-bold">Agente Riferimento</label>
+                        <select asp-for="IdAgente" class="form-select select2" asp-items="ViewBag.Agenti">
+                            <option value="">-- Nessun Agente --</option>
+                        </select>
+                        <span asp-validation-for="IdAgente" class="text-danger small"></span>
+                    </div>
+
+                    @* Seconda Riga: P.IVA e CF *@
+                    <div class="col-md-6">
+                        <label asp-for="PartitaIva" class="form-label fw-bold">Partita IVA</label>
+                        <input asp-for="PartitaIva" class="form-control" maxlength="11" placeholder="11 cifre" />
+                        <span asp-validation-for="PartitaIva" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CodiceFiscale" class="form-label fw-bold">Codice Fiscale</label>
+                        <input asp-for="CodiceFiscale" class="form-control" maxlength="16" placeholder="Codice Fiscale" style="text-transform: uppercase;" />
+                        <span asp-validation-for="CodiceFiscale" class="text-danger small"></span>
+                    </div>
+
+                    @* Terza Riga: Indirizzo completo *@
+                    <div class="col-md-6">
+                        <label asp-for="Indirizzo" class="form-label fw-bold">Indirizzo</label>
+                        <input asp-for="Indirizzo" class="form-control" placeholder="Via/Piazza e civico" />
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="Citta" class="form-label fw-bold">Città</label>
+                        <input asp-for="Citta" class="form-control" />
+                    </div>
+                    <div class="col-md-1">
+                        <label asp-for="Provincia" class="form-label fw-bold">PR</label>
+                        <input asp-for="Provincia" class="form-control text-center text-uppercase" maxlength="2" />
+                    </div>
+                    <div class="col-md-2">
+                        <label asp-for="CAP" class="form-label fw-bold">CAP</label>
+                        <input asp-for="CAP" class="form-control" maxlength="5" />
+                    </div>
+
+                    @* Quarta Riga: Contatti *@
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label fw-bold">Email / PEC</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="esempio@dominio.it" />
+                        </div>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Telefono" class="form-label fw-bold">Telefono</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                            <input asp-for="Telefono" class="form-control" />
+                        </div>
+                    </div>
+
+                    @* Quinta Riga: Note *@
+                    <div class="col-12">
+                        <label asp-for="Note" class="form-label fw-bold">Note aggiuntive</label>
+                        <textarea asp-for="Note" class="form-control" rows="3" placeholder="Altre informazioni utili..."></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Torna alla lista
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-check-lg"></i> Conferma Salvataggio
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            // Inizializzazione Select2
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: "-- Seleziona --",
+                allowClear: true
+            });
+
+            // Rimosso ajaxSetup locale: il token Antiforgery per eventuali chiamate AJAX
+            // è gestito centralmente dal Layout.
+        });
+    </script>
+}

@@ -6,49 +6,54 @@
 }
 
 <div class="row g-4">
+    @if (User.IsInRole("Admin"))
+    {
+        <!-- CARD: Importa Ordini -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body d-flex align-items-start position-relative">
+                    @* FIX: position-relative per evitare che la dropdown venga tagliata *@
 
-    <!-- CARD: Importa Ordini -->
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body d-flex align-items-start position-relative">
-                @* FIX: position-relative per evitare che la dropdown venga tagliata *@
+                    <i class="bi bi-upload text-success me-3" style="font-size: 2.5rem;"></i>
 
-                <i class="bi bi-upload text-success me-3" style="font-size: 2.5rem;"></i>
+                    <div>
+                        <h5 class="card-title fw-bold">Importa Ordini</h5>
+                        <p class="text-muted mb-3">Carica file Excel</p>
 
-                <div>
-                    <h5 class="card-title fw-bold">Importa Ordini</h5>
-                    <p class="text-muted mb-3">Carica file Excel</p>
+                        <div class="dropdown position-static">
+                            @* FIX: position-static per permettere al menu di uscire dal contenitore *@
 
-                    <div class="dropdown position-static">
-                        @* FIX: position-static per permettere al menu di uscire dal contenitore *@
+                            <button class="btn btn-success btn-sm dropdown-toggle"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                Scegli Mandatario
+                            </button>
 
-                        <button class="btn btn-success btn-sm dropdown-toggle"
-                                type="button"
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false">
-                            Scegli Mandatario
-                        </button>
+                            <ul class="dropdown-menu">
+                                @foreach (var m in Model)
+                                {
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-area="Admin"
+                                           asp-controller="@($"Prospetti{m.CodiceMandatario}")"
+                                           asp-action="Importa"
+                                           asp-route-idMandatario="@m.IdMandatario">
+                                            @m.NomeMandatario
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
 
-                        <ul class="dropdown-menu">
-                            @foreach (var m in Model)
-                            {
-                                <li>
-                                    <a class="dropdown-item"
-                                       asp-area="Admin"
-                                       asp-controller="@($"Prospetti{m.CodiceMandatario}")"
-                                       asp-action="Importa"
-                                       asp-route-idMandatario="@m.IdMandatario">
-                                        @m.NomeMandatario
-                                    </a>
-                                </li>
-                            }
-                        </ul>
                     </div>
-
                 </div>
             </div>
         </div>
-    </div>
+
+
+    }
+
 
 
     <!-- CARD: Lista Ordini -->
@@ -80,7 +85,8 @@
                                     <a class="dropdown-item"
                                        asp-area="Admin"
                                        asp-controller="@($"Prospetti{m.CodiceMandatario}")"
-                                       asp-action="ListaOrdini">
+                                       asp-action="ListaOrdini"
+                                       asp-route-idMandatario="@m.IdMandatario">
                                         @m.NomeMandatario
                                     </a>
                                 </li>
@@ -94,21 +100,17 @@
     </div>
 
 
-    <!-- CARD: Riepilogo Fatture -->
+    <!-- CARD: ReportStatistiche -->
     <div class="col-md-4">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body d-flex align-items-start position-relative">
-                @* FIX: position-relative *@
-
                 <i class="bi bi-receipt text-warning me-3" style="font-size: 2.5rem;"></i>
 
                 <div>
-                    <h5 class="card-title fw-bold">Riepilogo Fatture</h5>
+                    <h5 class="card-title fw-bold">Statistiche</h5>
                     <p class="text-muted mb-3">Totali e aggregazioni</p>
 
                     <div class="dropdown position-static">
-                        @* FIX: position-static *@
-
                         <button class="btn btn-warning btn-sm dropdown-toggle"
                                 type="button"
                                 data-bs-toggle="dropdown"
@@ -123,7 +125,9 @@
                                     <a class="dropdown-item"
                                        asp-area="Admin"
                                        asp-controller="@($"Prospetti{m.CodiceMandatario}")"
-                                       asp-action="RiepilogoFatture">
+                                       asp-action="ReportStatistiche"
+                                       asp-route-idMandatario="@m.IdMandatario"
+                                       asp-route-nomeMandatario="@m.NomeMandatario">
                                         @m.NomeMandatario
                                     </a>
                                 </li>
@@ -137,17 +141,16 @@
     </div>
 
 
-    <!-- CARD: Riepilogo Totali -->
+    <!-- CARD: Dashboard Provvigioni -->
     <div class="col-md-4">
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body d-flex align-items-start position-relative">
-                @* FIX: position-relative *@
 
-                <i class="bi bi-bar-chart text-info me-3" style="font-size: 2.5rem;"></i>
+                <i class="bi bi-graph-up-arrow text-primary me-3" style="font-size: 2.5rem;"></i>
 
                 <div>
-                    <h5 class="card-title fw-bold">Riepilogo Totali</h5>
-                    <p class="text-muted mb-3">Statistiche e KPI</p>
+                    <h5 class="card-title fw-bold">Dashboard Provvigioni</h5>
+                    <p class="text-muted mb-3">Provvigioni Clienti - Agenti</p>
 
                     <div class="dropdown position-static">
                         @* FIX: position-static *@
@@ -158,20 +161,20 @@
                                 aria-expanded="false">
                             Scegli Mandatario
                         </button>
-
-                        <ul class="dropdown-menu">
-                            @foreach (var m in Model)
-                            {
-                                <li>
-                                    <a class="dropdown-item"
-                                       asp-area="Admin"
-                                       asp-controller="@($"Prospetti{m.CodiceMandatario}")"
-                                       asp-action="RiepilogoTotali">
-                                        @m.NomeMandatario
-                                    </a>
-                                </li>
-                            }
-                        </ul>
+                    <ul class="dropdown-menu">
+                        @foreach (var m in Model)
+                        {
+                            <li>
+                                <a class="dropdown-item"
+                                   asp-area=""                    
+                                   asp-controller="DashboardProvvigioni"
+                                   asp-action="Index"
+                                   asp-route-idMandatario="@m.IdMandatario">
+                                    @m.NomeMandatario
+                                </a>
+                            </li>
+                        }
+                    </ul>
                     </div>
 
                 </div>
@@ -180,37 +183,4 @@
     </div>
 
 </div>
-@section Scripts {
-    <!-- Bootstrap JS (se non già nel layout) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-}
-@* <script>
-    // FIX: Script custom per gestire le dropdown SENZA Bootstrap JS
-    // - Apre la dropdown cliccata
-    // - Chiude tutte le altre
-    // - Chiude tutto cliccando fuori
-    document.addEventListener('click', function (e) {
 
-        // Se clicchi su un toggle della dropdown
-        if (e.target.matches('.dropdown-toggle') || e.target.closest('.dropdown-toggle')) {
-
-            const btn = e.target.closest('.dropdown-toggle');
-            const menu = btn.nextElementSibling;
-
-            // Chiudi tutte le altre dropdown aperte
-            document.querySelectorAll('.dropdown-menu.show').forEach(m => {
-                if (m !== menu) m.classList.remove('show');
-            });
-
-            // Apri/chiudi questa
-            menu.classList.toggle('show');
-
-            // Impedisci la propagazione
-            e.stopPropagation();
-        }
-        else {
-            // Click fuori → chiudi tutto
-            document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
-        }
-    });
-</script> *@

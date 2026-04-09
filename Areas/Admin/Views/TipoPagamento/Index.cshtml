@@ -1,0 +1,218 @@
+﻿@model IEnumerable<CalkosManager.Domain.Entities.TipoPagamento>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestione Tipi Pagamento";
+}
+
+@* HEADER: sezione introduttiva della pagina con titolo e descrizione *@
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-credit-card-2-back-fill text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Anagrafica Tipi Pagamento</h1>
+        <small class="text-muted">Gestione delle modalità di pagamento e visualizzazione in dashboard</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* TOOLBAR: pulsanti principali *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <a asp-area="Admin" asp-controller="TipoPagamento" asp-action="Create"
+                   class="btn btn-primary fw-bold shadow-sm">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Nuovo Tipo Pagamento
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+        </div>
+
+        <style>
+            /* STILE UNIFORMATO: Header Blu e righe pulite (Mirror Agenti) */
+            #pagamentoTable thead tr:first-child th {
+                background-color: #0d6efd !important;
+                color: white !important;
+                border: none !important;
+                padding: 12px 10px !important;
+            }
+
+            #pagamentoTable thead tr.filters th {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                padding: 8px !important;
+            }
+
+            #pagamentoTable tbody tr:hover {
+                background-color: #f0f7ff !important;
+                cursor: pointer;
+            }
+
+            .filters input {
+                width: 100%;
+                font-size: 0.75rem;
+                padding: 3px 6px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+            }
+
+            .ps-custom {
+                padding-left: 1.2rem !important;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="pagamentoTable" class="table table-hover align-middle w-100">
+                <thead>
+                    @* RIGA 1: intestazioni colonna *@
+                    <tr>
+                        <th style="display:none;">ID</th>                 @* Index 0 *@
+                        <th class="ps-custom">Descrizione Pagamento</th>  @* Index 1 *@
+                        <th class="text-center">Visibile Dashboard</th>  @* Index 2 *@
+                        <th class="text-center" style="width:110px;">Azioni</th> @* Index 3 *@
+                    </tr>
+
+                    @* RIGA 2: filtri *@
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th class="ps-custom"><input type="text" placeholder="Cerca descrizione..." data-col="1" /></th>
+                        <th></th> @* Filtro Dash non necessario o dropdown *@
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr data-id="@item.IdTipoPagamento">
+                            <td style="display:none;">@item.IdTipoPagamento</td>
+                            <td class="fw-bold text-dark ps-custom">@item.DescrizioneTipoPagamento</td>
+                            <td class="text-center">
+                                @if (item.VisualizzaInDashboard)
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Sì</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-muted border">No</span>
+                                }
+                            </td>
+
+                            <td class="text-center text-nowrap">
+                                <a asp-action="Edit" asp-route-id="@item.IdTipoPagamento"
+                                   class="btn btn-link text-warning p-0 me-2"
+                                   title="Modifica">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-link text-danger p-0"
+                                        onclick="eliminaPagamento(@item.IdTipoPagamento, this)"
+                                        title="Elimina">
+                                    <i class="bi bi-trash-fill fs-5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+@* Token antifrode per richieste AJAX *@
+<div id="antiforgery-container" style="display:none;">
+    @Html.AntiForgeryToken()
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+
+            // Centralizzazione Antiforgery (Mirror Agenti)
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('#antiforgery-container input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // Inizializzazione DataTables
+            var table = $('#pagamentoTable').DataTable({
+                dom: '<"d-flex justify-content-between mb-2"l>rtip',
+                orderCellsTop: true,
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
+                },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 3, orderable: false, searchable: false }
+                ],
+                order: [[1, 'asc']]
+            });
+
+            // Filtri Standard
+            $('#pagamentoTable thead tr.filters input').on('keyup change', function () {
+                var colIndex = $(this).data('col');
+                var searchVal = this.value;
+                table.column(colIndex).search(
+                    searchVal ? "^" + searchVal : "",
+                    true,
+                    false
+                ).draw();
+            });
+
+            $('.filters th').on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            // Doppio click → Edit
+            $('#pagamentoTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).closest('a, button').length > 0) return;
+                var id = $(this).data('id');
+                if (id) window.location.href = '@Url.Action("Edit", "TipoPagamento")/' + id;
+            });
+        });
+
+        function resetFiltri() {
+            $('.filters input').val('');
+            $('#pagamentoTable').DataTable().search('').columns().search('').draw();
+        }
+
+        function eliminaPagamento(id, btn) {
+            // Utilizzo la stessa struttura del modal presente nel layout
+            $('#confirmDeleteModal .modal-body').html("Sei sicuro di voler eliminare questo tipo di pagamento?<br><span class='text-danger fw-bold'>L'operazione è definitiva.</span>");
+
+            var modalConferma = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+            modalConferma.show();
+
+            $('#confirmDeleteBtn').off('click').on('click', function () {
+                modalConferma.hide();
+
+                $.post('@Url.Action("Delete", "TipoPagamento")', { id: id })
+                    .done(function (res) {
+                        if (res.success) {
+                            $('#pagamentoTable').DataTable()
+                                .row($(btn).closest('tr'))
+                                .remove()
+                                .draw(false);
+
+                            $('#modalOperazioneCompletata .modal-body').text("Tipo pagamento eliminato con successo.");
+                            var modalSuccesso = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+                            modalSuccesso.show();
+                        } else {
+                            alert(res.message || "Errore durante l'eliminazione.");
+                        }
+                    })
+                    .fail(function() {
+                        alert("Errore tecnico durante la richiesta al server.");
+                    });
+            });
+        }
+    </script>
+}

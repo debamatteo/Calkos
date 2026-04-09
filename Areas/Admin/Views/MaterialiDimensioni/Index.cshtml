@@ -1,0 +1,268 @@
+﻿@model IEnumerable<CalkosManager.Domain.Entities.MaterialiDimensioni>
+
+@inject CalkosManager.Application.Services.MaterialeService MaterialeService
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Dimensioni Materiali";
+
+    var materiali = MaterialeService.GetAll()?.ToList()
+        ?? new List<CalkosManager.Domain.Entities.Materiale>();
+}
+
+<!-- HEADER PAGINA -->
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-rulers text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Dimensioni Materiali</h1>
+        <small class="text-muted">Gestione delle dimensioni associate ai materiali</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        <!-- TOOLBAR -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <a asp-area="Admin" asp-controller="MaterialiDimensioni" asp-action="Create"
+                   class="btn btn-success fw-bold shadow-sm">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Nuova Dimensione
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+        </div>
+
+        <style>
+            #dimensioniTable thead tr:first-child th {
+                background-color: #0d6efd !important;
+                color: white !important;
+                border: none !important;
+                padding: 12px 10px !important;
+            }
+
+            #dimensioniTable thead tr.filters th {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                padding: 6px 8px !important;
+            }
+
+            #dimensioniTable tbody tr:hover {
+                background-color: #e7f1ff !important;
+                cursor: pointer;
+            }
+
+            .filters input,
+            .filters select {
+                width: 100%;
+                font-size: 0.8rem;
+                padding: 3px 6px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                height: 30px;
+                box-sizing: border-box;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="dimensioniTable" class="table table-hover align-middle w-100">
+                <thead>
+                    <!-- Riga intestazioni -->
+                    <tr>
+                        <th style="display:none;">ID</th>
+                        <th>Materiale</th>
+                        <th>Tipo</th>
+                        <th>Valore</th>
+                        <th>Ordine</th>
+                        <th class="text-center" style="width:110px;">Azioni</th>
+                    </tr>
+                    <!-- Riga filtri -->
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th>
+                            <select id="filterMateriale">
+                                <option value="">— Tutti —</option>
+                                @foreach (var m in materiali)
+                                {
+                                    <option value="@m.DescrizioneMateriale.Trim()">@m.DescrizioneMateriale.Trim()</option>
+                                }
+                            </select>
+                        </th>
+                        <th><input type="text" id="filterTipo" placeholder="Filtra Tipo..." /></th>
+                        <th><input type="text" id="filterValore" placeholder="Filtra Valore..." /></th>
+                        <th><input type="text" id="filterOrdine" placeholder="Filtra Ordine..." /></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in Model)
+                    {
+                        var materiale = materiali.FirstOrDefault(m => m.IdMateriale == d.IdMateriale);
+                        var nomeM = materiale?.DescrizioneMateriale?.Trim() ?? "";
+                        <tr data-id="@d.IdDimensione">
+                            <td style="display:none;">@d.IdDimensione</td>
+                            <td class="fw-bold">@nomeM</td>
+                            <td>@d.Tipo</td>
+                            <td>@d.Valore</td>
+                            <td>@d.Ordine</td>
+                            <td class="text-center text-nowrap">
+                                <a asp-action="Edit" asp-route-id="@d.IdDimensione"
+                                   class="btn btn-link text-warning p-0 me-2">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+                                <button type="button" class="btn btn-link text-danger p-0"
+                                        onclick="eliminaDimensione(@d.IdDimensione, this)">
+                                    <i class="bi bi-trash-fill fs-5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    <!-- DataTables: solo da datatables.net (funziona senza problemi CORS) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+
+        let idDaEliminare = 0;
+        let rigaDaRimuovere = null;
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Lingua italiana inline — nessuna chiamata CDN esterna
+        var itIT = {
+            "emptyTable":     "Nessun dato disponibile",
+            "info":           "Da _START_ a _END_ di _TOTAL_ elementi",
+            "infoEmpty":      "Nessun elemento",
+            "infoFiltered":   "(filtrati da _MAX_ totali)",
+            "lengthMenu":     "Mostra _MENU_ elementi",
+            "loadingRecords": "Caricamento...",
+            "processing":     "Elaborazione...",
+            "search":         "Cerca:",
+            "zeroRecords":    "Nessun risultato trovato",
+            "paginate": {
+                "first":    "Inizio",
+                "last":     "Fine",
+                "next":     "Successivo",
+                "previous": "Precedente"
+            }
+        };
+
+        $(document).ready(function () {
+
+            // Inizializzazione DataTables
+            var table = $('#dimensioniTable').DataTable({
+                dom: '<"d-flex justify-content-between align-items-center mb-2"l>rtip',
+                orderCellsTop: true,
+                language: itIT,
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 5, orderable: false, searchable: false }
+                ],
+                order: [[4, 'asc']]
+            });
+
+            // Filtro colonna Materiale — select nativo, match esatto
+            $('#filterMateriale').on('change', function () {
+                var val = $(this).val();
+                table.column(1).search(
+                    val ? '^' + escapeRegex(val) + '$' : '',
+                    true,   // regex
+                    false   // smart search off
+                ).draw();
+            });
+
+            // Filtro colonna Tipo
+            $('#filterTipo').on('keyup change', function () {
+                var val = $(this).val().trim();
+                table.column(2).search(val ? '^' + escapeRegex(val) : '', true, false).draw();
+            });
+
+            // Filtro colonna Valore
+            $('#filterValore').on('keyup change', function () {
+                var val = $(this).val().trim();
+                table.column(3).search(val ? '^' + escapeRegex(val) : '', true, false).draw();
+            });
+
+            // Filtro colonna Ordine
+            $('#filterOrdine').on('keyup change', function () {
+                var val = $(this).val().trim();
+                table.column(4).search(val ? '^' + escapeRegex(val) : '', true, false).draw();
+            });
+
+            // Doppio click → navigazione Edit
+            $('#dimensioniTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).closest('a, button').length > 0) return;
+                var id = $(this).data('id');
+                if (id) window.location.href = '/Admin/MaterialiDimensioni/Edit/' + id;
+            });
+
+            // Conferma eliminazione (modale del layout)
+            $('#confirmDeleteBtn').on('click', function () {
+                eseguiEliminazione();
+            });
+        });
+
+        // Reset tutti i filtri
+        function resetFiltri() {
+            $('#filterMateriale').val('');
+            $('#filterTipo').val('');
+            $('#filterValore').val('');
+            $('#filterOrdine').val('');
+            $('#dimensioniTable').DataTable().search('').columns().search('').draw();
+        }
+
+        // Apre modale di conferma eliminazione
+        function eliminaDimensione(id, btn) {
+            idDaEliminare = id;
+            rigaDaRimuovere = $(btn).closest('tr');
+            var info = rigaDaRimuovere.find('td.fw-bold').first().text().trim();
+            $('#confirmDeleteModal .modal-body').html(
+                'Sei sicuro di voler eliminare la dimensione del materiale:<br><strong>' + info + '</strong>?'
+            );
+            new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+        }
+
+        // Esegue eliminazione via AJAX
+        function eseguiEliminazione() {
+            if (idDaEliminare === 0) return;
+
+            $.post('/Admin/MaterialiDimensioni/Delete', { id: idDaEliminare })
+                .done(function (res) {
+                    bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal')).hide();
+
+                    if (res.success) {
+                        $('#dimensioniTable').DataTable()
+                            .row(rigaDaRimuovere)
+                            .remove()
+                            .draw(false);
+
+                        $('#modalOperazioneCompletata .modal-body').text('Dimensione eliminata con successo.');
+                        new bootstrap.Modal(document.getElementById('modalOperazioneCompletata')).show();
+                    } else {
+                        alert(res.message || "Errore durante l'eliminazione.");
+                    }
+                })
+                .fail(function () {
+                    alert("Errore tecnico nella comunicazione con il server.");
+                })
+                .always(function () {
+                    idDaEliminare = 0;
+                    rigaDaRimuovere = null;
+                });
+        }
+
+    </script>
+}

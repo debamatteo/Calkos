@@ -1,0 +1,192 @@
+﻿@model Calkos.web.Models.Dashboard.DashboardProvvigioniViewModel
+
+@* ==========================================================================================
+   SEZIONE 1: RIEPILOGO TOTALI CLIENTI (Per Mandatario/Cobral)
+   ========================================================================================== *@
+<h3 class="mt-5 mb-3 fw-bold text-secondary d-flex align-items-center">
+    <i class="bi bi-people-fill me-2"></i> Riepilogo Totali Clienti
+</h3>
+
+<div class="row g-3">
+    @foreach (var gruppo in Model.ClientiPerPagamento)
+    {
+        var tipoPagamento = gruppo.Key;
+        var righe = gruppo.Value;
+
+        <div class="col-12 col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Pagamento @tipoPagamento</strong>
+                        <div>
+                            <span class="badge bg-light text-dark me-1">
+                                Q.tà: @Model.FormatNumero(righe.Sum(x => x.Quantita))
+                            </span>
+                            <span class="badge bg-light text-dark">
+                                Imp.: @Model.FormatEuro(righe.Sum(x => x.CommissioniTotali))
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-start">
+@*                         <button type="button" class="btn btn-sm btn-warning fw-bold btn-emetti-fattura"
+                                data-table="@tipoPagamento">
+                            <i class="bi bi-receipt"></i> Fattura
+                        </button> *@
+                        <button type="button"
+                                class="btn btn-sm btn-warning fw-bold btn-emetti-fattura @(User.IsInRole("Admin") ? "" : "disabled opacity-50")"
+                                data-table="@tipoPagamento"
+                                @(User.IsInRole("Admin") ? "" : "disabled")>
+                            <i class="bi bi-receipt"></i> Fattura
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light text-danger btn-stampa-pdf"
+                                data-table="@tipoPagamento" data-type="clienti">
+                            <i class="bi bi-filetype-pdf"></i> PDF
+                        </button>
+
+                        <button type="button" class="btn btn-sm btn-light text-success btn-stampa-excel"
+                                data-table="@tipoPagamento" data-type="clienti">
+                            <i class="bi bi-filetype-xlsx"></i> Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <table class="table table-striped table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:40px; text-align:center;">
+                                    <input type="checkbox" class="select-all" data-table="@tipoPagamento" checked />
+                                </th>
+                                <th>Cliente</th>
+                                <th class="text-end">Quantità</th>
+                                <th class="text-end">Importo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in righe)
+                            {
+                                <tr class="riga-fattura" data-idcliente="@r.IdCliente" data-idtipopagamento="@r.IdTipoPagamento">
+                                    <td style="text-align:center;">
+                                        <input type="checkbox" class="row-check" data-table="@tipoPagamento" data-id="@r.IdCliente" checked />
+                                    </td>
+                                    <td>@r.NomeCliente</td>
+                                    <td class="text-end">@Model.FormatNumero(r.Quantita)</td>
+                                    @* Cella Importo: Indice 3 per lo script JS *@
+                                    <td class="text-end">@Model.FormatEuro(r.CommissioniTotali)</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="2">TOTALE</th>
+                                <th class="text-end">@Model.FormatNumero(righe.Sum(x => x.Quantita))</th>
+                                <th class="text-end">@Model.FormatEuro(righe.Sum(x => x.CommissioniTotali))</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<hr class="my-5" />
+
+@* ==========================================================================================
+   SEZIONE 2: DETTAGLIO PROVVIGIONI AGENTI
+   ========================================================================================== *@
+<h3 class="mb-3 fw-bold text-secondary d-flex align-items-center">
+    <i class="bi bi-person-badge-fill me-2"></i> Dettaglio Provvigioni Agenti
+</h3>
+
+@{
+    var gruppiPerAgente = Model.ProvvigioniPerPagamento
+        .SelectMany(g => g.Value)
+        .GroupBy(r => r.AgenteDescrizione)
+        .OrderBy(g => g.Key);
+}
+
+@foreach (var agenteGroup in gruppiPerAgente)
+{
+    var nomeAgente = agenteGroup.Key;
+
+    <h4 class="mt-4">
+        <span class="badge bg-success fs-6 px-3 py-2">@nomeAgente</span>
+    </h4>
+
+    <div class="row g-3 mt-1">
+        @foreach (var pagamentoGroup in agenteGroup.GroupBy(r => r.TipoPagamento))
+        {
+            var tipoPagamento = pagamentoGroup.Key;
+            var righeAgente = pagamentoGroup.ToList();
+
+            <div class="col-12 col-md-6">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong>Pagamento @tipoPagamento</strong>
+                            <div>
+                                <span class="badge bg-light text-dark me-1">
+                                    Tot. Q.tà: @Model.FormatNumero(righeAgente.Sum(x => x.Quantita))
+                                </span>
+                                <span class="badge bg-light text-dark me-1">
+                                    Tot. Imp.: @Model.FormatEuro(righeAgente.Sum(x => x.CommissioniTotali))
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    @* MODIFICATO: Utilizzo ValoreProvvigioneAgente per il totale *@
+                                    Tot. Provv.: @Model.FormatEuro(righeAgente.Sum(x => x.ValoreProvvigioneAgente))
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-start">
+                            <button type="button" class="btn btn-sm btn-light text-danger btn-stampa-pdf"
+                                    data-table="@tipoPagamento" data-type="agenti">
+                                <i class="bi bi-filetype-pdf"></i> PDF
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light text-success btn-stampa-excel"
+                                    data-table="@tipoPagamento" data-type="agenti">
+                                <i class="bi bi-filetype-xlsx"></i> Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <table class="table table-striped table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th class="text-end">Quantità</th>
+                                    <th class="text-end">Importo</th>
+                                    <th class="text-end">Provvigione Agente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in righeAgente)
+                                {
+                                    <tr>
+                                        <td>@r.NomeCliente</td>
+                                        <td class="text-end">@Model.FormatNumero(r.Quantita)</td>
+                                        <td class="text-end">@Model.FormatEuro(r.CommissioniTotali)</td>
+                                        @* MODIFICATO: Utilizzo ValoreProvvigioneAgente per la singola riga *@
+                                        <td class="text-end">@Model.FormatEuro(r.ValoreProvvigioneAgente)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-secondary">
+                                <tr>
+                                    <th>TOTALE</th>
+                                    <th class="text-end">@Model.FormatNumero(righeAgente.Sum(x => x.Quantita))</th>
+                                    <th class="text-end">@Model.FormatEuro(righeAgente.Sum(x => x.CommissioniTotali))</th>
+                                    @* MODIFICATO: Utilizzo ValoreProvvigioneAgente per il totale footer *@
+                                    <th class="text-end">@Model.FormatEuro(righeAgente.Sum(x => x.ValoreProvvigioneAgente))</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,63 @@
+﻿@{
+    ViewData["Title"] = "Report Statistiche " + ViewBag.NomeMandatario;
+}
+
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fa fa-chart-line me-2"></i>
+            Report Statistiche: @ViewBag.NomeMandatario
+        </h5>
+    </div>
+
+    <div class="card-body">
+
+        <form asp-action="EsportaStatisticheExcel" method="get">
+
+            <input type="hidden" name="mandatario" value="@ViewBag.NomeMandatario" />
+            <input type="hidden" name="idMandatario" value="@ViewBag.IdMandatario" />
+
+            <div class="row g-4">
+
+                <!-- ANNO -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Anno</label>
+                    <select name="anno" class="form-select">
+                        @for (int i = DateTime.Now.Year; i >= 2020; i--)
+                        {
+                            <option value="@i">@i</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- TIPO REPORT -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Tipo Report</label>
+                    <select name="tipo" class="form-select">
+                        <option value="RiepilogoClienti">Riepilogo Clienti</option>
+                        <option value="RiepilogoFatture">Riepilogo Fatture</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- BOTTONE SOTTO -->
+            <div class="row mt-3">
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100 py-2">
+                        <i class="fa fa-play me-2"></i> Esegui Report
+                    </button>
+                </div>
+            </div>
+
+
+        </form>
+
+    </div>
+
+    <div class="card-footer text-end">
+        <a href="javascript:history.back()" class="btn btn-secondary">
+            <i class="fa fa-arrow-right me-1"></i> Indietro
+        </a>
+    </div>
+</div>

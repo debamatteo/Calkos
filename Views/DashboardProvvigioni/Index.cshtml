@@ -1,0 +1,539 @@
+﻿@* ============================================================
+   VIEW: DashboardProvvigioni/Index.cshtml
+   SCOPO: Dashboard principale per la gestione e visualizzazione
+          delle provvigioni degli agenti, con supporto a:
+          - Filtri dinamici (Anno, Mese, Agente, Stato Fatturazione)
+          - Caricamento tabella via AJAX senza ricaricare la pagina
+          - Esportazione PDF / Excel delle righe selezionate
+          - Emissione fatture con conferma modale e download automatico
+   DIPENDENZE:
+          - Bootstrap 5 (layout, modali, spinner)
+          - Bootstrap Icons 1.11.1 (icone UI)
+          - Modali centralizzate nel _Layout.cshtml:
+              · #confirmResetModal   → conferma emissione fattura
+              · #modalOperazioneCompletata → feedback successo operazione
+   AUTORE: [Team Sviluppo]
+   ============================================================ *@
+
+@model Calkos.web.Models.Dashboard.DashboardProvvigioniViewModel
+
+@{
+    ViewData["Title"] = "Dashboard Provvigioni";
+}
+
+@* Bootstrap Icons CDN: caricato a livello di view perché usato solo qui. *@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+@* ---------------------------------------------------------------
+   ANTIFORGERY TOKEN
+   Il token viene generato lato server e iniettato come input hidden
+   nel DOM. Viene poi letto dal JavaScript tramite getAntiforgeryToken()
+   e passato manualmente negli header di ogni chiamata fetch().
+   
+   ATTENZIONE: $.ajaxSetup() di jQuery NON copre le chiamate fetch().
+   In questo file usiamo esclusivamente fetch() (API nativa del browser),
+   quindi il token va sempre aggiunto a mano in ogni richiesta POST.
+--------------------------------------------------------------- *@
+@Html.AntiForgeryToken()
+
+<div class="container-fluid px-4 py-3">
+
+    @* ---------------------------------------------------------------
+       METADATI PER COMUNICAZIONE JS ↔ C#
+       Questo div funge da "ponte" tra il Model Razor e il JavaScript.
+       I valori vengono serializzati come attributi data-* e letti dal JS
+       senza bisogno di ViewBag o chiamate API aggiuntive.
+       Vengono aggiornati dinamicamente dopo ogni ricarica AJAX della tabella.
+    --------------------------------------------------------------- *@
+    <div id="dashboard-data"
+         data-idmandatario="@Model.IdMandatario"
+         data-nomemandatario="@(Model.Mandatari?.FirstOrDefault(m => m.IdMandatario == Model.IdMandatario)?.Nome ?? "Mandatario")"
+         data-anno="@Model.Anno"
+         data-mese="@Model.Mese"
+         data-fatturata="@Model.Fatturata">
+    </div>
+
+    <div class="row">
+
+        @* ===============================================================
+           SEZIONE FILTRI (colonna laterale sinistra)
+           Form GET classico, intercettato via JavaScript per eseguire
+           il submit come chiamata AJAX invece di un full page reload.
+           I filtri disponibili sono: Anno, Mese, Agente, Stato Fatturazione.
+           I dropdown Agente e Stato Fatturazione aggiornano la tabella
+           automaticamente al cambio valore (onchange → caricaTabellaAjax).
+        =============================================================== *@
+        <div class="col-12 col-md-3 col-lg-2">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">Filtri</div>
+                <div class="card-body">
+                    <form id="filtro-form" method="get" asp-action="Index">
+
+                        @* --- Filtro Anno: input numerico libero --- *@
+                        <div class="mb-3">
+                            <label class="form-label">Anno</label>
+                            <input type="number" name="anno" value="@Model.Anno" class="form-control" />
+                        </div>
+
+                        @* --- Filtro Mese: valori da ViewBag.Mesi (List<SelectListItem>) --- *@
+                        <div class="mb-3">
+                            <label class="form-label">Mese</label>
+                            <select name="mese" class="form-select">
+                                @foreach (var mese in (List<SelectListItem>)ViewBag.Mesi)
+                                {
+                                    <option value="@mese.Value"
+                                            selected="@(mese.Value == Model.Mese.ToString())">
+                                        @mese.Text
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        @* --- Filtro Agente: opzione "Tutti" + lista dal ViewModel --- *@
+                        <div class="mb-3">
+                            <label class="form-label">Agente</label>
+                            <select name="idAgente" class="form-select">
+                                <option value="">-- Tutti gli Agenti --</option>
+                                @foreach (var agente in Model.Agenti)
+                                {
+                                    <option value="@agente.IdAgente"
+                                            selected="@(Model.IdAgente == agente.IdAgente)">
+                                        @agente.AgenteDescrizione
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        @* --- Filtro Stato Fatturazione: Tutti / Non Fatturati / Fatturati --- *@
+                        <div class="mb-3">
+                            <label class="form-label">Stato Fatturazione</label>
+                            <select name="fatturata" class="form-select">
+                                <option value="-1" selected="@(Model.Fatturata == -1)">Tutti</option>
+                                <option value="0" selected="@(Model.Fatturata == 0)">Non Fatturati</option>
+                                <option value="1" selected="@(Model.Fatturata == 1)">Fatturati</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Applica filtri</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        @* ===============================================================
+           SEZIONE PRINCIPALE (colonna destra)
+           Contiene il titolo e il container AJAX della tabella provvigioni.
+           La partial view "_TabellaProvvigioni" viene caricata sia al
+           primo render (server-side) sia ad ogni aggiornamento AJAX.
+        =============================================================== *@
+        <div class="col-12 col-md-9 col-lg-10">
+            <h2 class="mb-4 text-primary">
+                <i class="bi bi-speedometer2"></i> Dashboard Provvigioni
+            </h2>
+
+            @* Container target per il refresh AJAX della tabella.
+               L'opacity viene animata durante il caricamento per dare
+               feedback visivo all'utente senza bloccare l'interfaccia. *@
+            <div id="tabella-ajax-container">
+                @await Html.PartialAsync("_TabellaProvvigioni", Model)
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ================================================================
+        // VARIABILI DI STATO GLOBALI (scope del modulo)
+        // - payloadEmissione: dati preparati per la POST di emissione fattura.
+        //   Viene popolato al click di .btn-emetti-fattura e consumato dal
+        //   listener del bottone di conferma nella modale.
+        // - tableIdCorrente: id della tabella attiva al momento dell'emissione,
+        //   usato per costruire il nome del file Excel da scaricare.
+        // ================================================================
+        let payloadEmissione  = null;
+        let tableIdCorrente   = "";
+
+        // ----------------------------------------------------------------
+        // getAntiforgeryToken()
+        // Legge il token antifalsificazione dall'input hidden generato da
+        // @Html.AntiForgeryToken(). Necessario perché fetch() non eredita
+        // la configurazione di $.ajaxSetup() usata altrove con jQuery.
+        // Va passato nell'header "RequestVerificationToken" di ogni POST.
+        // ----------------------------------------------------------------
+        function getAntiforgeryToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        }
+
+        // ================================================================
+        // caricaTabellaAjax()
+        // Esegue il submit del form filtri come chiamata AJAX (GET),
+        // aggiorna il container della tabella con l'HTML restituito e
+        // sincronizza i metadati nel div #dashboard-data.
+        // Viene chiamata:
+        //   - al submit del form filtri (onsubmit intercettato)
+        //   - al cambio di Agente o Stato Fatturazione (onchange)
+        //   - dopo un'emissione fattura completata con successo (refresh)
+        // ================================================================
+        function caricaTabellaAjax() {
+            const container = document.getElementById("tabella-ajax-container");
+            const form      = document.querySelector("#filtro-form");
+            if (!container || !form) return;
+
+            // Feedback visivo: semitrasparenza durante il caricamento
+            container.style.opacity = "0.3";
+
+            // Costruiamo la querystring dai campi del form + flag isAjax
+            const formData = new URLSearchParams(new FormData(form));
+            formData.append("isAjax", "true");
+
+            fetch(`${form.action}?${formData.toString()}`, {
+                method: "GET",
+                headers: {
+                    // Consente al Controller di distinguere le richieste AJAX
+                    // da quelle normali tramite Request.Headers["X-Requested-With"]
+                    "X-Requested-With": "XMLHttpRequest",
+                    // Token incluso anche nelle GET per uniformità di sicurezza
+                    "RequestVerificationToken": getAntiforgeryToken()
+                }
+            })
+            .then(r => r.text())
+            .then(html => {
+                // Sostituisce il contenuto del container con la partial aggiornata
+                container.innerHTML  = html;
+                container.style.opacity = "1";
+
+                // Sincronizzazione metadati: aggiorniamo #dashboard-data
+                // con i valori attualmente selezionati nei filtri, così che
+                // i successivi click su "Emetti Fattura" o "Stampa" usino
+                // sempre i parametri corretti anche dopo un refresh AJAX.
+                const dashData = document.getElementById("dashboard-data");
+                dashData.dataset.anno      = document.querySelector("input[name='anno']").value;
+                dashData.dataset.mese      = document.querySelector("select[name='mese']").value;
+                dashData.dataset.fatturata = document.querySelector("select[name='fatturata']").value;
+
+                // Ri-aggancia tutti gli event listener alla nuova DOM
+                initEvents();
+            });
+        }
+
+        // ================================================================
+        // initEvents()
+        // Centralizza il binding degli eventi su tutti gli elementi
+        // interattivi della tabella. Va chiamata ogni volta che il DOM
+        // della tabella viene riscritto da caricaTabellaAjax(), perché
+        // addEventListener non sopravvive alla sostituzione di innerHTML.
+        //
+        // Gestisce:
+        //   1. Checkbox "Seleziona Tutti" per tabella
+        //   2. Bottoni Stampa PDF / Excel
+        //   3. Bottone Emetti Fattura (apertura modale di conferma)
+        // ================================================================
+        function initEvents() {
+
+            // ------------------------------------------------------------
+            // 1. CHECKBOX "SELEZIONA TUTTI"
+            // Ogni tabella ha il proprio .select-all con data-table="<id>".
+            // Al click, seleziona/deseleziona tutte le .row-check della
+            // stessa tabella, usando data-table come discriminante.
+            // ------------------------------------------------------------
+            document.querySelectorAll(".select-all").forEach(selectAll => {
+                selectAll.onclick = function () {
+                    const tableId = this.dataset.table;
+                    document.querySelectorAll(`.row-check[data-table='${tableId}']`)
+                        .forEach(chk => chk.checked = selectAll.checked);
+                };
+            });
+
+            // ------------------------------------------------------------
+            // 2. BOTTONI STAMPA PDF / EXCEL
+            // Apertura in nuova scheda dell'endpoint di esportazione.
+            // Il tipo di export (clienti/agenti) e il formato (pdf/excel)
+            // vengono letti dai data attribute del bottone.
+            // Le righe selezionate vengono passate come stringa CSV di ID.
+            // Per le esportazioni "clienti" è obbligatoria almeno una riga.
+            // ------------------------------------------------------------
+            document.querySelectorAll(".btn-stampa-pdf, .btn-stampa-excel").forEach(btn => {
+                btn.onclick = function () {
+                    const dashData  = document.getElementById("dashboard-data");
+                    const anno      = dashData.dataset.anno;
+                    const mese      = dashData.dataset.mese;
+                    const fatturata = dashData.dataset.fatturata;
+                    const tableId   = this.dataset.table;
+                    const tipo      = this.dataset.type;
+                    const formato   = this.classList.contains("btn-stampa-pdf") ? "pdf" : "excel";
+
+                    // Raccoglie gli ID delle righe selezionate nella tabella corrente
+                    const selected = Array.from(
+                        document.querySelectorAll(`.row-check[data-table='${tableId}']:checked`)
+                    ).map(chk => chk.dataset.id);
+
+                    // Validazione: i clienti richiedono selezione esplicita
+                    if (tipo === "clienti" && selected.length === 0) {
+                        alert("Seleziona almeno una riga.");
+                        return;
+                    }
+
+                    // Risoluzione dell'action in base a tipo e formato
+                    const action = tipo === "clienti"
+                        ? (formato === "pdf" ? "EsportaClientiPdf"  : "EsportaClientiExcel")
+                        : (formato === "pdf" ? "EsportaAgentiPdf"   : "EsportaAgentiExcel");
+
+                    // Costruzione URL e apertura in nuova scheda (download diretto)
+                    const url = `/DashboardProvvigioni/${action}`
+                        + `?tableId=${tableId}`
+                        + `&righe=${selected.join(",")}`
+                        + `&anno=${anno}&mese=${mese}&fatturata=${fatturata}`;
+
+                    window.open(url, "_blank");
+                };
+            });
+
+            // ------------------------------------------------------------
+            // 3. BOTTONE EMETTI FATTURA
+            // Al click prepara il payload con i dati delle righe selezionate
+            // e apre la #confirmResetModal (centralizzata nel _Layout)
+            // personalizzandone titolo, corpo e testo del bottone.
+            //
+            // TECNICA "cloneNode" per evitare accumulo di listener:
+            // Il bottone #confirmResetBtn è condiviso tra tutte le view che
+            // usano la modale. Se aggiungessimo addEventListener ogni volta
+            // senza rimuovere il precedente, il click eseguirebbe la funzione
+            // N volte (una per ogni apertura della modale).
+            // Soluzione: cloniamo il bottone (il clone non ha listener),
+            // lo sostituiamo nel DOM, e aggiungiamo { once: true } così il
+            // listener si auto-rimuove dopo il primo utilizzo.
+            // ------------------------------------------------------------
+            document.querySelectorAll(".btn-emetti-fattura").forEach(btn => {
+                btn.onclick = function (e) {
+                    e.preventDefault();
+
+                    // Blocco per utenti non Admin (bottone marcato .disabled via C#)
+                    if (this.classList.contains("disabled")) return;
+
+                    tableIdCorrente = this.dataset.table;
+                    const righeCheck = document.querySelectorAll(
+                        `.row-check[data-table='${tableIdCorrente}']:checked`
+                    );
+
+                    if (righeCheck.length === 0) {
+                        alert("Seleziona almeno un cliente.");
+                        return;
+                    }
+
+                    // Helper: converte il testo di una cella da formato IT
+                    // (es. "1.234,56 €") a float JavaScript (1234.56)
+                    const parseNumberIT = (td) => {
+                        const text = td.innerText.trim()
+                            .replace("€", "")
+                            .replace(/\./g, "")
+                            .replace(",", ".");
+                        return parseFloat(text) || 0;
+                    };
+
+                    // Costruzione array righe da inviare al server.
+                    // Leggiamo i valori direttamente dalle celle della tabella
+                    // per evitare discrepanze con dati in memoria.
+                    const righeDati = Array.from(righeCheck).map(chk => {
+                        const row = chk.closest("tr");
+                        return {
+                            IdCliente:           parseInt(chk.dataset.id),
+                            Quantita:            parseNumberIT(row.cells[2]),
+                            CommissioniTotali:   parseNumberIT(row.cells[3]),
+                            IdTipoPagamento:     parseInt(row.dataset.idtipopagamento || 0)
+                        };
+                    });
+
+                    // Payload completo per l'endpoint ImpostaComeFatturate
+                    const dashData = document.getElementById("dashboard-data");
+                    payloadEmissione = {
+                        RigheSelezionate: righeDati,
+                        IdMandatario:     parseInt(dashData.dataset.idmandatario),
+                        Anno:             parseInt(dashData.dataset.anno),
+                        Mese:             parseInt(dashData.dataset.mese)
+                    };
+
+                    // --- Personalizzazione modale #confirmResetModal ---
+                    const modalEl = document.getElementById("confirmResetModal");
+                    modalEl.querySelector(".modal-title").innerText = "Conferma Emissione Fattura";
+                    modalEl.querySelector(".modal-body").innerHTML  =
+                        `Sei sicuro di voler emettere la fattura per `
+                        + `<strong>${righeDati.length}</strong> cliente/i selezionati?`;
+
+                    // Aggiorniamo testo e stile del bottone di conferma
+                    // per contestualizzarlo all'operazione corrente
+                    const btnConfirm = document.getElementById("confirmResetBtn");
+                    btnConfirm.innerText  = "Emetti Fattura";
+                    btnConfirm.className  = "btn btn-warning fw-bold";
+
+                    // --- Tecnica cloneNode: pulizia listener precedenti ---
+                    // Clonare il nodo rimuove tutti i listener esistenti,
+                    // garantendo che il click esegua SOLO eseguiEmissioneFattura
+                    // e non handler di operazioni precedenti ancora in memoria.
+                    const btnClone = btnConfirm.cloneNode(true);
+                    btnConfirm.parentNode.replaceChild(btnClone, btnConfirm);
+
+                    // { once: true }: il listener si auto-rimuove dopo il primo click,
+                    // così non rimane "appeso" se l'utente chiude la modale senza confermare
+                    btnClone.addEventListener("click", eseguiEmissioneFattura, { once: true });
+
+                    new bootstrap.Modal(modalEl).show();
+                };
+            });
+        }
+
+        // ================================================================
+        // eseguiEmissioneFattura()
+        // Esegue la chiamata POST verso ImpostaComeFatturate con il payload
+        // preparato al click del bottone Emetti Fattura.
+        //
+        // Flusso:
+        //   1. Disabilita il bottone di conferma + mostra spinner
+        //   2. POST JSON con antiforgery token manuale
+        //   3. In caso di successo: scarica il Blob Excel + mostra feedback
+        //   4. In caso di errore: alert con messaggio
+        //   5. finally: ripristina UI e azzera lo stato globale
+        //
+        // NOTA SULLA MEMORIA:
+        //   Dopo il download del Blob, l'URL temporaneo viene revocato con
+        //   revokeObjectURL() per liberare immediatamente la memoria del browser.
+        //   Senza questa chiamata, l'URL rimane in memoria fino alla chiusura
+        //   della scheda.
+        // ================================================================
+        function eseguiEmissioneFattura() {
+            if (!payloadEmissione) return;
+
+            const btnConfirm  = document.getElementById("confirmResetBtn");
+            const originalHTML = btnConfirm.innerHTML;
+
+            // Feedback visivo: disabilita il bottone e mostra spinner Bootstrap
+            btnConfirm.disabled  = true;
+            btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Elaborazione...';
+
+            fetch("/DashboardProvvigioni/ImpostaComeFatturate", {
+                method: "POST",
+                headers: {
+                    "Content-Type":              "application/json",
+                    // Token antiforgery: obbligatorio per i POST in ASP.NET Core.
+                    // Non viene aggiunto automaticamente da fetch(), a differenza
+                    // di $.ajax() che lo legge dal cookie se configurato via
+                    // $.ajaxSetup(). Qui lo iniettamo manualmente dal DOM.
+                    "RequestVerificationToken":  getAntiforgeryToken()
+                },
+                body: JSON.stringify(payloadEmissione)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Risposta server non valida: " + response.status);
+                // Il server restituisce direttamente il file Excel come stream binario
+                return response.blob();
+            })
+            .then(blob => {
+                // Chiude la modale di conferma prima di avviare il download
+                bootstrap.Modal.getInstance(
+                    document.getElementById("confirmResetModal")
+                ).hide();
+
+                // Crea un URL temporaneo per il Blob e simula il click su un link
+                // per avviare il download automatico senza aprire nuove schede
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a       = document.createElement("a");
+                a.href        = blobUrl;
+                a.download    = `Fatturazione_${tableIdCorrente}.xlsx`;
+                a.click();
+
+                // Pulizia: revoca l'URL temporaneo per liberare memoria
+                window.URL.revokeObjectURL(blobUrl);
+
+                // Mostra la modale di successo centralizzata nel _Layout
+                const successModalEl = document.getElementById("modalOperazioneCompletata");
+                successModalEl.querySelector(".modal-body").innerText =
+                    "Processo di fatturazione completato. Il file Excel è stato generato.";
+                new bootstrap.Modal(successModalEl).show();
+
+                // Aggiorna la tabella per riflettere il nuovo stato di fatturazione
+                caricaTabellaAjax();
+            })
+            .catch(err => {
+                alert("Errore durante l'emissione: " + err.message);
+            })
+            .finally(() => {
+                // Ripristina sempre il bottone e azzerai il payload,
+                // indipendentemente dal risultato (successo o errore)
+                btnConfirm.disabled  = false;
+                btnConfirm.innerHTML = originalHTML;
+                payloadEmissione     = null;
+            });
+        }
+
+        // ================================================================
+        // INIZIALIZZAZIONE AL CARICAMENTO DOM
+        // DOMContentLoaded garantisce che tutti gli elementi siano disponibili
+        // prima del binding degli eventi. Configura:
+        //   - initEvents(): listener sulla tabella iniziale (server-side render)
+        //   - form submit: intercettato per AJAX invece di reload completo
+        //   - onchange agente/fatturata: aggiornamento automatico tabella
+        // ================================================================
+        document.addEventListener("DOMContentLoaded", function () {
+            // Binding iniziale (la tabella è già nel DOM dal render server)
+            initEvents();
+
+            // Intercetta il submit del form filtri: invece di ricaricare la pagina,
+            // esegue caricaTabellaAjax() che aggiorna solo il container tabella
+            document.querySelector("#filtro-form").onsubmit = function (e) {
+                e.preventDefault();
+                caricaTabellaAjax();
+            };
+
+            // I dropdown Agente e Stato Fatturazione aggiornano la tabella
+            // automaticamente al cambio di valore, senza premere "Applica filtri"
+            document.querySelectorAll("select[name='fatturata'], select[name='idAgente']").forEach(el => {
+                el.onchange = () => caricaTabellaAjax();
+            });
+        });
+    </script>
+}
+
+@* ================================================================
+   RIEPILOGO FUNZIONALITÀ DELLA VIEW
+   ================================================================
+
+   ✔ FILTRI (form GET intercettato via AJAX)
+       · Anno (input numerico)
+       · Mese (dropdown da ViewBag.Mesi)
+       · Agente (dropdown da Model.Agenti, con opzione "Tutti")
+       · Stato Fatturazione (Tutti / Non Fatturati / Fatturati)
+       · Submit manuale o automatico (onchange Agente/Fatturata)
+
+   ✔ TABELLA PROVVIGIONI (partial _TabellaProvvigioni)
+       · Primo render: server-side con Html.PartialAsync
+       · Aggiornamenti successivi: AJAX con innerHTML replacement
+       · Feedback visivo durante caricamento (opacity 0.3 → 1)
+
+   ✔ SELEZIONE RIGHE
+       · Checkbox "Seleziona Tutti" per tabella (data-table)
+       · Checkbox singole .row-check per selezione granulare
+
+   ✔ ESPORTAZIONE
+       · PDF clienti/agenti: apertura in nuova scheda
+       · Excel clienti/agenti: apertura in nuova scheda
+       · Endpoint: EsportaClienti/AgentiPdf/Excel
+
+   ✔ EMISSIONE FATTURA
+       · Selezione righe → preparazione payload JSON
+       · Conferma via #confirmResetModal (layout centralizzato)
+       · POST con antiforgery token manuale (fetch API)
+       · Download automatico file Excel risultante
+       · Feedback successo via #modalOperazioneCompletata
+       · Refresh automatico tabella dopo emissione
+
+   ✔ HELPER JS
+       · getAntiforgeryToken(): lettura token da input hidden
+       · parseNumberIT(): parsing numeri formato italiano (€ 1.234,56)
+       · Tecnica cloneNode su confirmResetBtn: evita accumulo listener
+
+   ✔ SICUREZZA
+       · Antiforgery token su ogni POST
+       · Blocco .btn-emetti-fattura per utenti non Admin (.disabled check)
+
+================================================================ *@

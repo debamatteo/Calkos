@@ -1,20 +1,12 @@
-﻿@model IEnumerable<CalkosManager.Domain.Entities.ProspettoCobral>
+﻿
+@model Calkos.web.Models.ViewModels.Prospetti.ProspettoCobralListaViewModel
+
+@* AGGIUNTO PER ANTIFORGERY CENTRALIZZATO  05/04/2026 *@
+@Html.AntiForgeryToken()
 
 @{
-    /*
-     * VIEW: Lista Ordini COBRAL
-     *
-     * Questa pagina mostra:
-     * - tutti gli ordini COBRAL
-     * - oppure solo quelli relativi a un file importato (idFileImportato)
-     *
-     * La lista è popolata dal controller ProspettiCobralController.
-     */
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Lista Ordini COBRAL";
-}
-
-@* Recupero la Sessione *@
-@{
     int idMandatario = Context.Session.GetInt32("IdMandatario") ?? 0;
 }
 
@@ -26,171 +18,503 @@
     </div>
 </div>
 
+@* ============================================================
+   FILTRI DI RICERCA (Anno, Mese, File)
+   ============================================================ *@
+<div class="row g-3 mb-4 align-items-end" id="areaFiltri">
+    <input type="hidden" id="filtroidMandatario" value="@ViewBag.IdMandatario" />
+    <input type="hidden" id="filtroidFileImportato" value="@ViewBag.IdFileImportato" />
+
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Anno</label>
+        <select name="anno" id="filtroAnno" class="form-select border-primary">
+            <option value="">Tutti</option>
+            @for (int a = DateTime.Now.Year - 5; a <= DateTime.Now.Year + 1; a++)
+            {
+                <option value="@a" selected="@(ViewBag.Anno == a)">@a</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Mese</label>
+        <select name="mese" id="filtroMese" class="form-select border-primary">
+            <option value="">Tutti</option>
+            @for (int m = 1; m <= 12; m++)
+            {
+                <option value="@m" selected="@(ViewBag.Mese == m)">
+                    @System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetMonthName(m)
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label fw-bold text-primary">Stato Fatturazione</label>
+        <select name="fatturata" id="filtroFatturata" class="form-select border-primary">
+            <option value="-1" selected="@(ViewBag.Fatturata == null)">Tutti i record</option>
+            <option value="0" selected="@(ViewBag.Fatturata?.ToString() == "0")">Solo NON Fatturate</option>
+            <option value="1" selected="@(ViewBag.Fatturata?.ToString() == "1")">Solo Fatturate</option>
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-danger">Visualizzazione</label>
+        <select name="mostraEliminati" id="filtroEliminati" class="form-select border-danger">
+            <option value="false" selected="@(ViewBag.MostraEliminati == false)">Record Attivi</option>
+            <option value="true" selected="@(ViewBag.MostraEliminati == true)">Cestino (Eliminati)</option>
+        </select>
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="button" id="btnResetDinamico" class="btn btn-outline-secondary w-100" style="height: 38px;">
+            <i class="bi bi-arrow-counterclockwise me-2"></i> Reset Filtri
+        </button>
+    </div>
+</div>
+
 <div class="card shadow-sm border-0">
     <div class="card-body">
+        <style>
+            #ordiniTable tbody tr:hover {
+                background-color: #e8f1ff !important;
+                cursor: pointer;
+            }
 
-        @if (Model == null || !Model.Any())
-        {
-            <div class="alert alert-info">
-                Nessun ordine trovato per questo file.
-            </div>
-        }
-        else
-        {
-            <style>
-                #ordiniTable tbody tr:hover {
-                    background-color: #e8f1ff !important;
-                    cursor: pointer;
-                }
-            </style>
+            .row-deleted {
+                background-color: #f8d7da !important;
+                color: #6c757d !important;
+                text-decoration: line-through;
+            }
+        </style>
 
-            <table id="ordiniTable" class="table table-striped table-hover">
+        <div class="d-flex gap-2 mb-3">
+            <a href="/Admin/ProspettiCobral/Nuovo" class="btn btn-primary mb-3">
+                <i class="bi bi-plus-circle"></i> Nuova riga
+            </a>
+            <a href="/Admin/ProspettiCobral/ExportExcelProspettoListaOrdini?idMandatario=@ViewBag.IdMandatario&idFileImportato=@ViewBag.IdFileImportato&anno=@ViewBag.Anno&mese=@ViewBag.Mese&fatturata=@ViewBag.Fatturata"
+               class="btn btn-primary mb-3">
+                <i class="bi bi-file-earmark-excel"></i> Esporta Excel
+            </a>
+            <a href="/Admin/ProspettiCobral/ExportPdfProspettoListaOrdini?idMandatario=@ViewBag.IdMandatario&idFileImportato=@ViewBag.IdFileImportato&anno=@ViewBag.Anno&mese=@ViewBag.Mese&fatturata=@ViewBag.Fatturata"
+               class="btn btn-primary mb-3">
+                <i class="bi bi-file-earmark-pdf"></i> Esporta PDF
+            </a>
+        </div>
 
-                <thead class="table-dark">
+        <table id="ordiniTable" class="table table-striped table-hover align-middle table-custom-header">
+            <thead>
+                <tr>
+                    <th style="display:none;">ID</th>
 
-                    <!-- Intestazioni -->
-                    <tr>
-                        <th style="display:none;">ID</th> <!-- colonna ID nascosta -->
-                        <th>Ordine</th>
-                        <th>DDT</th>
-                        <th>Fattura</th>
-                        <th>Cliente</th>
-                        <th>Materiale</th>
-                        <th>Kg</th>
-                        <th>Commissioni €</th>
-                        <th>Data</th>
-                        <th style="width: 60px;">Azioni</th>
-                    </tr>
-
-                    <!-- Filtri colonna -->
-                    <tr class="filters">
-                        <th style="display:none;"></th> @* filtro ID nascosto *@
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra Ordine" /></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra DDT" /></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra Fattura" /></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra Cliente" /></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra Materiale" /></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra Kg" /></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra Comm." /></th>
-                        <th><input type="text" class="form-control form-control-sm" placeholder="Filtra Data" /></th>
-                        <th></th> @* colonna Azioni, senza filtro *@
-                    </tr>
-
-
-                </thead>
-
-                <tbody>
-                    @foreach (var p in Model)
+                    @foreach (var col in Model.Colonne)
                     {
-                        <tr data-id="@p.IdProspettoCobral">
-                            @* Aggiunge data-id="@p.IdProspettoCobral" direttamente nel tag <tr>. *@
-                            <td style="display:none;">@p.IdProspettoCobral</td> <!-- nascosta -->
-                            <td>@p.NumeroOrdine</td>
-                            <td>@p.NumeroDDT</td>
-                            <td>@p.NumeroFattura</td>
-                            <td>@p.RagioneSociale</td>
-                            <td>@p.DescrizioneMateriale</td>
-                            <td>@p.Quantita</td>
-                            <td>@p.ValoreCommissioni</td>
-                            <td>@p.DataConsegnaIpotetica?.ToShortDateString()</td>
-
-                            <!-- Colonna Azioni -->
-                            <td class="text-center">
-                                <a href="/Admin/ProspettiCobral/DettaglioOrdine/@p.IdProspettoCobral"
-                                   class="text-primary"
-                                   title="Vedi dettaglio">
-                                    <i class="bi bi-eye-fill" style="font-size: 1.2rem;"></i>
-                                </a>
-                            </td>
-                        </tr>
+                        if (col.Visible)
+                        {
+                            <th>@col.Label</th>
+                        }
                     }
-                </tbody>
-            </table>
-        }
+                    <th style="width: 120px;" class="text-center">Azioni</th>
+                </tr>
+                <tr class="filters">
+                    <th style="display:none;"></th>
+                    @foreach (var col in Model.Colonne)
+                    {
+                        if (col.Visible)
+                        {
+                            <th>
+                                <input type="text" class="form-control form-control-sm" placeholder="Filtra @col.Label" />
+                            </th>
+                        }
+                    }
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
 
-        <a href="/Admin/ProspettiCobral/Importa?idMandatario=@idMandatario"
-           class="btn btn-secondary mt-3">
+        <a href="/Admin/ProspettiCobral/Importa?idMandatario=@idMandatario" class="btn btn-primary mb-3">
             Importa un nuovo file COBRAL
         </a>
-
     </div>
 </div>
 
 @section Scripts {
-
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-    <!-- Popper (richiesto da Bootstrap 5 per dropdown) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
-
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
-
-    <!-- DataTables -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-    <!-- Buttons -->
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
-
-    <!-- Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
-
-    <!-- PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
-
-    <!-- Script DataTables con filtri colonna -->
     <script>
+        // ============================================================
+        // VARIABILI GLOBALI PER LE MODALI DI CONFERMA
+        // ============================================================
+        let deleteId  = null;
+        let deleteRow = null;
+        let resetId   = null;
+        let resetRow  = null;
+
+        // Nuove variabili per gestire ripristino ed eliminazione database tramite modale
+        let ripristinaId = null;
+        let deleteDefinitivoId = null;
+
         $(document).ready(function () {
 
+            /**
+             * ============================================================
+             * CENTRALIZZAZIONE ANTIFORGERY 05/04/2026
+             * ============================================================
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // ----------------------------------------------------------
+            // 1. COSTRUZIONE DINAMICA DELLA CONFIGURAZIONE COLONNE
+            // ----------------------------------------------------------
+            var colConfig = [
+                { data: 'IdProspettoCobral', visible: false }
+            ];
+
+            @foreach (var col in Model.Colonne)
+            {
+                    if (col.Visible)
+                    {
+                            var colName = col.Name;
+                            var colFormat = col.Format;
+                            var isNumeric = col.Format.Contains("decimal") || col.Format.Contains("currency");
+                            <text>
+                            colConfig.push({
+                                data: '@colName',
+                                className: '@(isNumeric ? "text-end" : "")',
+                                render: function (data, type, row) {
+                                    if (data === null || data === undefined) return '';
+
+                                    if ('@colName' === 'Fatturata') {
+                                        return data == 1
+                                            ? '<span class="badge bg-success">Si</span>'
+                                            : '<span class="badge bg-secondary">No</span>';
+                                    }
+
+                                    if ('@colFormat' === 'date' || '@colName'.toLowerCase().indexOf('data') !== -1) {
+                                        var d = new Date(data);
+                                        return isNaN(d.getTime()) ? data : d.toLocaleDateString('it-IT');
+                                    }
+
+                                    if ('@colFormat'.indexOf('currency') !== -1 || '@colFormat'.indexOf('decimal') !== -1) {
+                                        var val = parseFloat(data);
+                                        if (isNaN(val)) return data;
+                                        var formatted = val.toLocaleString('it-IT', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                        return formatted;
+                                    }
+
+                                    return data;
+                                }
+                            });
+                            </text>
+                    }
+            }
+
+            colConfig.push({
+                data: null,
+                orderable: false,
+                className: 'text-center text-nowrap',
+                render: function (data, type, row) {
+                    return generaBottoniAzione(row);
+                }
+            });
+
+            // ----------------------------------------------------------
+            // 2. INIZIALIZZAZIONE DATATABLES CON AJAX
+            // ----------------------------------------------------------
             var table = $('#ordiniTable').DataTable({
-
-                dom: 'Bfrtip',
-                buttons: [
-                    'excelHtml5',
-                    'pdfHtml5',
-                    'print'
-                ],
-
-                pageLength: 10,
-                paging: true,
-                lengthChange: true,
-                info: true,
-
+                dom: 'lrtip',
+                orderCellsTop: true,
+                fixedHeader: true,
+                pageLength: 25,
+                lengthMenu: [10, 25, 50, 100],
+                serverSide: false,
+                processing: true,
                 language: {
                     url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
                 },
-
-                columnDefs: [
-                    { targets: 0, visible: false, searchable: false } // ID nascosto
-                ]
+                ajax: {
+                    url: '/Admin/ProspettiCobral/ListaOrdiniJson',
+                    type: 'GET',
+                    data: function (d) {
+                        d.anno = $('#filtroAnno').val();
+                        d.mese = $('#filtroMese').val();
+                        d.fatturata = $('#filtroFatturata').val();
+                        d.mostraEliminati = $('#filtroEliminati').val();
+                        d.idMandatario = $('#filtroidMandatario').val();
+                        d.idFileImportato = $('#filtroidFileImportato').val();
+                    }
+                },
+                columns: colConfig,
+                createdRow: function (row, data) {
+                    if (data.IsDeleted) {
+                        $(row).addClass('row-deleted');
+                    }
+                    $(row).attr('data-id', data.IdProspettoCobral);
+                },
+                order: []
             });
 
-            // Filtri colonna
-            $('#ordiniTable thead tr.filters th').each(function (i) {
-                $('input', this).on('keyup change', function () {
-                    table.column(i).search(this.value).draw();
+            // ----------------------------------------------------------
+            // 3. FILTRI IN CIMA ALLA PAGINA
+            // ----------------------------------------------------------
+            $('#filtroAnno, #filtroMese, #filtroFatturata, #filtroEliminati').on('change', function () {
+                table.ajax.reload(null, false);
+            });
+
+            $('#btnResetDinamico').on('click', function () {
+                $('#filtroAnno').val('');
+                $('#filtroMese').val('');
+                $('#filtroFatturata').val('-1');
+                $('#filtroEliminati').val('false');
+                table.ajax.reload(null, false);
+            });
+
+            // ----------------------------------------------------------
+            // 4. FILTRI VELOCI PER COLONNA
+            // ----------------------------------------------------------
+            $('#ordiniTable thead tr.filters th').on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            table.columns().every(function (index) {
+                var column = this;
+                $('tr.filters th').eq(index).find('input').on('keyup change', function () {
+                    if (column.search() !== this.value) {
+                        column.search(this.value).draw();
+                    }
                 });
             });
 
-            // Doppio click → dettaglio ordine
+            // ----------------------------------------------------------
+            // 5. DOPPIO CLICK SU RIGA
+            // ----------------------------------------------------------
             $('#ordiniTable tbody').on('dblclick', 'tr', function (e) {
-
                 if ($(e.target).is('input, button, a, i')) return;
-
                 var id = $(this).data('id');
-
                 if (id) {
                     window.location.href = '/Admin/ProspettiCobral/DettaglioOrdine/' + id;
                 }
             });
 
-        });
-    </script>
+            /**
+             * 6. GESTIONE PULSANTE CONFERMA CANCELLAZIONE (SOFT E DEFINITIVA)
+             * Il pulsante 'confirmDeleteBtn' è condiviso tra la cancellazione logica e quella fisica.
+             */
+            var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function () {
+                    // Caso A: Eliminazione Definitiva (Database)
+                    if (deleteDefinitivoId) {
+                        $.ajax({
+                            url: '/Admin/ProspettiCobral/CancellaAjaxDatabase',
+                            type: 'POST',
+                            data: { id: deleteDefinitivoId },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.row($(`#ordiniTable tbody tr[data-id="${deleteDefinitivoId}"]`)).remove().draw();
+                                    $('#modalOperazioneCompletata .modal-body').text('Record eliminato definitivamente dal database.');
+                                    new bootstrap.Modal(document.getElementById('modalOperazioneCompletata')).show();
+                                } else {
+                                    alert('Errore: ' + res.error);
+                                }
+                            }
+                        });
+                        deleteDefinitivoId = null; // Reset ID dopo operazione
+                    }
+                    // Caso B: Cancellazione Soft (Spostamento nel cestino)
+                    else if (deleteId) {
+                        $.ajax({
+                            url: '/Admin/ProspettiCobral/CancellaAjax',
+                            type: 'POST',
+                            data: { id: deleteId },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.row(deleteRow).remove().draw();
+                                    if (typeof showToast === 'function') showToast('Riga cancellata con successo');
+                                } else {
+                                    alert('Errore durante la cancellazione');
+                                }
+                            }
+                        });
+                        deleteId = null; // Reset ID dopo operazione
+                    }
+                    bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal')).hide();
+                });
+            }
 
+            /**
+             * 7. GESTIONE PULSANTE CONFERMA RESET (FATTURAZIONE E RIPRISTINO)
+             * Il pulsante 'confirmResetBtn' gestisce sia il reset fattura che il ripristino dal cestino.
+             */
+            var confirmResetBtn = document.getElementById('confirmResetBtn');
+            if (confirmResetBtn) {
+                confirmResetBtn.addEventListener('click', function () {
+                    // Caso A: Ripristino record eliminato
+                    if (ripristinaId) {
+                        $.ajax({
+                            url: '/Admin/ProspettiCobral/RipristinaAjax',
+                            type: 'POST',
+                            data: { id: ripristinaId },
+                            success: function (res) {
+                                if (res.success) {
+                                    location.reload(); // Reload necessario per aggiornare visualizzazione filtri/stati
+                                } else {
+                                    alert('Errore durante il ripristino');
+                                }
+                            }
+                        });
+                        ripristinaId = null;
+                    }
+                    // Caso B: Reset stato fatturazione
+                    else if (resetId) {
+                        $.ajax({
+                            url: '/Admin/ProspettiCobral/ResetFatturazioneAjax',
+                            type: 'POST',
+                            data: { id: resetId },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.ajax.reload(null, false);
+                                    if (typeof showToast === 'function') showToast('Stato fatturazione resettato');
+                                } else {
+                                    alert('Errore durante il reset fatturazione');
+                                }
+                            }
+                        });
+                        resetId = null;
+                    }
+                    bootstrap.Modal.getInstance(document.getElementById('confirmResetModal')).hide();
+                });
+            }
+
+        }); // Fine document.ready
+
+        // ============================================================
+        // FUNZIONI GLOBALI PER LE AZIONI SULLE RIGHE
+        // ============================================================
+
+        function generaBottoniAzione(row) {
+            let id = row.IdProspettoCobral;
+
+            if (row.IsDeleted) {
+                return `
+                    <a href="javascript:void(0)" onclick="ripristinaRiga(${id})"
+                       class="text-success me-2" title="Ripristina">
+                        <i class="bi bi-arrow-up-left-circle-fill"></i>
+                    </a>
+                    <a href="javascript:void(0)" onclick="cancellaDefinitivoDatabase(${id})"
+                       class="text-danger" title="Elimina definitivamente">
+                        <i class="bi bi-trash3-fill"></i>
+                    </a>`;
+            }
+
+            let html = `
+                <a href="/Admin/ProspettiCobral/DettaglioOrdine/${id}"
+                   class="text-primary me-2" title="Dettaglio">
+                    <i class="bi bi-eye-fill"></i>
+                </a>
+                <a href="javascript:void(0)" onclick="duplicaRiga(${id})"
+                   class="text-warning me-2" title="Duplica">
+                    <i class="bi bi-files"></i>
+                </a>
+                <a href="javascript:void(0)" onclick="resettaFattura(${id})"
+                   class="text-info me-2" title="Resetta fattura">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>`;
+
+            html += row.Fatturata == 1
+                ? `<i class="bi bi-trash-fill text-muted" style="opacity:0.3"
+                      title="Già fatturato: resetta prima"></i>`
+                : `<a href="javascript:void(0)" onclick="cancellaRiga(${id})"
+                      class="text-danger" title="Elimina">
+                        <i class="bi bi-trash-fill"></i>
+                    </a>`;
+
+            return html;
+        }
+
+        window.cancellaRiga = function (id) {
+            deleteId  = id;
+            deleteRow = $(`#ordiniTable tbody tr[data-id="${id}"]`);
+            // Reset titoli modale per cancellazione standard
+            $('#confirmDeleteModal .modal-title').text("Conferma eliminazione");
+            $('#confirmDeleteModal .modal-body').text("Sei sicuro di voler eliminare questa riga?");
+            new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+        };
+
+        window.duplicaRiga = function (id) {
+            $.ajax({
+                url: '/Admin/ProspettiCobral/DuplicaAjax',
+                type: 'POST',
+                data: { id: id },
+                success: function (res) {
+                    if (res.success) {
+                        window.location.href = '/Admin/ProspettiCobral/DettaglioOrdine/' + res.newId;
+                    } else {
+                        alert('Errore durante la duplicazione: ' + res.error);
+                    }
+                }
+            });
+        };
+
+        window.resettaFattura = function (id) {
+            resetId  = id;
+            resetRow = $(`#ordiniTable tbody tr[data-id="${id}"]`);
+            // Ripristino testi originali della modale reset
+            $('#confirmResetModal .modal-title').text("Reset Fatturazione");
+            $('#confirmResetModal .modal-body').text("Vuoi davvero resettare lo stato di fatturazione di questa riga?");
+            $('#confirmResetBtn').text("Reset").removeClass('btn-success').addClass('btn-info');
+            new bootstrap.Modal(document.getElementById('confirmResetModal')).show();
+        };
+
+        /**
+         * Apre la modale per confermare il ripristino di un record eliminato.
+         * Sfrutta la modale 'confirmResetModal' adattandone i testi.
+         */
+        window.ripristinaRiga = function (id) {
+            ripristinaId = id;
+            $('#confirmResetModal .modal-title').text("Conferma Ripristino");
+            $('#confirmResetModal .modal-body').text("Vuoi ripristinare questa riga dal cestino?");
+            $('#confirmResetBtn').text("Ripristina").removeClass('btn-info').addClass('btn-success');
+            new bootstrap.Modal(document.getElementById('confirmResetModal')).show();
+        };
+
+        /**
+         * Apre la modale per confermare l'eliminazione definitiva dal database.
+         * Sfrutta la modale 'confirmDeleteModal' cambiandone il contenuto per evidenziare il pericolo.
+         */
+        window.cancellaDefinitivoDatabase = function (id) {
+            deleteDefinitivoId = id;
+            $('#confirmDeleteModal .modal-title').text("ELIMINAZIONE DEFINITIVA");
+            $('#confirmDeleteModal .modal-body').html("<span class='text-danger fw-bold'>ATTENZIONE:</span> il record verrà eliminato definitivamente dal database.<br>L'operazione non è reversibile. Continuare?");
+            new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+        };
+
+        @if (TempData["ModalMessage"] != null)
+        {
+                <text>
+                $(document).ready(function () {
+                    var messaggio = "@(Html.Raw(TempData["ModalMessage"]))";
+                    $('#modalOperazioneCompletata .modal-body').text(messaggio);
+                    var modalElement = document.getElementById('modalOperazioneCompletata');
+                    if (modalElement) {
+                        var modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
+                });
+                </text>
+        }
+    </script>
 }
+```

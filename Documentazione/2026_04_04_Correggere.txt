@@ -1,0 +1,17 @@
+https://localhost:7254/Admin/Clienti?showDeleted=True
+Ripristina cliente
+Elimina cliente definitivo
+Togliere Reset Filtri
+
+
+https://localhost:7254/Admin/Mandatari/Edit/5
+Modifica Mandatario --Z modioficare messaggio di salvataggio
+			Cliente rimosso correttamente.
+
+https://localhost:7254/Admin/Mandatari
+		Sei sicuro di voler eliminare questo mandatario?
+
+
+
+https://localhost:7254/Admin/Agenti
+Eliminare l'agente definitivamente?

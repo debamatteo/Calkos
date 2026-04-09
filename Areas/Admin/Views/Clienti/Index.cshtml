@@ -1,0 +1,254 @@
+﻿@model IEnumerable<CalkosManager.Domain.Entities.Cliente>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    // Determiniamo se siamo in modalità "Cestino"
+    bool isTrash = ViewBag.IsTrashView ?? false;
+    ViewData["Title"] = isTrash ? "Clienti Eliminati" : "Gestione Anagrafica Clienti";
+}
+
+@* HEADER: sezione introduttiva della pagina con titolo e descrizione *@
+<div class="d-flex align-items-center mb-4">
+    <i class="bi @(isTrash ? "bi-trash3-fill text-danger" : "bi-people-fill text-primary") me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">@(isTrash ? "Clienti Eliminati" : "Anagrafica Clienti")</h1>
+        <small class="text-muted">@(isTrash ? "Visualizzazione record archiviati (Soft Deleted)" : "Ricerca sincronizzata tramite mappatura diretta delle colonne")</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* TOOLBAR: pulsanti principali (nuovo cliente + reset filtri) *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                @if (!isTrash)
+                {
+                    <a asp-action="Create" class="btn btn-primary fw-bold shadow-sm">
+                        <i class="bi bi-person-plus-fill me-1"></i> Nuovo Cliente
+                    </a>
+                }
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+
+            @* Switch dinamico tra lista attiva e cestino Clienti Eliminati *@
+            <div>
+                <a asp-action="Index" asp-route-showDeleted="@(!isTrash)" class="btn @(isTrash ? "btn-outline-primary" : "btn-outline-danger") fw-bold shadow-sm">
+                    <i class="bi @(isTrash ? "bi-arrow-left" : "bi-trash3") me-1"></i>
+                    @(isTrash ? "Torna ai Clienti Attivi" : "Vedi Clienti Eliminati")
+                </a>
+            </div>
+        </div>
+
+        <style>
+            /* STILE MANDATARI: Header Blu e righe pulite */
+            #clientiTable thead tr:first-child th {
+                background-color: #0d6efd !important;
+                color: white !important;
+                border: none !important;
+                padding: 12px 10px !important;
+            }
+
+            #clientiTable thead tr.filters th {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                padding: 8px !important;
+            }
+
+            .filters input {
+                width: 100%;
+                font-size: 0.75rem;
+                padding: 4px 8px;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+            }
+
+            #clientiTable tbody tr:hover {
+                background-color: #f0f7ff !important;
+                cursor: pointer;
+            }
+
+            .ps-custom {
+                padding-left: 1.2rem !important;
+            }
+
+            .badge-piva {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+                border: 1px solid #cfe2ff;
+                font-weight: 600;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="clientiTable" class="table table-hover align-middle w-100">
+                <thead>
+                    @* RIGA 1: intestazioni colonna *@
+                    <tr>
+                        <th style="display:none;">ID</th>
+                        <th class="ps-custom">Ragione Sociale</th>
+                        <th>Partita IVA / CF</th>
+                        <th>Città</th>
+                        <th>Telefono</th>
+                        <th>Email</th>
+                        <th class="text-center" style="width:110px;">Azioni</th>
+                    </tr>
+
+                    @* RIGA 2: filtri *@
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th class="ps-custom"><input type="text" placeholder="Filtra..." data-col="1" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="2" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="3" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="4" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="5" /></th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        <tr data-id="@c.IdCliente">
+                            <td style="display:none;">@c.IdCliente</td>
+                            <td class="fw-bold text-dark ps-custom">@c.RagioneSociale</td>
+                            <td>
+                                <span class="badge badge-piva px-2 py-1">
+                                    @(string.IsNullOrWhiteSpace(c.PartitaIva) ? (c.CodiceFiscale ?? "-") : c.PartitaIva)
+                                </span>
+                            </td>
+                            <td>@c.Citta @(!string.IsNullOrEmpty(c.Provincia) ? "(" + c.Provincia + ")" : "")</td>
+                            <td>@c.Telefono</td>
+                            <td><small class="text-muted">@c.Email</small></td>
+
+                            <td class="text-center text-nowrap">
+                                @if (isTrash)
+                                {
+                                    <button type="button" class="btn btn-link text-success p-0" title="Ripristina Cliente"
+                                            onclick="ripristinaCliente(@c.IdCliente, '@Html.Raw(c.RagioneSociale.Replace("'", "\\'"))', this)">
+                                        <i class="bi bi-arrow-counterclockwise fs-5"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <a asp-action="Edit" asp-route-id="@c.IdCliente" class="btn btn-link text-warning p-0 me-2" title="Modifica">
+                                        <i class="bi bi-pencil-square fs-5"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-link text-danger p-0"
+                                            onclick="eliminaCliente(@c.IdCliente, '@Html.Raw(c.RagioneSociale.Replace("'", "\\'"))', this)">
+                                        <i class="bi bi-trash-fill fs-5"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // INIZIALIZZAZIONE DATATABLES
+            var table = $('#clientiTable').DataTable({
+                dom: '<"d-flex justify-content-between mb-2"l>rtip',
+                orderCellsTop: true,
+                language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 6, orderable: false, searchable: false }
+                ],
+                order: [[1, 'asc']]
+            });
+
+            // FILTRI
+            $('#clientiTable thead tr.filters input').on('keyup change', function (e) {
+                e.stopPropagation();
+                var colIndex = $(this).data('col');
+                table.column(colIndex).search(this.value).draw();
+            });
+
+            $('.filters th').on('click', function(e) { e.stopPropagation(); });
+
+            // DOPPIO CLICK SULLA RIGA
+            $('#clientiTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).closest('a, button').length > 0) return;
+                if (@(isTrash.ToString().ToLower())) return;
+
+                var id = $(this).data('id');
+                if (id) window.location.href = '@Url.Action("Edit", "Clienti")/' + id;
+            });
+        });
+
+        // RESET FILTRI
+        function resetFiltri() {
+            $('.filters input').val('');
+            $('#clientiTable').DataTable().search('').columns().search('').draw();
+        }
+
+        // --- ELIMINAZIONE CLIENTE ---
+        function eliminaCliente(id, nome, btn) {
+            $.get('@Url.Action("CheckRelazioni", "Clienti")', { id: id }, function (res) {
+
+                let messaggio = res.message || "Sei sicuro di voler eliminare il cliente <b>" + nome + "</b>?";
+                $('#confirmDeleteModal .modal-body').html(messaggio);
+
+                if (res.canDelete === false) {
+                    $('#confirmDeleteBtn').hide();
+                } else {
+                    $('#confirmDeleteBtn').show();
+                }
+
+                var modalConferma = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+                modalConferma.show();
+
+                $('#confirmDeleteBtn').off('click').on('click', function () {
+                    modalConferma.hide();
+                    // Il token Antiforgery viene ora aggiunto automaticamente agli header AJAX dal Layout
+                    $.post('@Url.Action("Delete", "Clienti")', { id: id }, function (response) {
+                        if (response.success) {
+                            aggiornaTabella(btn, "Cliente eliminato correttamente.");
+                        } else {
+                            alert(response.message);
+                        }
+                    });
+                });
+            });
+        }
+
+        // --- RIPRISTINO CLIENTE ---
+        function ripristinaCliente(id, nome, btn) {
+            $('#confirmResetModal .modal-title').text("Conferma Ripristino");
+            $('#confirmResetModal .modal-body').html("Vuoi davvero ripristinare il cliente <b>" + nome + "</b>?");
+
+            var modalRipristino = new bootstrap.Modal(document.getElementById('confirmResetModal'));
+            modalRipristino.show();
+
+            $('#confirmResetBtn').off('click').on('click', function () {
+                modalRipristino.hide();
+                // Il token Antiforgery viene ora aggiunto automaticamente agli header AJAX dal Layout
+                $.post('@Url.Action("Restore", "Clienti")', { id: id }, function (res) {
+                    if (res.success) {
+                        aggiornaTabella(btn, "Cliente ripristinato con successo.");
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+        }
+
+        function aggiornaTabella(btn, messaggioSuccesso) {
+            $('#clientiTable').DataTable().row($(btn).closest('tr')).remove().draw(false);
+            $('#modalOperazioneCompletata .modal-body').text(messaggioSuccesso);
+            var modalSuccesso = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+            modalSuccesso.show();
+        }
+    </script>
+}

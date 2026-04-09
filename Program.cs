@@ -1,3 +1,6 @@
+using Calkos.web.Services;
+using Calkos.web.Services.Export;
+using Calkos.web.Services.Prospetti;
 using Calkos.Web.Identity;
 using Calkos.Web.Models;
 using CalkosManager.Application.Interfaces;
@@ -6,25 +9,25 @@ using CalkosManager.Domain.Interfaces.Repositories;
 using CalkosManager.Infrastructure.Helpers;
 using CalkosManager.Infrastructure.Repositories;
 using CalkosManager.Infrastructure.Services;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using QuestPDF.Infrastructure;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("CalkosConnection");
 
-// -----------------------------
-// CONFIGURAZIONE DATABASE (EF Core)
-// -----------------------------
+// ============================================================
+// 1. CONFIGURAZIONE SERVIZI DI SISTEMA (DB, IDENTITY, MVC)
+// ============================================================
+
+// --- DATABASE EF CORE ---
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("CalkosConnection")));
-//
-// -----------------------------
-// CONFIGURAZIONE IDENTITY (utenti + ruoli)
-// -----------------------------
+    options.UseSqlServer(connectionString));
+
+// --- IDENTITY (Gestione Utenti e Sicurezza) ---
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -36,51 +39,93 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// -----------------------------
-// MVC (Controller + Views)
-// -----------------------------
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();   // NECESSARIO per Identity e tutte le Razor Pages
+//// --- MVC & SERIALIZZAZIONE JSON ---
+
+////builder.Services.AddControllersWithViews()
+////    .AddJsonOptions(options =>
+////    {
+////        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+////    });
 
 
-// -----------------------------
-// Aggiungi il servizio di Sessione per gestirle(ahhiungere app.UseSession(); dopo app.UseRouting())
-// -----------------------------
-builder.Services.AddSession();
+// --- MVC & SERIALIZZAZIONE JSON ---
+// Modificato solo per includere il filtro Antiforgery globale
+builder.Services.AddControllersWithViews(options =>
+{
+    //Antiforgery CENTRALIZZATO 05/ 04/2026
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
+})
+    .AddJsonOptions(options =>
+    {
+        // Configurazione critica per DataTables: impostiamo PropertyNamingPolicy = null 
+        // per mantenere il PascalCase (es. "IdProspetto") ed evitare la conversione automatica in camelCase.
+
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
 
-// -----------------------------
-// REPOSITORY
-// (Domain → Infrastructure)
-// Registrazione DI di tutti i repository. Ogni interfaccia deve essere collegata alla sua implementazione.
-// AddScoped = una nuova istanza per ogni richiesta HTTP.
-// -----------------------------
-//registrare un servizio solo se:
-//Una classe viene richiesta tramite costruttore  //(es. un controller o un altro servizio la richiede)
-//E quella classe ha un costruttore con parametri  che il DI non può creare automaticamente.
-var connectionString = builder.Configuration.GetConnectionString("CalkosConnection");
-builder.Services.AddScoped<IProspettoCobralRepository>(provider =>  new ProspettoCobralRepository(connectionString));
 
-builder.Services.AddScoped<IImportCobralRepository>(provider => new ImportCobralRepository(connectionString));
 
-builder.Services.AddScoped<IFileImportatoRepository>(provider => new FileImportatoRepository(connectionString));
+builder.Services.AddRazorPages();
 
-builder.Services.AddScoped<IClienteRepository>(provider => new ClienteRepository(connectionString));
+// --- GESTIONE SESSIONE ---
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
-builder.Services.AddScoped<IMaterialeRepository>(provider => new MaterialeRepository(connectionString));
+// ============================================================
+// 2. DEPENDENCY INJECTION - REPOSITORY (DAL)
+// ============================================================
+// Registrazione dei repository con ciclo di vita Scoped (una istanza per richiesta HTTP).
+// Utilizziamo le interfacce per garantire il disaccoppiamento tra Domain e Infrastructure.
 
-builder.Services.AddScoped<IMandatarioRepository>(provider => new MandatarioRepository(connectionString));
-builder.Services.AddScoped<IAgenteRepository>(provider =>    new AgenteRepository(connectionString));
-builder.Services.AddScoped<IUnitaMisuraRepository>(provider => new UnitaMisuraRepository(connectionString));
-builder.Services.AddScoped<ITipoPagamentoRepository>(provider => new TipoPagamentoRepository(connectionString));
-// Registrazione del servizio applicativo che gestisce l'intera pipeline di importazione.
-// Il controller richiede ImportazioneService nel costruttore, quindi deve essere registrato nel DI (Dependency Injection).
-// AddScoped crea un'istanza per ogni richiesta HTTP.
+builder.Services.AddScoped<IProspettoCobralRepository>(p => new ProspettoCobralRepository(connectionString));
+builder.Services.AddScoped<IImportCobralRepository>(p => new ImportCobralRepository(connectionString));
+builder.Services.AddScoped<IFileImportatoRepository>(p => new FileImportatoRepository(connectionString));
+builder.Services.AddScoped<IClienteRepository>(p => new ClienteRepository(connectionString));
+builder.Services.AddScoped<IMaterialeRepository>(p => new MaterialeRepository(connectionString));
+builder.Services.AddScoped<IMandatarioRepository>(p => new MandatarioRepository(connectionString));
+builder.Services.AddScoped<IAgenteRepository>(p => new AgenteRepository(connectionString));
+builder.Services.AddScoped<IUnitaMisuraRepository>(p => new UnitaMisuraRepository(connectionString));
+builder.Services.AddScoped<ITipoPagamentoRepository>(p => new TipoPagamentoRepository(connectionString));
+builder.Services.AddScoped<IProvvigioniAgentiRepository>(p => new ProvvigioniAgentiRepository(connectionString));
+builder.Services.AddScoped<IMaterialeRepository>(p => new MaterialeRepository(connectionString));
+builder.Services.AddScoped<IMaterialiDimensioniRepository>(p => new MaterialiDimensioniRepository(connectionString));
+
+// ============================================================
+// 3. DEPENDENCY INJECTION - BUSINESS SERVICES (BLL)
+// ============================================================
+
+// Servizi di Logica Applicativa
 builder.Services.AddScoped<ProspettoCobralTransformationService>();
 builder.Services.AddScoped<FileImportatoService>();
 builder.Services.AddScoped<MandatarioService>();
 builder.Services.AddScoped<ProspettoCobralService>();
+builder.Services.AddScoped<ClienteService>();
+builder.Services.AddScoped<TipoPagamentoService>();
+builder.Services.AddScoped<ProvvigioniAgentiService>();
+builder.Services.AddScoped<AgenteService>();
+builder.Services.AddScoped<IFileBackupService, FileBackupService>();
+builder.Services.AddScoped<MaterialeService>();
+builder.Services.AddScoped<MaterialiDimensioniService>();
+builder.Services.AddScoped<UnitaMisuraService>();
+// Servizi di Esportazione e Dashboard
+builder.Services.AddScoped<ExcelExportService>();
+builder.Services.AddScoped<PdfExportService>();
+builder.Services.AddScoped<DashboardProvvigioniService>(p => new DashboardProvvigioniService(connectionString));
 
+// Helper e Utility (Singleton: istanza unica per l'intera vita dell'app)
+builder.Services.AddSingleton<UniqueKeyGenerator>();
+builder.Services.AddSingleton<ImportazioneHelper>();
+builder.Services.AddSingleton<ProspettoConfigService>();
+
+// Configurazione impostazioni da appsettings.json
+builder.Services.Configure<ImportazioneSettings>(builder.Configuration.GetSection("Importazione"));
+
+// Servizio Complesso: Orchestratore Importazione Cobral
 builder.Services.AddScoped<ImportazioneCobralService>(provider =>
     new ImportazioneCobralService(
         connectionString,
@@ -90,27 +135,55 @@ builder.Services.AddScoped<ImportazioneCobralService>(provider =>
         provider.GetRequiredService<IClienteRepository>(),
         provider.GetRequiredService<IMaterialeRepository>(),
         provider.GetRequiredService<IUnitaMisuraRepository>(),
-        provider.GetRequiredService<ProspettoCobralTransformationService>()
+        provider.GetRequiredService<ProspettoCobralTransformationService>(),
+        provider.GetRequiredService<UniqueKeyGenerator>()
     ));
-/*ogni volta che un servizio o controller chiede IFileBackupService
-.NET crea una nuova istanza di FileBackupService e la passa automaticamente al costruttore*/
-builder.Services.AddScoped<IFileBackupService, FileBackupService>();
 
+// Configurazione Libreria PDF
+QuestPDF.Settings.License = LicenseType.Community;
 
-//Serve per caricare una sezione del file appsettings.json dentro una classe di configurazione.
-builder.Services.Configure<ImportazioneSettings>( builder.Configuration.GetSection("Importazione"));
-
-//Registra ImportazioneHelper come servizio Singleton; viene creata una sola istanza di ImportazioneHelper; e viene riutilizzata per tutta la durata dell’applicazione
-builder.Services.AddSingleton<ImportazioneHelper>();
-
-
+// ============================================================
+// 4. COSTRUZIONE E PIPELINE MIDDLEWARE (HTTP REQUEST)
+// ============================================================
 var app = builder.Build();
 
-// -----------------------------
-// SEEDING RUOLI E ADMIN-//Creazione utente Admin iniziale
-// Garantisce che i ruoli “Admin” e “Operatore” esistano SEMPRE.
-// Anche se cancelli il database, al riavvio vengono ricreati.
-// -----------------------------
+// --- LOCALIZZAZIONE ---
+// Forza il server a usare il punto (.) come separatore decimale per evitare conflitti numerici SQL/UI.
+var defaultCulture = new CultureInfo("en-US");
+defaultCulture.NumberFormat.NumberDecimalSeparator = ".";
+defaultCulture.NumberFormat.NumberGroupSeparator = "";
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(defaultCulture),
+    SupportedCultures = new List<CultureInfo> { defaultCulture },
+    SupportedUICultures = new List<CultureInfo> { defaultCulture }
+});
+
+// --- GESTIONE ERRORI ---
+var showDevErrors = builder.Configuration.GetValue<bool>("DebugOptions:ShowDeveloperErrors");
+if (showDevErrors)
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Error/500");
+    app.UseStatusCodePagesWithReExecute("/Error/{0}");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+
+// --- SESSIONE & SICUREZZA ---
+app.UseSession(); // Inizializza il supporto alle sessioni (obbligatorio per i filtri di Calkos)
+app.UseAuthentication();
+app.UseAuthorization();
+
+// ============================================================
+// 5. SEEDING DATI (Ruoli e Amministratore)
+// ============================================================
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -120,56 +193,17 @@ using (var scope = app.Services.CreateScope())
     await UserSeeder.SeedAdminAsync(userManager);
 }
 
-// -----------------------------
-// PIPELINE HTTP
-// -----------------------------
-//vedi appsettings.json=Se ShowDeveloperErrors = false → usa le pagine di errore personalizzate
-var showDevErrors = builder.Configuration.GetValue<bool>("DebugOptions:ShowDeveloperErrors");
-
-
-if (showDevErrors)
-{
-    // Mostra errori dettagliati SEMPRE, anche in produzione
-    app.UseDeveloperExceptionPage();
-}
-else
-{
-    // Usa le pagine di errore personalizzate
-    app.UseExceptionHandler("/Error/500");
-    app.UseStatusCodePagesWithReExecute("/Error/{0}");
-    app.UseHsts();
-}
-
-
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
-app.UseRouting();
-
-//Abilitare la SessioneSenza UseSession() la sessione non viene inizializzata per ogni richiesta.
-app.UseSession();
-
-
-
-// Autenticazione → Autorizzazione (ordine obbligatorio)
-app.UseAuthentication();
-app.UseAuthorization();
-
-// -----------------------------
-// ROUTING MVC
-// -----------------------------
+// ============================================================
+// 6. ROUTING E AVVIO
+// ============================================================
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
-//Le Aree MVC richiedono una route dedicata 
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapRazorPages(); //NECESSARIO per Identity e tutte le Razor Pages
-                     //Mappa tutte le pagine Razor, incluse quelle in Areas/Identity
-// -----------------------------
-// AVVIO APPLICAZIONE
-// -----------------------------
+app.MapRazorPages();
+
 app.Run();

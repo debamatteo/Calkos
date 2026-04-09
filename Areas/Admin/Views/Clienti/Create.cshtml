@@ -1,0 +1,126 @@
+﻿@model CalkosManager.Domain.Entities.Cliente
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuovo Cliente";
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi bi-person-badge-fill me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <form asp-area="Admin" asp-controller="Clienti" asp-action="Save" method="post">
+        @Html.AntiForgeryToken()
+
+        @* Assicura la corretta gestione dell'ID per il salvataggio/modifica centralizzato *@
+        <input type="hidden" asp-for="IdCliente" />
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+
+                <div class="row g-3">
+
+                    <!-- RIGA 1: Ragione Sociale + Agente -->
+                    <div class="col-md-8">
+                        <label asp-for="RagioneSociale" class="form-label fw-bold required-label"></label>
+                        <input asp-for="RagioneSociale" class="form-control" placeholder="Inserisci ragione sociale" />
+                        <span asp-validation-for="RagioneSociale" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="IdAgente" class="form-label fw-bold"></label>
+                        <select asp-for="IdAgente" class="form-select select2" asp-items="ViewBag.Agenti">
+                            <option value="">-- Seleziona Agente --</option>
+                        </select>
+                    </div>
+
+                    <!-- RIGA 2: P.IVA + CF -->
+                    <div class="col-md-6">
+                        <label asp-for="PartitaIva" class="form-label fw-bold"></label>
+                        <input asp-for="PartitaIva" class="form-control" maxlength="11" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="CodiceFiscale" class="form-label fw-bold"></label>
+                        <input asp-for="CodiceFiscale" class="form-control" maxlength="16" />
+                    </div>
+
+                    <!-- RIGA 3: Indirizzo + Città + Provincia + CAP -->
+                    <div class="col-md-6">
+                        <label asp-for="Indirizzo" class="form-label fw-bold"></label>
+                        <input asp-for="Indirizzo" class="form-control" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="Citta" class="form-label fw-bold"></label>
+                        <input asp-for="Citta" class="form-control" />
+                    </div>
+
+                    <div class="col-md-1">
+                        <label asp-for="Provincia" class="form-label fw-bold"></label>
+                        <input asp-for="Provincia" class="form-control" maxlength="2" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label asp-for="CAP" class="form-label fw-bold"></label>
+                        <input asp-for="CAP" class="form-control" maxlength="5" />
+                    </div>
+
+                    <!-- RIGA 4: Email + Telefono -->
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label fw-bold"></label>
+                        <input asp-for="Email" type="email" class="form-control" placeholder="email@esempio.it" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Telefono" class="form-label fw-bold"></label>
+                        <input asp-for="Telefono" class="form-control" />
+                    </div>
+
+                    <!-- RIGA 5: Note -->
+                    <div class="col-12">
+                        <label asp-for="Note" class="form-label fw-bold"></label>
+                        <textarea asp-for="Note" class="form-control" rows="2"></textarea>
+                    </div>
+
+                </div>
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Cliente
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY (Coerenza Progetto)
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if ($.fn.select2) {
+                $('.select2').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%'
+                });
+            }
+        });
+    </script>
+}

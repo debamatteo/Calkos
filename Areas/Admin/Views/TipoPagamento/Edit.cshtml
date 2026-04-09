@@ -1,0 +1,105 @@
+﻿@model CalkosManager.Domain.Entities.TipoPagamento
+@using System.Globalization
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = Model.IdTipoPagamento == 0 ? "Nuovo Tipo Pagamento" : "Modifica Tipo Pagamento";
+}
+
+@functions {
+    // Helper per gestire la formattazione dei decimali (Mirror Agenti)
+    public string FormatDecimal(object? valore, int decimali = 2)
+    {
+        if (valore == null || valore == DBNull.Value) return string.Empty;
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+        {
+            return d.ToString("F" + decimali, CultureInfo.InvariantCulture);
+        }
+        return valore.ToString() ?? string.Empty;
+    }
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-secondary">
+        <i class="bi bi-credit-card-2-back-fill me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form asp-action="Save" method="post">
+                <input type="hidden" asp-for="IdTipoPagamento" />
+
+                <div class="row g-3">
+                    @* Codice Tipo Pagamento *@
+                    <div class="col-md-3">
+                        <label asp-for="CodiceTipoPagamento" class="form-label fw-bold">Codice</label>
+                        <input asp-for="CodiceTipoPagamento" class="form-control" placeholder="Es: BON" />
+                        <span asp-validation-for="CodiceTipoPagamento" class="text-danger small"></span>
+                    </div>
+
+                    @* Descrizione Pagamento - NOME PROPRIETÀ CORRETTO *@
+                    <div class="col-md-9">
+                        <label asp-for="DescrizioneTipoPagamento" class="form-label fw-bold required-label">Descrizione Pagamento</label>
+                        <input asp-for="DescrizioneTipoPagamento" class="form-control" placeholder="Esempio: Bonifico Bancario 30gg" />
+                        <span asp-validation-for="DescrizioneTipoPagamento" class="text-danger small"></span>
+                    </div>
+
+                    @* Opzione Dashboard *@
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold d-block">Visibilità Dashboard</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="VisualizzaInDashboard" id="switchDash">
+                            <label class="form-check-label" for="switchDash">Abilita visualizzazione</label>
+                        </div>
+                        <span asp-validation-for="VisualizzaInDashboard" class="text-danger small"></span>
+                    </div>
+
+                    @* Gruppo Dashboard *@
+                    <div class="col-md-4">
+                        <label asp-for="GruppoDashboard" class="form-label fw-bold">Gruppo Dashboard</label>
+                        <input asp-for="GruppoDashboard" class="form-control" placeholder="Es: Incassi" />
+                        <span asp-validation-for="GruppoDashboard" class="text-danger small"></span>
+                    </div>
+
+                    @* Ordine Visualizzazione *@
+                    <div class="col-md-4">
+                        <label asp-for="OrdineVisualizzazione" class="form-label fw-bold">Ordine</label>
+                        <input asp-for="OrdineVisualizzazione" type="number" class="form-control" />
+                        <span asp-validation-for="OrdineVisualizzazione" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                @* Sommario errori *@
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Pagamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY (Coerenza Progetto)
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+        });
+    </script>
+}

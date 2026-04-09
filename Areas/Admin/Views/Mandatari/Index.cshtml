@@ -1,0 +1,224 @@
+﻿@model IEnumerable<CalkosManager.Domain.Entities.Mandatario>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestione Mandatari";
+}
+
+@* HEADER PROFESSIONALE 
+    Allineamento coerente con il resto dell'applicazione.
+*@
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-person-badge-fill text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Anagrafica Mandatari</h1>
+        <small class="text-muted">Configurazione degli agenti e gestione dei codici identificativi</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* TOOLBAR AZIONI *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <a asp-area="Admin" asp-controller="Mandatari" asp-action="Create" class="btn btn-primary fw-bold">
+                    <i class="bi bi-plus-circle me-1"></i> Nuovo Mandatario
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+        </div>
+
+        <style>
+            /* Hover azzurro per feedback visivo immediato */
+            #mandatariTable tbody tr:hover {
+                background-color: #e8f1ff !important;
+                cursor: pointer;
+            }
+
+            .table-custom-header thead tr:first-child {
+                background-color: #f8f9fa;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            /* Stile input filtri */
+            .filters input {
+                width: 100%;
+                font-size: 0.85rem;
+                padding: 4px 8px;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="mandatariTable" class="table table-striped table-hover align-middle table-custom-header w-100">
+                <thead>
+                    @* Riga Intestazioni Ordinabili *@
+                    <tr>
+                        <th style="display:none;">ID</th>
+                        <th>Nome Mandatario</th>
+                        <th>Codice Mandatario</th>
+                        <th class="text-center" style="width: 120px;">Azioni</th>
+                    </tr>
+                    @* Riga Input Filtri (Search per colonna) usa MAPPATURA data-col *@
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th><input type="text" placeholder="Filtra Nome..." data-col="1" /></th>
+                        <th><input type="text" placeholder="Filtra Codice..." data-col="2" /></th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var m in Model)
+                    {
+                        @* ID salvato in data-id per gestione JS *@
+                        <tr data-id="@m.IdMandatario">
+                            <td style="display:none;">@m.IdMandatario</td>
+                            <td class="fw-bold text-dark">@m.NomeMandatario</td>
+                            <td><span class="badge bg-light text-dark border">@m.CodiceMandatario</span></td>
+                            <td class="text-center text-nowrap">
+                                <a asp-action="Edit" asp-route-id="@m.IdMandatario" class="text-warning me-3" title="Modifica">
+                                    <i class="bi bi-pencil-square" style="font-size: 1.25rem;"></i>
+                                </a>
+                                <button type="button" class="btn btn-link text-danger p-0"
+                                        onclick="eliminaMandatario(@m.IdMandatario, this)" title="Elimina">
+                                    <i class="bi bi-trash-fill" style="font-size: 1.25rem;"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* Caricamento plugin DataTables (se non globali) *@
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+
+            // ============================================================
+            // 1. INIZIALIZZAZIONE DATATABLES
+            // ============================================================
+            var table = $('#mandatariTable').DataTable({
+                dom: '<"d-flex justify-content-between mb-2"l>rtip',
+                orderCellsTop: true,
+                fixedHeader: true,
+                pageLength: 20,
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
+                },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false }, // Colonna ID tecnica (nascosta)
+                    { targets: 3, orderable: false, searchable: false } // Colonna Azioni (no sort, no search)
+                ],
+                order: [[1, 'asc']] // Ordine alfabetico per Nome Mandatario
+            });
+
+            // ============================================================
+            // 2. LOGICA FILTRAGGIO DINAMICO
+            // ============================================================
+            $('#mandatariTable thead tr.filters th').on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            $('#mandatariTable thead tr.filters input').on('keyup change', function () {
+                var colIndex = $(this).data('col');
+                var searchVal = this.value;
+
+                table.column(colIndex).search(
+                    searchVal ? "^" + searchVal : "",
+                    true,
+                    false
+                ).draw();
+            });
+
+            // ============================================================
+            // 3. DOPPIO CLICK PER EDIT RAPIDO
+            // ============================================================
+            $('#mandatariTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).closest('a, button').length > 0) return;
+
+                var id = $(this).data('id');
+                if (id) {
+                    window.location.href = '@Url.Action("Edit", "Mandatari")/' + id;
+                }
+            });
+        });
+
+        // ============================================================
+        // 4. RESET FILTRI
+        // ============================================================
+        function resetFiltri() {
+            $('.filters input').val('').trigger('change');
+            var table = $('#mandatariTable').DataTable();
+            table.search('').columns().search('').draw();
+        }
+
+        // ============================================================
+        // 5. CANCELLAZIONE PROTETTA (CON MODALI)
+        // ============================================================
+        function eliminaMandatario(id, btn) {
+            // Verifica relazioni tramite AJAX (GET non richiede token)
+            $.getJSON(`@Url.Action("CheckRelazioni", "Mandatari")/${id}`, function (res) {
+
+                if (res.canDelete) {
+                    $('#confirmDeleteModal .modal-body').html("Sei sicuro di voler eliminare questo mandatario? <br><b>L'azione è irreversibile.</b>");
+
+                    var modalConferma = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+                    modalConferma.show();
+
+                    $('#confirmDeleteBtn').off('click').on('click', function () {
+                        modalConferma.hide();
+                        eseguiEliminazione(id, btn);
+                    });
+
+                } else {
+                    $('#modalOperazioneCompletata .modal-header').removeClass('bg-success').addClass('bg-warning');
+                    $('#modalOperazioneCompletata .modal-title').text("Azione Bloccata");
+                    $('#modalOperazioneCompletata .modal-body').html(`<b>IMPOSSIBILE ELIMINARE:</b><br>${res.message}`);
+
+                    var modalAvviso = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+                    modalAvviso.show();
+                }
+
+            }).fail(function () {
+                alert("Errore tecnico durante la verifica.");
+            });
+        }
+
+        // ============================================================
+        // 6. ESECUZIONE ELIMINAZIONE (POST AJAX)
+        // ============================================================
+        function eseguiEliminazione(id, btn) {
+            // Il token Antiforgery viene ora aggiunto automaticamente agli header AJAX dal Layout
+            $.post('@Url.Action("Delete", "Mandatari")', { id: id }, function (res) {
+
+                if (res.success) {
+                    var table = $('#mandatariTable').DataTable();
+                    table.row($(btn).closest('tr')).remove().draw(false);
+
+                    $('#modalOperazioneCompletata .modal-header').removeClass('bg-warning').addClass('bg-success');
+                    $('#modalOperazioneCompletata .modal-title').text("Operazione completata");
+                    $('#modalOperazioneCompletata .modal-body').text("Mandatario rimosso correttamente.");
+
+                    var modalSuccesso = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+                    modalSuccesso.show();
+
+                } else {
+                    alert(res.message || "Errore durante la cancellazione.");
+                }
+            }).fail(function() {
+                alert("Errore tecnico durante la cancellazione.");
+            });
+        }
+    </script>
+}

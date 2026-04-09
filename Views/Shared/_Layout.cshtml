@@ -1,27 +1,46 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Calkos.web</title>
 
-    <!-- Bootstrap CSS -->
+    <!--
+        LIBRERIE CSS:
+        - Bootstrap: Framework per il layout e componenti UI.
+        - site.css: Stili personalizzati globali.
+        - Calkos.web.styles.css: Supporto per CSS Isolation.
+        - Bootstrap Icons: Set di icone per la navigazione.
+    -->
     <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
-
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Calkos.web.styles.css" asp-append-version="true" />
-
-    <!-- Icone Bootstrap -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <style>
+        /* Allineamento estetico all'AdminLayout */
+        body {
+            background-color: #f8f9fa; /* Sfondo leggermente grigio come l'area admin */
+        }
+
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.05); /* Ombra leggera per profondità */
+        }
+
+        .nav-link i {
+            margin-right: 5px; /* Spazio tra icona e testo */
+        }
+    </style>
 </head>
 
 <body>
 
     <header>
-        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
+        <!-- BARRA DI NAVIGAZIONE: Configurazione fluida con stile bianco pulito -->
+        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom mb-3">
+            <div class="container-fluid px-4">
 
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Home" asp-action="Index">
                     Calkos.web
                 </a>
 
@@ -32,30 +51,37 @@
                 <div class="collapse navbar-collapse" id="mainNav">
                     <ul class="navbar-nav flex-grow-1">
 
+                        <!-- Componente per Login/Logout/Registrazione -->
                         <partial name="_LoginPartial" />
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">
+                                <i class="bi bi-house-door"></i> Home
+                            </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Privacy">
+                                <i class="bi bi-shield-check"></i> Privacy
+                            </a>
                         </li>
 
+                        <!-- SEZIONE ADMIN: Visibile solo agli utenti con ruolo Admin -->
                         @if (User.IsInRole("Admin"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
-                                    Pannello Admin
+                            <li class="nav-item border-start ms-2 ps-2">
+                                <a class="nav-link text-primary fw-semibold" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="bi bi-speedometer2"></i> Pannello Admin
                                 </a>
                             </li>
                         }
 
+                        <!-- SEZIONE OPERATIVA: Visibile a Admin e Operatori -->
                         @if (User.IsInRole("Operatore") || User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="Admin" asp-controller="Prospetti" asp-action="Index">
-                                    Gestione Prospetti
+                                <a class="nav-link text-success fw-semibold" asp-area="Admin" asp-controller="Prospetti" asp-action="Index">
+                                    <i class="bi bi-table"></i> Gestione Prospetti
                                 </a>
                             </li>
                         }
@@ -67,32 +93,85 @@
         </nav>
     </header>
 
-    <div class="container">
+    <!--
+        CONTENITORE PRINCIPALE:
+        Utilizzo di container-fluid e px-4 per uniformare lo spazio di lavoro
+        a quello delle tabelle dell'area Admin.
+    -->
+    <div class="container-fluid px-4">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
+    <footer class="border-top footer text-muted bg-white mt-auto py-3">
+        <div class="container-fluid px-4">
             &copy; 2026 - Calkos.web -
-            <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <a asp-controller="Home" asp-action="Privacy" class="text-decoration-none">Privacy</a>
         </div>
     </footer>
 
-    <!-- Bootstrap JS da CDN (test definitivo) -->
+
+
+    <!-- MODALI DI CONFERMA: Template riutilizzabili per eliminazione e reset dati -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Conferma eliminazione</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">Sei sicuro di voler eliminare questa riga?</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmResetModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">Reset Fatturazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">Vuoi davvero resettare lo stato di fatturazione di questa riga?</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button id="confirmResetBtn" class="btn btn-info">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalOperazioneCompletata" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Operazione completata</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Testo dinamico inserito da ListaOrdini -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+        SCRIPTS:
+        - Bootstrap Bundle: Include Popper.js per la gestione di dropdown e modali.
+    -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
             crossorigin="anonymous"></script>
 
-    @* ALTERNATIVA LOCALE (commentata) — usa i file installati in wwwroot/lib/bootstrap *@
-    @*
-    <script src="~/lib/bootstrap/js/bootstrap.bundle.js"></script>
-    *@
-
-    @* Per ora disattivo JS custom, solo per test *@
-    @* <script src="~/js/site.js" asp-append-version="true"></script> *@
-
+    @* Sezione per l'iniezione di script specifici dalle singole pagine *@
     @await RenderSectionAsync("Scripts", required: false)
 
 </body>

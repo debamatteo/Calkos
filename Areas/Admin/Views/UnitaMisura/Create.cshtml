@@ -1,0 +1,88 @@
+﻿@model CalkosManager.Domain.Entities.UnitaMisura
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuova Unità di Misura";
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi bi-rulers me-2"></i> @ViewData["Title"]
+    </h3>
+
+    @* 
+      AntiForgeryToken
+      Il Tag Helper <form> di ASP.NET Core inserisce AUTOMATICAMENTE il token.
+      Manteniamo la chiamata esplicita per sicurezza nel caso si usino script custom.
+    *@
+    <form asp-area="Admin" asp-controller="UnitaMisura" asp-action="Save" method="post">
+        @Html.AntiForgeryToken()
+
+        @* IdUnitaMisura a 0 indica al controller che è un nuovo inserimento *@
+        <input type="hidden" asp-for="IdUnitaMisura" value="0" />
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row g-3">
+
+                    @* Codice Unità di Misura *@
+                    <div class="col-md-4">
+                        <label asp-for="CodiceUnitaMisura" class="form-label fw-bold required-label">Codice</label>
+                        <input asp-for="CodiceUnitaMisura" class="form-control text-uppercase" placeholder="es. KG" maxlength="10" />
+                        <span asp-validation-for="CodiceUnitaMisura" class="text-danger small"></span>
+                        <div class="form-text text-muted small">Abbreviazione tecnica (max 10 car.)</div>
+                    </div>
+
+                    @* Descrizione *@
+                    <div class="col-md-8">
+                        <label asp-for="UnitaMisuraDescrizione" class="form-label fw-bold required-label">Descrizione</label>
+                        <input asp-for="UnitaMisuraDescrizione" class="form-control" placeholder="Inserisci la descrizione estesa (es. Chilogrammi)" />
+                        <span asp-validation-for="UnitaMisuraDescrizione" class="text-danger small"></span>
+                    </div>
+
+                </div>
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Unità
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY (Coerenza Progetto)
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // Auto-uppercase per il codice unità di misura (UX Helper)
+            $('#CodiceUnitaMisura').on('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+
+            // Inizializzazione eventuali componenti UI
+            if ($.fn.select2) {
+                $('.select2').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%'
+                });
+            }
+        });
+    </script>
+}

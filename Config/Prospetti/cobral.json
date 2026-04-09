@@ -1,0 +1,111 @@
+{
+  "columns": [
+    {
+      "name": "NumeroOrdine",
+      "label": "Ordine",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroDDT",
+      "label": "DDT",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroFattura",
+      "label": "Fattura",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "RagioneSociale",
+      "label": "Cliente",
+      "visible": true,
+      "format": "text",
+      "width": 3
+    },
+    {
+      "name": "UnitaMisura",
+      "label": "U.M.",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Quantita",
+      "label": "Q.tà",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+    {
+      "name": "DescrizioneMateriale",
+      "label": "Materiale",
+      "visible": true,
+      "format": "text",
+      "width": 2
+    },
+    {
+      "name": "Prezzo",
+      "label": "Prezzo",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "DataRiferimentoPrezzo",
+      "label": "Data Prezzo",
+      "visible": true,
+      "format": "date:dd/MM/yyyy",
+      "width": 2
+    },
+    {
+      "name": "Spessore",
+      "label": "Spessore",
+      "visible": true,
+      "format": "string",
+      "width": 1
+    },
+    {
+      "name": "Provvigione",
+      "label": "Provvigione",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+    {
+      "name": "ValoreCommissioni",
+      "label": "Commissioni",
+      "visible": true,
+      "format": "currency",
+      "width": 2
+    },
+    {
+      "name": "PrezzoVendita",
+      "label": "Prezzo Vendita",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrLavSpess",
+      "label": "Pr. Lav. Spess",
+      "visible": false,
+      "export": false,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+    {
+      "name": "Fatturata",
+      "label": "Fatturata",
+      "visible": true,
+      "export": false,
+      "format": "int",
+      "width": 1
+    }
+  ]
+}

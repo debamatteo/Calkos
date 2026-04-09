@@ -1,8 +1,42 @@
-﻿@model CalkosManager.Domain.Entities.ProspettoCobral
+﻿@using Calkos.web.Models.DTO
+@model CalkosManager.Domain.Entities.ProspettoCobral
+@* ============================================================
+   ANTIFORGERY TOKEN — Inserito UNA SOLA VOLTA qui in cima.
+   Il token Antiforgery è una "chiave segreta" che il server genera per assicurarsi che la richiesta arrivi effettivamente dalla tua pagina web
+   e non da un sito malevolo che tenta di eseguire azioni a nome dell'utente loggato.
+   ============================================================ *@
+@Html.AntiForgeryToken()
 
 @{
     ViewData["Title"] = "Dettaglio Ordine COBRAL";
     bool isAdmin = User.IsInRole("Admin");
+
+    @* ============================================================
+       FIX cast ViewBag.Agenti → AgenteSelectItem
+       Il controller CaricaLookup popola ViewBag.Agenti con List<AgenteSelectItem>
+       (tipo custom che porta anche PercentualeDefault, non disponibile in SelectListItem).
+       Il cast deve corrispondere esattamente al tipo prodotto dal controller,
+       altrimenti "as" restituisce null silenziosamente e la select rimane vuota.
+       ============================================================ *@
+    var agenti = ViewBag.Agenti as IEnumerable<AgenteSelectItem>
+                 ?? Enumerable.Empty<AgenteSelectItem>();
+}
+
+@* ============================================================
+   HELPER LOCALE — FormatDecimal
+   Accetta object? per compatibilità con i valori restituiti
+   dalla Reflection nel blocco "Altri Campi".
+   Forza il punto decimale (InvariantCulture) per i campi
+   type="number" del browser, che non accetta la virgola.
+   ============================================================ *@
+@functions {
+    public string FormatDecimal(object? valore, int decimali = 3)
+    {
+        if (valore == null || valore == DBNull.Value) return string.Empty;
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+            return d.ToString("F" + decimali, System.Globalization.CultureInfo.InvariantCulture);
+        return valore.ToString() ?? string.Empty;
+    }
 }
 
 <div class="d-flex align-items-center mb-4">
@@ -17,29 +51,59 @@
 <div class="card shadow-sm border-0">
     <div class="card-body">
 
-        <form method="post">
+        <form asp-action="DettaglioOrdine" method="post">
 
+            @* ============================================================
+               RIEPILOGO ERRORI MODELSTATE
+               Cicla su tutti i campi invalidi e stampa il nome
+               della proprietà + il messaggio di validazione.
+               ============================================================ *@
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger mt-3">
+                    <h5 class="fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Attenzione: correggi i seguenti errori
+                    </h5>
+                    <ul>
+                        @foreach (var modelState in ViewData.ModelState.Where(x => x.Value.Errors.Any()))
+                        {
+                            foreach (var error in modelState.Value.Errors)
+                            {
+                                <li><strong>@modelState.Key</strong>: @error.ErrorMessage</li>
+                            }
+                        }
+                    </ul>
+                </div>
+            }
+
+            @* Campo hidden obbligatorio per identificare il record in POST *@
             <input type="hidden" asp-for="IdProspettoCobral" />
 
-            <!-- ============================
-                 SEZIONE 1 — DOCUMENTO
-                 ============================ -->
+            @* ============================================================
+               SEZIONE: DATI DOCUMENTO
+               ============================================================ *@
             <h5 class="fw-bold mt-3">Dati Documento</h5>
             <div class="row g-3">
 
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Numero Ordine</label>
-                    @if (isAdmin)
+                <div class="col-md-3">
+                    @* NumeroOrdine: libero solo su record nuovo (ID=0) o duplicato.
+                       Su record esistente viene bloccato in readonly per evitare
+                       la modifica accidentale della chiave logica del documento. *@
+                    <label class="form-label fw-bold required-label">Numero Ordine</label>
+                    @if (Model.IdProspettoCobral == 0)
                     {
-                        <input  asp-for="NumeroOrdine" type="text" class="form-control input-readonly" readonly />
+                        <input asp-for="NumeroOrdine" type="text" class="form-control" placeholder="Inserisci numero ordine..." />
                     }
                     else
                     {
-                        <input  asp-for="NumeroOrdine" type="text" class="form-control input-readonly" readonly />
+                        <input asp-for="NumeroOrdine" type="text" class="form-control input-readonly" readonly="readonly" />
                     }
+                    <span asp-validation-for="NumeroOrdine" class="text-danger small"></span>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    @* NumeroDDT: modificabile solo da Admin, in sola lettura per gli altri ruoli *@
                     <label class="form-label fw-bold">Numero DDT</label>
                     @if (isAdmin)
                     {
@@ -47,11 +111,12 @@
                     }
                     else
                     {
-                        <input  asp-for="NumeroDDT" type="text" class="form-control input-readonly" readonly />
+                        <input asp-for="NumeroDDT" type="text" class="form-control input-readonly" readonly="readonly" />
                     }
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    @* NumeroFattura: stessa logica di NumeroDDT *@
                     <label class="form-label fw-bold">Numero Fattura</label>
                     @if (isAdmin)
                     {
@@ -59,366 +124,446 @@
                     }
                     else
                     {
-                        <input  asp-for="NumeroFattura" type="text" class="form-control input-readonly" readonly />
+                        <input asp-for="NumeroFattura" type="text" class="form-control input-readonly" readonly="readonly" />
                     }
                 </div>
 
-            </div>
-
-            <!-- ============================
-                 SEZIONE 2 — CLIENTE / MATERIALE
-                 ============================ -->
-            <h5 class="fw-bold mt-4">Cliente e Materiale</h5>
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Cliente</label>
-
+                <div class="col-md-3">
+                    @* IdCliente: per i non-Admin la select è disabled (non invia il valore in POST),
+                       quindi aggiungiamo un hidden field per garantire che il valore arrivi al server. *@
+                    <label class="form-label fw-bold required-label">Cliente</label>
                     @if (isAdmin)
                     {
-                        <!-- Admin può scegliere Cliente -->
-                        <select asp-for="IdCliente"
-                                asp-items="ViewBag.Clienti"
-                                class="form-select">
-                        </select>
+                        <select asp-for="IdCliente" asp-items="ViewBag.Clienti" class="form-select"></select>
                     }
                     else
                     {
-                        <!-- Operatore vede ma non modifica -->
-                        <select asp-for="IdCliente"
-                                asp-items="ViewBag.Clienti"
-                                class="form-select input-readonly"
-                                disabled>
-                        </select>
-
-                        <!-- Hidden per mantenere il valore in POST -->
+                        <select asp-for="IdCliente" asp-items="ViewBag.Clienti" class="form-select input-readonly" disabled="disabled"></select>
                         <input type="hidden" asp-for="IdCliente" />
                     }
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Materiale</label>
-
-                    @if (isAdmin)
-                    {
-                        <select asp-for="IdMateriale"
-                                asp-items="ViewBag.Materiali"
-                                class="form-select">
-                        </select>
-                    }
-                    else
-                    {
-                        <select asp-for="IdMateriale"
-                                asp-items="ViewBag.Materiali"
-                                class="form-select input-readonly"
-                                disabled>
-                        </select>
-
-                        <input type="hidden" asp-for="IdMateriale" />
-                    }
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Unità di Misura</label>
-
-                    @if (isAdmin)
-                    {
-                        <select asp-for="IdUnitaMisura"
-                                asp-items="ViewBag.UnitaMisura"
-                                class="form-select">
-                        </select>
-                    }
-                    else
-                    {
-                        <select asp-for="IdUnitaMisura"
-                                asp-items="ViewBag.UnitaMisura"
-                                class="form-select input-readonly"
-                                disabled>
-                        </select>
-
-                        <input type="hidden" asp-for="IdUnitaMisura" />
-                    }
+                    <span asp-validation-for="IdCliente" class="text-danger small"></span>
                 </div>
 
             </div>
 
-            <!-- ============================
-                 SEZIONE 3 — QUANTITÀ E PREZZI
-                 ============================ -->
+            @* ============================================================
+               SEZIONE: QUANTITÀ E PREZZI
+               ============================================================ *@
             <h5 class="fw-bold mt-4">Quantità e Prezzi</h5>
             <div class="row g-3">
 
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Quantità (Kg)</label>
+                <div class="col-md-3">
+                    @* IdMateriale: disabled per non-Admin → hidden field necessario per il POST *@
+                    <label class="form-label fw-bold required-label">Materiale</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="Quantita" type="number" step="0.01" class="form-control" />
+                        <select asp-for="IdMateriale" id="IdMateriale" asp-items="ViewBag.Materiali" class="form-select"></select>
                     }
                     else
                     {
-                        <input asp-for="Quantita" type="number" step="0.01" class="form-control input-readonly" readonly />
+                        <select asp-for="IdMateriale" id="IdMateriale" asp-items="ViewBag.Materiali" class="form-select input-readonly" disabled="disabled"></select>
+                        <input type="hidden" asp-for="IdMateriale" />
                     }
+                    <span asp-validation-for="IdMateriale" class="text-danger small"></span>
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Prezzo</label>
+                <div class="col-md-3">
+                    @* IdUnitaMisura: stessa logica di IdMateriale *@
+                    <label class="form-label fw-bold required-label">Unità di Misura</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="Prezzo" type="number" step="0.01" class="form-control" />
+                        <select asp-for="IdUnitaMisura" asp-items="ViewBag.UnitaMisura" class="form-select"></select>
                     }
                     else
                     {
-                        <input asp-for="Prezzo" type="number" step="0.01" class="form-control input-readonly" readonly />
+                        <select asp-for="IdUnitaMisura" asp-items="ViewBag.UnitaMisura" class="form-select input-readonly" disabled="disabled"></select>
+                        <input type="hidden" asp-for="IdUnitaMisura" />
                     }
+                    <span asp-validation-for="IdUnitaMisura" class="text-danger small"></span>
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Commissioni € </label>
+                <div class="col-md-2">
+                    @* Quantita: FormatDecimal con 2 decimali (kg commerciali).
+                       Input type="number" richiede il punto come separatore decimale,
+                       da qui l'uso di InvariantCulture nel FormatDecimal. *@
+                    <label class="form-label fw-bold required-label">Quantità (Kg)</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="ValoreCommissioni" type="number" step="0.01" class="form-control" />
+                        <input asp-for="Quantita" id="Quantita" type="number" step="0.01"
+                               class="form-control"
+                               value="@FormatDecimal(Model.Quantita, 2)" />
                     }
                     else
                     {
-                        <input asp-for="ValoreCommissioni" type="number" step="0.01" class="form-control input-readonly" readonly />
+                        <input asp-for="Quantita" id="Quantita" type="number" step="0.01"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FormatDecimal(Model.Quantita, 2)" />
                     }
+                    <span asp-validation-for="Quantita" class="text-danger small"></span>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Provvigione Agente</label>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold required-label">Prezzo</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="ProvvigioneAgente" type="number" step="0.01" class="form-control" />
+                        <input asp-for="Prezzo" id="Prezzo" type="number" step="0.01"
+                               class="form-control"
+                               value="@FormatDecimal(Model.Prezzo, 2)" />
                     }
                     else
                     {
-                        <input asp-for="ProvvigioneAgente" type="number" step="0.01" class="form-control input-readonly" readonly />
+                        <input asp-for="Prezzo" id="Prezzo" type="number" step="0.01"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FormatDecimal(Model.Prezzo, 2)" />
                     }
+                    <span asp-validation-for="Prezzo" class="text-danger small"></span>
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Prezzo Vendita</label>
-                    @if (isAdmin)
-                    {
-                        <input asp-for="PrezzoVendita" type="number" step="0.01" class="form-control" />
-                    }
-                    else
-                    {
-                        <input asp-for="PrezzoVendita" type="number" step="0.01" class="form-control input-readonly" readonly />
-                    }
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Differenza</label>
-                    @if (isAdmin)
-                    {
-                        <input asp-for="Differenza" type="number" step="0.01" class="form-control" />
-                    }
-                    else
-                    {
-                        <input asp-for="Differenza" type="number" step="0.01" class="form-control input-readonly" readonly />
-                    }
-                </div>
-
-            </div>
-
-            <!-- ============================
-                 SEZIONE 4 — DATE
-                 ============================ -->
-            <h5 class="fw-bold mt-4">Date</h5>
-            <div class="row g-3">
-
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Data Riferimento Prezzo</label>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold required-label">Data Riferimento Prezzo</label>
                     @if (isAdmin)
                     {
                         <input asp-for="DataRiferimentoPrezzo" type="date" class="form-control" />
                     }
                     else
                     {
-                        <input asp-for="DataRiferimentoPrezzo" type="date" class="form-control input-readonly" readonly />
+                        <input asp-for="DataRiferimentoPrezzo" id="DataRiferimentoPrezzo" type="date"
+                               class="form-control input-readonly" readonly="readonly" />
                     }
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Data Consegna Ipotetica</label>
-                    @if (isAdmin)
-                    {
-                        <input asp-for="DataConsegnaIpotetica" type="date" class="form-control" />
-                    }
-                    else
-                    {
-                        <input asp-for="DataConsegnaIpotetica" type="date" class="form-control input-readonly" readonly />
-                    }
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label fw-bold">Scadenza</label>
-                    @if (isAdmin)
-                    {
-                        <input asp-for="Scadenza" type="date" class="form-control" />
-                    }
-                    else
-                    {
-                        <input asp-for="Scadenza" type="date" class="form-control input-readonly" readonly />
-                    }
+                    <span asp-validation-for="DataRiferimentoPrezzo" class="text-danger small"></span>
                 </div>
 
             </div>
 
-            <!-- ============================
-                 SEZIONE 5 — CAMPI TECNICI
-                 ============================ -->
-            <h5 class="fw-bold mt-4">Campi Tecnici</h5>
+            @* ============================================================
+               SEZIONE: LAVORAZIONI
+               I campi "Display" sono visivi e readonly di default.
+               I campi "Hidden" (es. id="PrLavSpess") sono quelli che
+               vengono realmente inviati al server nel POST.
+               Il pulsante lucchetto alterna tra calcolo automatico (locked)
+               e inserimento manuale (unlocked), gestito dallo script.
+               ============================================================ *@
+            <h5 class="fw-bold mt-4">Lavorazioni</h5>
+            <div class="row g-3">
 
-            <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#tecnici">
-                Mostra / Nascondi Campi Tecnici
+                <div class="col-md-2">
+                    @* Spessore: select popolata dinamicamente via AJAX in base al materiale selezionato *@
+                    <label class="form-label fw-bold">Spessore</label>
+                    <select id="Spessore" name="Spessore" class="form-select">
+                        <option value="">-- seleziona --</option>
+                    </select>
+                </div>
+
+                @* Hidden che trasporta il valore di Spessore salvato nel DB,
+                   usato dallo script per pre-selezionare la option corretta dopo l'AJAX *@
+                <input type="hidden" id="SpessoreSelezionato" value="@Model.Spessore" />
+
+                <div class="col-md-2">
+                    @* PrLavSpess (Prezzo Lavorazione Spessore):
+                       = Lav.AlluminioSpessore + Lav.OttoneSpessore + Lav.RameSpessore + AltrePercentuali
+                       Calcolato automaticamente (lock attivo) o inseribile manualmente (lock disattivo).
+                       Il campo "Display" mostra il valore; il campo "Hidden" lo invia al server. *@
+                    <label class="form-label fw-bold">Prz.Lav.Spessore</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="0.001"
+                               id="PrLavSpessDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FormatDecimal(Model.PrLavSpess, 3)"
+                               title="PrLavSpess = Lav.AlluminioSpessore + Lav.OttoneSpessore + Lav.RameSpessore + AltrePercentuali" />
+                        <button type="button" id="togglePrLavSpess" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="PrLavSpess" name="PrLavSpess" value="@FormatDecimal(Model.PrLavSpess, 3)" />
+                </div>
+
+                <div class="col-md-2">
+                    @* Larghezza: select popolata dinamicamente via AJAX, come Spessore *@
+                    <label class="form-label fw-bold">Larghezza</label>
+                    <select id="Larghezza" name="Larghezza" class="form-select">
+                        <option value="">-- seleziona --</option>
+                    </select>
+                </div>
+
+                @* Hidden che trasporta il valore di Larghezza salvato nel DB *@
+                <input type="hidden" id="LarghezzaSelezionata" value="@Model.Larghezza" />
+
+                <div class="col-md-2">
+                    @* PrLavLarg (Prezzo Lavorazione Larghezza):
+                       = Lav.AlluminioLarghezza + Lav.OttoneLarghezza + Lav.RameLarghezza + Lav.BronzoLarghezza
+                       Stessa logica Display/Hidden di PrLavSpess. *@
+                    <label class="form-label fw-bold">Prz.Lav.Larghezza</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="0.001"
+                               id="PrLavLargDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FormatDecimal(Model.PrLavLarg, 3)"
+                               title="PrLavLarg = Lav.AlluminioLarghezza + Lav.OttoneLarghezza + Lav.RameLarghezza + Lav.BronzoLarghezza" />
+                        <button type="button" id="togglePrLavLarg" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="PrLavLarg" name="PrLavLarg" value="@FormatDecimal(Model.PrLavLarg, 3)" />
+                </div>
+
+                <div class="col-md-2">
+                    @* PrLavTotale (Prezzo Lavorazione Totale):
+                       = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato
+                       Viene aggiornato automaticamente ogni volta che cambiano i suoi componenti. *@
+                    <label class="form-label fw-bold">Pr. Lav. Totale</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="0.001"
+                               id="PrLavTotaleDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FormatDecimal(Model.PrLavTotale, 3)"
+                               title="PrLavTotale = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato" />
+                        <button type="button" id="togglePrLavTotale" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="PrLavTotale" name="PrLavTotale" value="@FormatDecimal(Model.PrLavTotale, 3)" />
+                </div>
+
+            </div>
+
+            @* ============================================================
+               RIGA PROVVIGIONI, COMMISSIONI, PREZZI FINALI
+               ============================================================ *@
+            <div class="row g-3 mt-2">
+
+                <div class="col-md-3">
+                    @* Provvigione: commissione percentuale applicata al kg *@
+                    <label class="form-label fw-bold">Provvigione</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="Provvigione" id="Provvigione" type="number" step="0.01"
+                               class="form-control"
+                               value="@FormatDecimal(Model.Provvigione, 2)" />
+                    }
+                    else
+                    {
+                        <input asp-for="Provvigione" id="Provvigione" type="number" step="0.01"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FormatDecimal(Model.Provvigione, 2)" />
+                    }
+                </div>
+
+                <div class="col-md-3">
+                    @* ValoreCommissioni (€):
+                       = Provvigione × Quantita
+                       Calcolato automaticamente. Il campo Display è visivo,
+                       il campo Hidden è quello che finisce nel database. *@
+                    <label class="form-label fw-bold">Commissioni €</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="0.01"
+                               id="ValoreCommissioniDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FormatDecimal(Model.ValoreCommissioni, 2)"
+                               title="ValoreCommissioni = Provvigione × Quantita" />
+                        <button type="button" id="toggleValoreCommissioni" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="ValoreCommissioni" name="ValoreCommissioni" value="@FormatDecimal(Model.ValoreCommissioni, 2)" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Prezzo Vendita</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="0.01"
+                               class="form-control"
+                               value="@FormatDecimal(Model.PrezzoVendita, 2)" />
+                    }
+                    else
+                    {
+                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="0.01"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FormatDecimal(Model.PrezzoVendita, 2)" />
+                    }
+                </div>
+
+                <div class="col-md-3">
+                    @* Differenza (margine finale):
+                       = PrezzoVendita - PrLavTotale - Prezzo
+                       Aggiornata automaticamente ad ogni variazione dei suoi componenti. *@
+                    <label class="form-label fw-bold">Differenza</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="0.01"
+                               id="DifferenzaDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FormatDecimal(Model.Differenza, 2)"
+                               title="Differenza = PrezzoVendita - PrLavTotale - Prezzo" />
+                        <button type="button" id="toggleDifferenza" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="Differenza" name="Differenza" value="@FormatDecimal(Model.Differenza, 2)" />
+                </div>
+
+            </div>
+
+            @* ============================================================
+               SEZIONE: DATE
+               ============================================================ *@
+            <h5 class="fw-bold mt-4">Date</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Data Consegna Ipotetica</label>
+                    <input asp-for="DataConsegnaIpotetica" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Scadenza</label>
+                    <input asp-for="Scadenza" type="date" class="form-control" />
+                </div>
+            </div>
+
+            @* ============================================================
+               SEZIONE: ALTRI CAMPI (collapsible)
+               Generata via Reflection su tutte le proprietà del modello
+               non già presenti nelle sezioni precedenti.
+               Usa FormatDecimal per i campi decimal (3 decimali = precisione tecnica Cobral).
+               ============================================================ *@
+            <h5 class="fw-bold mt-4">Altri Campi</h5>
+            <button class="btn btn-outline-primary mb-3" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#tecnici">
+                Mostra / Nascondi Altri Campi
             </button>
 
             <div class="collapse" id="tecnici">
                 <div class="row g-3">
                     @foreach (var prop in typeof(CalkosManager.Domain.Entities.ProspettoCobral).GetProperties())
                     {
-                        // ============================
-                        // ELENCO DEI CAMPI DA ESCLUDERE
-                        // ============================
-                        // Tutti i campi presenti in questa lista NON verranno mostrati
-                        // nella sezione "Campi Tecnici", perché:
-                        // - sono già mostrati in altre sezioni
-                        // - sono lookup gestite altrove
-                        // - sono campi chiave o tecnici che non devono essere editati
+                        @* Lista completa dei campi da escludere dalla sezione "Altri Campi"
+                           perché già gestiti nelle sezioni precedenti o non rilevanti per l'utente *@
                         var skip = new[] {
-
-                                        // 🔹 Campi chiave / ID tecnici
-                                        "IdProspettoCobral",
-                                        "IdFileImportato",
-                                        "IdImportCobral",
-
-                                        // 🔹 Lookup principali (gestite in sezioni dedicate)
-                                        "IdCliente",
-                                        "IdMateriale",
-                                        "IdUnitaMisura",
-
-                                        // 🔹 Campi documento (già mostrati nella sezione Documento)
-                                        "NumeroOrdine",
-                                        "NumeroDDT",
-                                        "NumeroFattura",
-
-                                        // 🔹 Quantità e prezzi principali (già mostrati nella sezione Quantità e Prezzi)
-                                        "Quantita",
-                                        "Prezzo",
-                                        "ValoreCommissioni",
-                                        "PrezzoVendita",
-                                        "Differenza",
-
-                                        // 🔹 Date principali (già mostrate nella sezione Date)
-                                        "DataRiferimentoPrezzo",
-                                        "DataConsegnaIpotetica",
-                                        "Scadenza",
-
-                                        // 🔹 Valori lookup (solo visualizzazione, già mostrati nella sezione Cliente/Materiale)
-                                        "RagioneSociale",
-                                        "DescrizioneMateriale",
-                                        "UnitaMisura",
-
-                                        // 🔥 Campi relativi ad Agente e Pagamento (gestiti nella sezione dedicata)
-                                        "Agente",
-                                        "PercentualeDefaultAgente",
-                                        "ProvvigioneAgente",   // Spostato nella sezione Quantità e Prezzi
-                                        "TipoPagamento",
-                                        "IdAgente",
-                                        "IdTipoPagamento"
+                                        "IdProspettoCobral","IdFileImportato","IdImportCobral",
+                                        "IdCliente","IdMateriale","IdUnitaMisura",
+                                        "NumeroOrdine","NumeroDDT","NumeroFattura",
+                                        "Quantita","Prezzo","ValoreCommissioni","PrezzoVendita","Differenza",
+                                        "DataRiferimentoPrezzo","DataConsegnaIpotetica","Scadenza",
+                                        "RagioneSociale","DescrizioneMateriale","UnitaMisura",
+                                        "Agente","PercentualeDefaultAgente","ProvvigioneAgente","TipoPagamento",
+                                        "IdAgente","IdTipoPagamento","IdMandatario",
+                                        "PrLavLarg","PrLavTotale","DataModifica","Anno","Mese",
+                                        "Utente","DataInserimento","Spessore","Larghezza",
+                                        "Provvigione","PrLavSpess"
                                         };
 
-                        // Se il campo è nella lista skip → non mostrarlo
-                        if (skip.Contains(prop.Name))
-                            continue;
+                        if (skip.Contains(prop.Name)) continue;
 
-                        // ============================
-                        // TIPOLOGIA DEL CAMPO
-                        // ============================
-                        // Impostiamo automaticamente il tipo di input HTML
-                        // in base al tipo della proprietà del modello
-                        string inputType =
-                        prop.PropertyType == typeof(decimal?) ? "number" :
-                        prop.PropertyType == typeof(int?) ? "number" :
-                        prop.PropertyType == typeof(DateTime?) ? "date" :
-                        "text";
+                        bool isDecimal = prop.PropertyType == typeof(decimal) || prop.PropertyType == typeof(decimal?);
+                        string inputType = isDecimal ? "number" :
+                        (prop.PropertyType == typeof(int?) || prop.PropertyType == typeof(int)) ? "number" :
+                        (prop.PropertyType == typeof(DateTime?) || prop.PropertyType == typeof(DateTime)) ? "date" : "text";
 
-                        // Se è un decimal → aggiungiamo step="0.01"
-                        string step =
-                        prop.PropertyType == typeof(decimal?) ? "step=\"0.01\"" : "";
+                        @* step="0.001" per tutti i decimal tecnici Cobral (massima precisione) *@
+                        string stepAttr = isDecimal ? "step=0.001" : "";
 
-                        // ============================
-                        // RENDERING DEL CAMPO
-                        // ============================
+                        var rawValue = prop.GetValue(Model);
+                        string formattedValue;
+
+                        if (isDecimal)
+                        {
+                            formattedValue = FormatDecimal(rawValue, 3);
+                        }
+                        else if (inputType == "date" && rawValue is DateTime dt)
+                        {
+                            formattedValue = dt.ToString("yyyy-MM-dd");
+                        }
+                        else
+                        {
+                            formattedValue = rawValue?.ToString() ?? "";
+                        }
+
                         <div class="col-md-4">
                             <label class="form-label fw-bold">@prop.Name</label>
-
-                            @if (isAdmin)
-                            {
-                                // Campo editabile
-                                <input class="form-control"
-                                       name="@prop.Name"
-                                       type="@inputType"
-                                       @step
-                                       value="@prop.GetValue(Model)" />
-                            }
-                            else
-                            {
-                                // Campo in sola lettura
-                                <input class="form-control input-readonly"
-                                       name="@prop.Name"
-                                       type="@inputType"
-                                       @step
-                                       value="@prop.GetValue(Model)"
-                                       readonly />
-                            }
+                            <input class="form-control"
+                                   name="@prop.Name"
+                                   id="@prop.Name"
+                                   type="@inputType"
+                                   @stepAttr
+                                   value="@formattedValue" />
                         </div>
                     }
-
-
                 </div>
             </div>
 
-            <!-- ============================
-                 SEZIONE 6 — LOOKUP (DA SISTEMARE DOPO)
-                 ============================ -->
+            @* ============================================================
+               SEZIONE: AGENTE E PAGAMENTO
+               ============================================================ *@
             <h5 class="fw-bold mt-4">Agente e Pagamento</h5>
             <div class="row g-3">
 
                 <div class="col-md-4">
+                    @* Agente: select costruita manualmente (non con asp-items) per poter
+                       aggiungere l'attributo data-percentuale su ogni option,
+                       necessario per il calcolo client-side della provvigione.
+
+                       FIX: ViewBag.Agenti castato a IEnumerable<AgenteSelectItem> in cima alla view.
+                       Il controller popola ViewBag.Agenti con List<AgenteSelectItem>, tipo custom
+                       che espone Id, Nome e PercentualeDefault.
+                       Le proprietà usate nel foreach sono quindi:
+                         a.Id               → value dell'option
+                         a.Nome             → testo visibile dell'option
+                         a.PercentualeDefault → attributo data-percentuale per il calcolo JS
+                    *@
                     <label class="form-label fw-bold">Agente</label>
-
-                    @if (isAdmin)
-                    {
-                        <!-- Admin può scegliere l’agente -->
-                        <select asp-for="IdAgente"
-                                asp-items="ViewBag.Agenti"
-                                class="form-select">
-                        </select>
-                    }
-                    else
-                    {
-                        <!-- Operatore vede ma non modifica -->
-                        <select asp-for="IdAgente"
-                                asp-items="ViewBag.Agenti"
-                                class="form-select input-readonly"
-                                disabled>
-                        </select>
-
-                        <!-- Hidden per mantenere il valore in POST -->
-                        <input type="hidden" asp-for="IdAgente" />
-                    }
+                    <select id="IdAgente" name="IdAgente" class="form-select">
+                        @foreach (var a in agenti)
+                        {
+                            bool isSelected = (Model?.IdAgente.ToString() == a.Id.ToString());
+                            <option value="@a.Id"
+                                    data-percentuale="@a.PercentualeDefault"
+                                    selected="@(isSelected ? "selected" : null)">
+                                @a.Nome
+                            </option>
+                        }
+                    </select>
                 </div>
 
+                <div class="col-md-4">
+                    @* ProvvigioneAgente: recuperata via AJAX dal controller al cambio di Agente o Cliente.
+                       Campo readonly di default, sbloccabile da Admin tramite il lucchetto.
+                       Formattiamo con F2 + InvariantCulture per type="number". *@
+                    <label class="form-label fw-bold">Provvigione Agente (%)</label>
+                    <div class="input-group">
+                        @{
+                            string provValue = Model.ProvvigioneAgente?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) ?? "0.00";
+                        }
+                        @* Il campo non usa asp-for per evitare conflitti col binding automatico;
+                           il name="ProvvigioneAgente" garantisce comunque l'invio nel POST. *@
+                        <input name="ProvvigioneAgente"
+                               id="ProvvigioneAgente"
+                               type="number"
+                               step="0.01"
+                               class="form-control input-readonly"
+                               readonly="readonly"
+                               value="@provValue" />
+                        @if (isAdmin)
+                        {
+                            <button type="button" id="toggleProvAgente" class="btn btn-success">
+                                <i class="bi bi-lock-fill"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
 
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">Id Tipo Pagamento</label>
-                    @if (isAdmin)
-                    {
-                        <input class="form-control input-readonly" asp-for="IdTipoPagamento" type="number" />
-                    }
-                    else
-                    {
-                        <input class="form-control input-readonly" asp-for="IdTipoPagamento" type="number" readonly />
-                    }
+                    <label class="form-label fw-bold">Tipo Pagamento</label>
+                    <select asp-for="IdTipoPagamento" class="form-select"
+                            asp-items="@(ViewBag.TipiPagamento as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)">
+                    </select>
                 </div>
 
             </div>
@@ -427,20 +572,337 @@
 
             <div class="d-flex justify-content-between mt-3">
                 <a href="/Admin/ProspettiCobral/ListaOrdini" class="btn btn-secondary">Torna alla lista</a>
-
-                @if (isAdmin)
-                {
-                    <button type="submit" class="btn btn-primary">Salva modifiche</button>
-                }
+                <button type="submit" class="btn btn-primary">Salva modifiche</button>
             </div>
 
         </form>
-
-
     </div>
 </div>
-@section Scripts {
-    <!-- Bootstrap JS (se lo metto nel layout  non funziona   devo caricarlo nella vista e remmarlo nel layout ) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-}
 
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+
+            /**
+             * ============================================================
+             * CENTRALIZZAZIONE ANTIFORGERY 05/04/2026
+             * Invece di aggiungere il token a ogni singola chiamata $.ajax o $.getJSON,
+             * uso $.ajaxSetup.
+             * Aggiunge automaticamente il token CSRF a tutte le chiamate AJAX jQuery.
+             * Il token è letto dall'unico campo presente nel DOM
+             * ============================================================
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            /**
+             * ============================================================
+             * VARIABILI DI STATO (LOCK)
+             * true  = campo calcolato automaticamente (lucchetto chiuso, verde)
+             * false = campo sbloccato per inserimento manuale (lucchetto aperto, rosso)
+             * ============================================================
+             */
+            let lockValoreCommissioni = true;
+            let lockDifferenza        = true;
+            let lockPrLavSpess        = true;
+            let lockPrLavLarg         = true;
+            let lockPrLavTotale       = true;
+            let lockProvAgente        = true;
+
+            /**
+             * ============================================================
+             * INIZIALIZZAZIONE SELECT DIMENSIONI
+             * Recupera il materiale già selezionato e i valori salvati
+             * di Spessore e Larghezza per pre-selezionare le option dopo l'AJAX.
+             * ============================================================
+             */
+            const idMateriale  = $("#IdMateriale").val();
+            const spessoreSel  = $("#SpessoreSelezionato").val();
+            const larghezzaSel = $("#LarghezzaSelezionata").val();
+
+            caricaDimensioni(idMateriale, spessoreSel, larghezzaSel);
+
+            /**
+             * ============================================================
+             * FUNZIONI DI CALCOLO
+             * Ogni funzione aggiorna sia il campo Display (visivo)
+             * che il campo Hidden (inviato al server nel POST).
+             * Il calcolo avviene solo se il relativo lock è attivo.
+             * ============================================================
+             */
+
+            /**
+             * ValoreCommissioni = Provvigione × Quantita
+             * Si attiva al cambio di Provvigione o Quantita.
+             */
+            function ricalcolaValoreCommissioni() {
+                if (!lockValoreCommissioni) return;
+                const prov   = parseFloat($("#Provvigione").val()) || 0;
+                const qta    = parseFloat($("#Quantita").val()) || 0;
+                const valore = (prov * qta).toFixed(2);
+                $("#ValoreCommissioniDisplay").val(valore);
+                $("#ValoreCommissioni").val(valore);
+            }
+
+            /**
+             * Differenza = PrezzoVendita - PrLavTotale - Prezzo
+             * Rappresenta il margine finale dell'ordine.
+             * Viene chiamata anche da ricalcolaPrLavTotale (cascata).
+             */
+            function ricalcolaDifferenza() {
+                if (!lockDifferenza) return;
+                const pv     = parseFloat($("#PrezzoVendita").val()) || 0;
+                const pr     = parseFloat($("#Prezzo").val()) || 0;
+                const pl     = parseFloat($("#PrLavTotale").val()) || 0;
+                const valore = (pv - pl - pr).toFixed(2);
+                $("#DifferenzaDisplay").val(valore);
+                $("#Differenza").val(valore);
+            }
+
+            /**
+             * PrLavSpess = AlluminioSpessore + OttoneSpessore + RameSpessore + AltrePercentuali
+             * Dopo il calcolo, propaga la variazione a PrLavTotale (cascata).
+             */
+            function ricalcolaPrLavSpess() {
+                if (!lockPrLavSpess) return;
+                const a      = parseFloat($("#AlluminioSpessore").val()) || 0;
+                const o      = parseFloat($("#OttoneSpessore").val()) || 0;
+                const r      = parseFloat($("#RameSpessore").val()) || 0;
+                const x      = parseFloat($("#AltrePercentuali").val()) || 0;
+                const valore = (a + o + r + x).toFixed(3);
+                $("#PrLavSpessDisplay").val(valore);
+                $("#PrLavSpess").val(valore);
+                ricalcolaPrLavTotale(); // cascata → PrLavTotale → Differenza
+            }
+
+            /**
+             * PrLavLarg = AlluminioLarghezza + OttoneLarghezza + RameLarghezza + BronzoLarghezza
+             * Dopo il calcolo, propaga la variazione a PrLavTotale (cascata).
+             */
+            function ricalcolaPrLavLarg() {
+                if (!lockPrLavLarg) return;
+                const a      = parseFloat($("#AlluminioLarghezza").val()) || 0;
+                const o      = parseFloat($("#OttoneLarghezza").val()) || 0;
+                const r      = parseFloat($("#RameLarghezza").val()) || 0;
+                const b      = parseFloat($("#BronzoLarghezza").val()) || 0;
+                const valore = (a + o + r + b).toFixed(3);
+                $("#PrLavLargDisplay").val(valore);
+                $("#PrLavLarg").val(valore);
+                ricalcolaPrLavTotale(); // cascata → PrLavTotale → Differenza
+            }
+
+            /**
+             * PrLavTotale = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato
+             * Dopo il calcolo, propaga la variazione a Differenza (cascata).
+             */
+            function ricalcolaPrLavTotale() {
+                if (!lockPrLavTotale) return;
+                const sp     = parseFloat($("#PrLavSpess").val()) || 0;
+                const lg     = parseFloat($("#PrLavLarg").val()) || 0;
+                const exKg   = parseFloat($("#ExtraPrezzoKg").val()) || 0;
+                const exStag = parseFloat($("#ExtraPrezzoStagnato").val()) || 0;
+                const valore = (sp + lg + exKg + exStag).toFixed(3);
+                $("#PrLavTotaleDisplay").val(valore);
+                $("#PrLavTotale").val(valore);
+                ricalcolaDifferenza(); // cascata → Differenza
+            }
+
+            /**
+             * ============================================================
+             * RECUPERO DINAMICO PROVVIGIONE AGENTE
+             * Interroga il controller via AJAX al cambio di Agente o Cliente.
+             * La chiamata è protetta automaticamente dall'header CSRF
+             * configurato in ajaxSetup.
+             * ============================================================
+             */
+            function ricalcolaProvvigioneAgente() {
+                if (!lockProvAgente) return;
+
+                const idAgente  = $("#IdAgente").val();
+                const idCliente = $("#IdCliente").val();
+
+                if (!idAgente || !idCliente) return;
+
+                $.getJSON(
+                    '/Admin/ProspettiCobral/GetPercentualeProvvigione',
+                    { idAgente: idAgente, idCliente: idCliente },
+                    function (percentuale) {
+                        console.log("Provvigione agente ricevuta:", percentuale);
+                        $("#ProvvigioneAgente").val(parseFloat(percentuale).toFixed(2));
+                    }
+                ).fail(function (jqXHR, textStatus, errorThrown) {
+                    console.error("Errore recupero provvigione agente:", textStatus, errorThrown);
+                });
+            }
+
+            /**
+             * ============================================================
+             * EVENT LISTENERS — INPUT
+             * Collegano i campi sorgente alle relative funzioni di calcolo.
+             * ============================================================
+             */
+            $("#Quantita, #Provvigione")
+                .on("input", ricalcolaValoreCommissioni);
+
+            $("#PrezzoVendita, #Prezzo")
+                .on("input", ricalcolaDifferenza);
+
+            $("#AlluminioSpessore, #OttoneSpessore, #RameSpessore, #AltrePercentuali")
+                .on("input", ricalcolaPrLavSpess);
+
+            $("#AlluminioLarghezza, #OttoneLarghezza, #RameLarghezza, #BronzoLarghezza")
+                .on("input", ricalcolaPrLavLarg);
+
+            $("#ExtraPrezzoKg, #ExtraPrezzoStagnato")
+                .on("input", ricalcolaPrLavTotale);
+
+            /**
+             * Al cambio di Agente o Cliente, recuperiamo la provvigione aggiornata dal server.
+             */
+            $("#IdAgente, #IdCliente").on("change", ricalcolaProvvigioneAgente);
+
+            /**
+             * ============================================================
+             * SINCRONIZZAZIONE DISPLAY → HIDDEN
+             * Quando un campo viene sbloccato e l'utente lo modifica manualmente,
+             * il valore deve essere copiato nel corrispondente campo Hidden
+             * (es. "PrLavSpessDisplay" → "PrLavSpess") affinché venga inviato al server.
+             * La convenzione di naming è: idDisplay = idHidden + "Display".
+             * ============================================================
+             */
+            $("input[id$='Display']").on("input", function () {
+                const hiddenId = $(this).attr("id").replace("Display", "");
+                $("#" + hiddenId).val($(this).val());
+            });
+
+            /**
+             * ============================================================
+             * CARICAMENTO INIZIALE PROVVIGIONE AGENTE
+             * Se al caricamento della pagina la provvigione è assente o zero,
+             * tentiamo di recuperarla dal server (es. dopo un redirect da salvataggio).
+             * ============================================================
+             */
+            if ($("#IdAgente").val() && $("#IdCliente").val()) {
+                const valAttuale = parseFloat($("#ProvvigioneAgente").val());
+                if (isNaN(valAttuale) || valAttuale === 0) {
+                    ricalcolaProvvigioneAgente();
+                }
+            }
+
+            /**
+             * ============================================================
+             * GESTIONE LUCCHETTI (setupToggle)
+             * Parametri:
+             *   idBtn          — selettore del pulsante lucchetto
+             *   idInputDisplay — selettore del campo visivo da sbloccare/bloccare
+             *   type           — stringa identificativa per aggiornare la variabile lock corretta
+             *
+             * Comportamento:
+             *   BLOCCATO  → campo readonly, pulsante verde con icona lock-fill
+             *   SBLOCCATO → campo editabile, pulsante rosso con icona unlock-fill
+             *
+             * Al momento del blocco, sincronizza il valore dal Display all'Hidden.
+             * ============================================================
+             */
+            function setupToggle(idBtn, idInputDisplay, type) {
+                $(idBtn).on("click", function () {
+                    let isLocked;
+
+                    // Invertiamo lo stato del lock corrispondente
+                    if      (type === 'spess')  { lockPrLavSpess        = !lockPrLavSpess;        isLocked = lockPrLavSpess;        }
+                    else if (type === 'larg')   { lockPrLavLarg         = !lockPrLavLarg;         isLocked = lockPrLavLarg;         }
+                    else if (type === 'tot')    { lockPrLavTotale       = !lockPrLavTotale;       isLocked = lockPrLavTotale;       }
+                    else if (type === 'comm')   { lockValoreCommissioni = !lockValoreCommissioni; isLocked = lockValoreCommissioni; }
+                    else if (type === 'diff')   { lockDifferenza        = !lockDifferenza;        isLocked = lockDifferenza;        }
+                    else if (type === 'agente') { lockProvAgente        = !lockProvAgente;        isLocked = lockProvAgente;        }
+
+                    const $input = $(idInputDisplay);
+
+                    if (isLocked) {
+                        // BLOCCATO: torna in sola lettura e sincronizza il valore nell'hidden
+                        $input.prop("readonly", true).addClass("input-readonly");
+                        $(this).removeClass("btn-danger").addClass("btn-success")
+                               .html('<i class="bi bi-lock-fill"></i>');
+
+                        // Propaga il valore manuale inserito nell'hidden corrispondente
+                        const hiddenId = idInputDisplay.replace("#", "").replace("Display", "");
+                        if ($("#" + hiddenId).length) {
+                            $("#" + hiddenId).val($input.val());
+                        }
+                    } else {
+                        // SBLOCCATO: campo editabile
+                        $input.prop("readonly", false).removeClass("input-readonly");
+                        $(this).removeClass("btn-success").addClass("btn-danger")
+                               .html('<i class="bi bi-unlock-fill"></i>');
+                    }
+                });
+            }
+
+            // Registrazione di tutti i lucchetti
+            setupToggle("#togglePrLavSpess",         "#PrLavSpessDisplay",         'spess');
+            setupToggle("#togglePrLavLarg",           "#PrLavLargDisplay",          'larg');
+            setupToggle("#togglePrLavTotale",         "#PrLavTotaleDisplay",        'tot');
+            setupToggle("#toggleValoreCommissioni",   "#ValoreCommissioniDisplay",  'comm');
+            setupToggle("#toggleDifferenza",          "#DifferenzaDisplay",         'diff');
+            setupToggle("#toggleProvAgente",          "#ProvvigioneAgente",         'agente');
+
+            /**
+             * ============================================================
+             * AJAX — CARICAMENTO DIMENSIONI MATERIALE
+             * Popola le select di Spessore e Larghezza in base al materiale scelto.
+             * Il confronto dei valori usa replace(',','.') per gestire
+             * i separatori decimali italiani salvati nel DB.
+             * La chiamata è protetta automaticamente dall'header CSRF (ajaxSetup).
+             *
+             * Parametri:
+             *   idMateriale  — ID del materiale selezionato
+             *   spessoreSel  — valore di spessore da pre-selezionare (dal DB)
+             *   larghezzaSel — valore di larghezza da pre-selezionare (dal DB)
+             * ============================================================
+             */
+            function caricaDimensioni(idMateriale, spessoreSel, larghezzaSel) {
+                if (!idMateriale) return;
+
+                $.getJSON(
+                    '/Admin/ProspettiCobral/GetDimensioniMateriale',
+                    { idMateriale: idMateriale },
+                    function (data) {
+                        const listaSpessori  = data.spessori  || data.Spessori  || [];
+                        const listaLarghezze = data.larghezze || data.Larghezze || [];
+
+                        // Popola select Spessori
+                        const $spess = $("#Spessore");
+                        $spess.empty().append('<option value="">-- seleziona --</option>');
+                        $.each(listaSpessori, function (i, v) {
+                            const selected = (v.toString().replace(',', '.') === (spessoreSel || "").toString().replace(',', '.'))
+                                ? "selected='selected'" : "";
+                            $spess.append("<option value='" + v + "' " + selected + ">" + v + "</option>");
+                        });
+
+                        // Popola select Larghezze
+                        const $larg = $("#Larghezza");
+                        $larg.empty().append('<option value="">-- seleziona --</option>');
+                        $.each(listaLarghezze, function (i, v) {
+                            const selected = (v.toString().replace(',', '.') === (larghezzaSel || "").toString().replace(',', '.'))
+                                ? "selected='selected'" : "";
+                            $larg.append("<option value='" + v + "' " + selected + ">" + v + "</option>");
+                        });
+                    }
+                );
+            }
+
+            /**
+             * Al cambio del materiale, resettiamo entrambe le select di dimensione
+             * e le ricarichiamo con i valori disponibili per il nuovo materiale.
+             */
+            $("#IdMateriale").on("change", function () {
+                caricaDimensioni($(this).val(), "", "");
+            });
+
+        }); // fine document.ready
+    </script>
+}

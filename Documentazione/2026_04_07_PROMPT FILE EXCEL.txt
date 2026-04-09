@@ -1,0 +1,70 @@
+**RUOLO:**
+Sei un esperto di Microsoft Excel (formule avanzate, tabelle strutturate, VBA/macros).
+
+**CONTESTO:**
+Ho già un file Excel esistente per la gestione ordini.
+Il file contiene:
+
+* Formule di calcolo standard già funzionanti
+* Eventuali macro già presenti
+  NON deve essere modificata la logica esistente.
+
+**OBIETTIVO:**
+Devi modificare/migliorare il file mantenendo tutto ciò che funziona, aggiungendo queste funzionalità:
+
+**REQUISITI FUNZIONALI:**
+
+1. Le formule esistenti devono continuare a funzionare senza essere alterate.
+2. Deve essere possibile:
+
+   * Inserire dati normalmente
+   * **Sovrascrivere manualmente una formula** in una cella (override)
+3. Quando viene inserita una nuova riga:
+
+   * Le formule standard devono essere **riapplicate automaticamente**
+4. Quando viene eliminata una riga:
+
+   * Il sistema deve continuare a funzionare correttamente
+5. Deve essere possibile distinguere:
+
+   * Celle con formula
+   * Celle con valore manuale (override)
+
+**REQUISITI TECNICI:**
+
+* NON modificare la logica delle formule esistenti
+* NON rompere macro già presenti
+* Preferire:
+
+  * Tabelle Excel strutturate (Table) se compatibili
+  * In alternativa VBA robusto
+* Se usi VBA:
+
+  * Deve integrarsi con il file esistente
+  * Codice chiaro, commentato
+  * Gestire eventi tipo `Worksheet_Change`
+
+**OUTPUT RICHIESTO:**
+
+* Analisi di come adattare il file esistente
+* Modifiche minime necessarie
+* Eventuali formule o approccio
+* Codice VBA completo (se serve)
+* Istruzioni precise su dove inserirlo
+
+**VINCOLI:**
+
+* NON duplicare logiche già presenti
+* NON cambiare struttura se non necessario
+* Deve funzionare anche con molte righe
+
+**EXTRA (SE POSSIBILE):**
+
+* Evidenziare automaticamente le celle con override (es: colore)
+* Pulsante o metodo per ripristinare la formula originale
+
+**IMPORTANTE:**
+Prima di proporre la soluzione:
+
+* Spiega le possibili alternative
+* Scegli la più solida e meno invasiva

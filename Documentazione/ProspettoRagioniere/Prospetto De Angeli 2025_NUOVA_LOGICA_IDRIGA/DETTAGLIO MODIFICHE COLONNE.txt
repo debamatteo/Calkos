@@ -1,0 +1,34 @@
+ESEMPIO :
+Se si vuole aggiungere un secondio DDT 
+Per l'ordine 2406799 che è alla riga 6 del Prospetto 
+che ha  ID_BASE = 1, devi:
+
+Inserire una nuova riga subito sotto la riga 6 nel Prospetto
+Nella colonna A (ID_BASE) mettere 1 — lo stesso ID dell'ordine originale, così punta alla stessa riga del Calcolo Base
+Compilare normalmente le altre colonne: numero fattura, cliente, kg, lav, vendita ecc.
+Le formule nelle colonne G, I, L si calcolano automaticamente leggendo dal Calcolo Base tramite ID_BASE=1
+
+Il Calcolo Base non va toccato — la base di calcolo è la stessa per entrambi i DDT.
+
+
+
+
+G = Tipologia Materiale
+=INDICE('calcolo base'!$B:$B; CONFRONTA($A6; 'calcolo base'!$A:$A; 0))
+
+I = Materiale Euro di riferimento
+=SE(  O(      INDICE('calcolo base'!$D:$D; CONFRONTA($A6; 'calcolo base'!$A:$A; 0)) = 0;
+      INDICE('calcolo base'!$D:$D; CONFRONTA($A6; 'calcolo base'!$A:$A; 0)) = ""   );
+   INDICE('calcolo base'!$K:$K; CONFRONTA($A6; 'calcolo base'!$A:$A; 0));
+   INDICE('calcolo base'!$J:$J; CONFRONTA($A6; 'calcolo base'!$A:$A; 0))
+) / 1000
+
+
+L=Aliquota variabile
+=INDICE('calcolo base'!$H:$H; CONFRONTA($A6; 'calcolo base'!$A:$A; 0))
+
+U=TOTALE FATTURA
+=SE(Q6=0;'calcolo base'!L2606;(T6+Q6))
+NB: L2606 non si capisce a cosa serva dato che non è valorizzato mai è una ella a caso.
+
+

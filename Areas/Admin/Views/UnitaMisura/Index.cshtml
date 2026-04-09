@@ -1,0 +1,197 @@
+﻿@model IEnumerable<CalkosManager.Domain.Entities.UnitaMisura>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestione Unità di Misura";
+}
+
+@* HEADER *@
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-measuring-cup text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Unità di Misura</h1>
+        <small class="text-muted">Gestione dei parametri di misura per i prodotti e le commissioni</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* TOOLBAR *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <a asp-area="Admin" asp-controller="UnitaMisura" asp-action="Create"
+                   class="btn btn-primary fw-bold shadow-sm">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Nuova Unità
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+        </div>
+
+        <style>
+            #umTable thead tr:first-child th {
+                background-color: #0d6efd !important;
+                color: white !important;
+                border: none !important;
+                padding: 12px 10px !important;
+            }
+
+            #umTable thead tr.filters th {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                padding: 8px !important;
+            }
+
+            #umTable tbody tr:hover {
+                background-color: #f0f7ff !important;
+                cursor: pointer;
+            }
+
+            .filters input {
+                width: 100%;
+                font-size: 0.75rem;
+                padding: 3px 6px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+            }
+
+            .ps-custom {
+                padding-left: 1.2rem !important;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="umTable" class="table table-hover align-middle w-100">
+                <thead>
+                    <tr>
+                        <th style="display:none;">ID</th>
+                        <th class="ps-custom" style="width: 150px;">Codice</th>
+                        <th>Descrizione</th>
+                        <th>Creato da</th>
+                        <th>Data Ins.</th>
+                        <th class="text-center" style="width:110px;">Azioni</th>
+                    </tr>
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th class="ps-custom"><input type="text" placeholder="Inizia con..." data-col="1" /></th>
+                        <th><input type="text" placeholder="Cerca..." data-col="2" /></th>
+                        <th><input type="text" placeholder="Cerca..." data-col="3" /></th>
+                        <th><input type="text" placeholder="Cerca..." data-col="4" /></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in Model)
+                    {
+                        <tr data-id="@u.IdUnitaMisura">
+                            <td style="display:none;">@u.IdUnitaMisura</td>
+                            <td class="fw-bold text-dark ps-custom">@u.CodiceUnitaMisura</td>
+                            <td>@u.UnitaMisuraDescrizione</td>
+                            <td><small class="text-muted">@u.Utente</small></td>
+                            <td>@u.DataInserimento.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-center text-nowrap">
+                                <a asp-action="Edit" asp-route-id="@u.IdUnitaMisura"
+                                   class="btn btn-link text-warning p-0 me-2" title="Modifica">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+                                <button type="button" class="btn btn-link text-danger p-0"
+                                        onclick="eliminaUM(@u.IdUnitaMisura, this)" title="Elimina">
+                                    <i class="bi bi-trash-fill fs-5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="antiforgery-container" style="display:none;">
+    @Html.AntiForgeryToken()
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Setup Antiforgery (Uniformato a container)
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('#antiforgery-container input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            var table = $('#umTable').DataTable({
+                dom: '<"d-flex justify-content-between mb-2"l>rtip',
+                orderCellsTop: true,
+                language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 5, orderable: false, searchable: false }
+                ],
+                order: [[1, 'asc']]
+            });
+
+            // Filtri colonna con logica Regex (come Agenti)
+            $('#umTable thead tr.filters input').on('keyup change', function () {
+                var colIndex = $(this).data('col');
+                var searchVal = this.value;
+                table.column(colIndex).search(
+                    searchVal ? "^" + searchVal : "",
+                    true,
+                    false
+                ).draw();
+            });
+
+            // Evita ordinamento al click sull'input
+            $('.filters th').on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            // Doppio click → Edit
+            $('#umTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).closest('a, button').length > 0) return;
+                var id = $(this).data('id');
+                if (id) window.location.href = '@Url.Action("Edit", "UnitaMisura")/' + id;
+            });
+        });
+
+        function resetFiltri() {
+            $('.filters input').val('');
+            $('#umTable').DataTable().search('').columns().search('').draw();
+        }
+
+        function eliminaUM(id, btn) {
+            $('#confirmDeleteModal .modal-body').html("Sei sicuro di voler eliminare questa unità di misura?<br><span class='text-danger fw-bold'>L'operazione è definitiva.</span>");
+
+            var modalConferma = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+            modalConferma.show();
+
+            $('#confirmDeleteBtn').off('click').on('click', function () {
+                modalConferma.hide();
+
+                $.post('@Url.Action("Delete", "UnitaMisura")', { id: id })
+                    .done(function (res) {
+                        if (res.success) {
+                            $('#umTable').DataTable().row($(btn).closest('tr')).remove().draw(false);
+
+                            $('#modalOperazioneCompletata .modal-body').text("Unità di misura eliminata con successo.");
+                            var modalSuccesso = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+                            modalSuccesso.show();
+                        } else {
+                            alert(res.message || "Errore durante l'eliminazione.");
+                        }
+                    })
+                    .fail(function() {
+                        alert("Errore tecnico durante la richiesta al server.");
+                    });
+            });
+        }
+    </script>
+}

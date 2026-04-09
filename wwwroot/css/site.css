@@ -20,3 +20,72 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Bordo elegante per intestazioni tabella  */
+/*Bordo elegante sulle intestazioni*/
+/*class="table table-striped table-hover align-middle table-header-bordered">*/
+/*.table-header-bordered thead th {
+    border: 1px solid #d0d7e5 !important;
+    background-color: #0d6efd !important;
+    color: white !important;
+    vertical-align: middle;
+}*/
+/*Bordo anche sui filtri*/
+/*.table-header-bordered thead tr.filters th {
+    background-color: #f0f7ff !important;
+    border: 1px solid #d0d7e5 !important;
+}*/
+/* --- STILE UNIVERSALE PER TUTTE LE TABELLE CON CLASSE .table-custom-header --- */
+/* RESET E FORZATURA BORDI PER TABELLE CALKOS
+    <table class="table table-striped table-hover align-middle table-custom-header">
+
+*/
+.table-custom-header thead th {
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+    /* Forziamo il bordo su tutti i lati della cella */
+    border: 1px solid #d0d7e5 !important;
+    vertical-align: middle !important;
+    text-align: center !important;
+    /* Bootstrap 5 a volte usa box-shadow per i bordi, lo resettiamo */
+    box-shadow: none !important;
+}
+
+/* Riga dei filtri */
+.table-custom-header thead tr.filters th {
+    background-color: #f0f7ff !important;
+    border: 1px solid #d0d7e5 !important;
+    box-shadow: none !important;
+}
+
+/* Applica il bordo anche alle celle del corpo per coerenza */
+.table-custom-header tbody td {
+    border: 1px solid #dee2e6 !important;
+}
+
+/* Forza la tabella a mostrare i bordi separati se necessario */
+.table-custom-header {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+}
+
+/* Stili per il caricamento AJAX della Dashboard */
+#tabella-ajax-container {
+    transition: opacity 0.2s ease-in-out;
+    position: relative;
+    min-height: 200px; /* Evita che il footer schizzi in alto quando carichi */
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 8px;
+}

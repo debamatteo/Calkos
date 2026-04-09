@@ -1,0 +1,114 @@
+﻿@model CalkosManager.Domain.Entities.MaterialiDimensioni
+
+@inject CalkosManager.Application.Services.MaterialeService MaterialeService
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    // Titolo dinamico in base all'operazione
+    bool isEdit = Model.IdDimensione > 0;
+    ViewData["Title"] = isEdit ? "Modifica Dimensione" : "Nuova Dimensione Materiale";
+
+    var materiali = MaterialeService.GetAll()?.ToList()
+        ?? new List<CalkosManager.Domain.Entities.Materiale>();
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi @(isEdit ? "bi-pencil-square" : "bi-plus-circle-fill") me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            @* 1. Puntiamo all'azione 'Save' del Controller *@
+            <form asp-action="Save" method="post">
+                @Html.AntiForgeryToken()
+
+                @* 2. Campo ID nascosto (VITALE per il funzionamento del Service.Save) *@
+                <input type="hidden" asp-for="IdDimensione" />
+
+                <div class="row g-3">
+
+                    <!-- MATERIALI -->
+                    <div class="col-md-6">
+                        <label asp-for="IdMateriale" class="form-label fw-bold">Materiale</label>
+                        <select asp-for="IdMateriale" class="form-select select2" id="ddlMateriale">
+                            <option value="">-- Seleziona Materiale --</option>
+                            @foreach (var m in materiali)
+                            {
+                                <option value="@m.IdMateriale">@m.DescrizioneMateriale</option>
+                            }
+                        </select>
+                        <span asp-validation-for="IdMateriale" class="text-danger small"></span>
+                    </div>
+
+                    <!-- TIPO -->
+                    <div class="col-md-3">
+                        <label asp-for="Tipo" class="form-label fw-bold">Tipo</label>
+                        <input asp-for="Tipo" class="form-control" placeholder="es. Spessore" />
+                        <span asp-validation-for="Tipo" class="text-danger small"></span>
+                    </div>
+
+                    <!-- VALORE -->
+                    <div class="col-md-3">
+                        <label asp-for="Valore" class="form-label fw-bold">Valore</label>
+                        <input asp-for="Valore" class="form-control" placeholder="es. 10mm" />
+                        <span asp-validation-for="Valore" class="text-danger small"></span>
+                    </div>
+
+                    <!-- ORDINE -->
+                    <div class="col-md-3">
+                        <label asp-for="Ordine" class="form-label fw-bold">Ordine</label>
+                        <input asp-for="Ordine" type="number" class="form-control" />
+                        <span asp-validation-for="Ordine" class="text-danger small"></span>
+                    </div>
+
+                </div>
+
+                @* Visualizzazione errori generali *@
+                <div asp-validation-summary="ModelOnly" class="text-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Dimensione
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // Inizializzazione Select2 con coerenza grafica modello
+            if ($.fn.select2) {
+                $('#ddlMateriale').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: "Seleziona materiale",
+                    allowClear: true
+                });
+            }
+        });
+    </script>
+}
