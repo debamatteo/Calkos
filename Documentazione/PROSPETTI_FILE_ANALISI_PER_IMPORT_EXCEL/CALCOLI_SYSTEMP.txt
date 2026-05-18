@@ -1,0 +1,70 @@
+SYSTEMP
+Colonna H Prezzo
+campo db PrezzoAcquisto
+formula E7+F7+G7
+E	Lavorazione	—		campo db	LavorazionePrezzoAcquisto
+F	Base	—		campo dbBaseAcquisto
+G	CIT	—		campo db	CIT
+
+--------------------------------------------
+Colonna M Commissioni
+campo db ValoreProvvigioneFissa
+formula L2*C2
+L	Provvigione	—		campo db	ProvvigioneUnitaria
+C	KG	—		campo db Quantita
+
+--------------------------------------------
+Colonna Q Prezzo di vendita	0	
+campo db PrezzoVendita
+
+FORMULA N+O+P — somma Lavorazione + Base + CIT vendita
+N	Lavorazione	—		campo db LavorazionePrezzoVendita
+O	Base	—		campo db	BaseVendita
+P	CIT	—		campo db	CITsuVendita	 
+
+--------------------------------------------
+Colonna R Delta
+campo db		Delta
+campo db Delta
+formula IF(+Q6-H6<=0,0,Q6-H6)
+H	Prezzo	campo db	PrezzoAcquisto
+Q	Prezzo di vendita	campo db PrezzoVendita
+
+
+--------------------------------------------
+Colonna T	Totale provv variabile	
+FORMULA (R2*C2)*S2	=(R*C)*S 
+campo db TotaleVariabileProvvigione
+R	Delta campo db  Delta
+C	KG campo db Quantita
+S	Percentuale delta campo db PercentualeDelta
+
+
+
+
+
+--------------------------------------------
+Colonna U	Totalone
+campo db 	TotaleProvvigione
+FORMULA =J+M+T 
+J	CIT €/Kg	—		campo db	CIT_EUR_KG
+M	Commissioni  campo db	ValoreProvvigioneFissa
+T	Totale provv variabile	campo db	TotaleVariabileProvvigione
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

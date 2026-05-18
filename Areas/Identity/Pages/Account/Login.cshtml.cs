@@ -143,7 +143,9 @@ namespace Calkos.web.Areas.Identity.Pages.Account
                     // Se l'utente deve cambiare la password → reindirizza
                     if (user.RequirePasswordChange)
                     {
-                        return RedirectToAction("ForceChangePassword", "Account");
+                        //return RedirectToAction("ForceChangePassword", "Account");
+                        return RedirectToPage("/Account/ForceChangePassword");//12/05/2026
+
                     }
 
                     //// 4️⃣ Login normale

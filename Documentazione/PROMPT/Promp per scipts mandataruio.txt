@@ -1,0 +1,7 @@
+DEVI usare tutte le funzioni di appoggio già presenti, senza crearne di nuove
+DEVI seguire esattamente la logica del modello di esempio
+DEVI gestire tutto ciò che è previsto, escludendo solo i campi che non esistono
+NON DEVI inventare nulla
+Non DEVI dedurre informazioni mancanti
+DEVI attenermi solo ai dati disponibili
+DEVI mantenere i Miei Commenti

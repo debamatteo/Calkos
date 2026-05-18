@@ -1,0 +1,84 @@
+{
+  "columns": [
+    {
+      "name": "NumeroOrdine",
+      "label": "Ordine",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroDDT",
+      "label": "DDT",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroFattura",
+      "label": "Fattura",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "RagioneSociale",
+      "label": "Cliente",
+      "visible": true,
+      "format": "text",
+      "width": 3
+    },
+    {
+      "name": "UnitaMisura",
+      "label": "U.M.",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Quantita",
+      "label": "Q.tà",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+    {
+      "name": "PrezzoUnitario",
+      "label": "Prezzo Unit",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "Imponibile",
+      "label": "Imponibile",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "TotaleProvvigione",
+      "label": "TotaleProvvigione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "DataConsegna",
+      "label": "Data Consegna",
+      "visible": true,
+      "format": "date:dd/MM/yyyy",
+      "width": 2
+    },
+ 
+    {
+      "name": "Fatturata",
+      "label": "Fatturata",
+      "visible": true,
+      "export": false,
+      "format": "int",
+      "width": 1
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+ATTIVA MODALITÀ: PROSPETTI MANDATARI
+
+Ciao Copilot, dobbiamo creare un nuovo prospetto per un nuovo mandatario.
+Voglio che tu lavori ESATTAMENTE come abbiamo fatto per Cobral ed ElektraWire.
+
+============================================================
+🎯 OBIETTIVO PRINCIPALE
+============================================================
+Costruire da zero, per un nuovo mandatario:
+
+1. La tabella ProspettoX
+2. La vista vProspettoX
+3. Tutte le stored procedure:
+   - spProspettoX_Delete
+   - spProspettoX_SoftDelete
+   - spProspettoX_GetAll
+   - spProspettoX_GetAllFiltri
+   - spProspettoX_GetByFile
+   - spProspettoX_GetById
+   - spProspettoX_Insert
+   - spProspettoX_Insert_Tran
+   - spProspettoX_Update
+
+Il tutto seguendo rigorosamente il modello Cobral/ElektraWire.
+
+============================================================
+📌 REGOLE TASSATIVE
+============================================================
+
+1) NON INVENTARE CAMPI  
+   Usa SOLO i campi realmente presenti nella tabella ProspettoX e nella tabella ImportX.
+
+2) NON INVENTARE LOGICHE  
+   Le stored devono essere una copia adattata delle stored Cobral/ElektraWire.
+
+3) NON AGGIUNGERE PARAMETRI INUTILI  
+   Le stored devono avere SOLO i parametri dei campi realmente presenti.
+
+4) SE HAI DUBBI, CHIEDI PRIMA DI GENERARE  
+   Non procedere mai senza conferma.
+
+5) PROCEDURA INTERATTIVA  
+   Io dico “vai” → tu generi la prossima stored.
+
+6) JOIN STANDARD  
+   Usa sempre queste join:
+   - Clienti
+   - Materiali
+   - UnitaMisura
+   - Agenti
+   - TipoPagamento
+
+7) GESTIONE STANDARD  
+   - DataInserimento = GETDATE()
+   - DataModifica = GETDATE()
+   - SoftDelete = IsDeleted = 1
+   - Controllo Fatturata prima di eliminare
+   - Anno e Mese NON modificabili in Update
+
+============================================================
+📦 COSA TI FORNIRÒ IO (FASE 1)
+============================================================
+Quando ti dico “iniziamo”, tu mi chiedi:
+
+1. La tabella ImportX del nuovo mandatario
+2. Il modello di riferimento (Cobral o ElektraWire)
+3. Eventuali campi extra richiesti
+4. Il nome del nuovo mandatario
+
+============================================================
+🛠️ COSA DEVI FARE TU (FASE 2)
+============================================================
+
+Dopo che ti fornisco i dati:
+
+1. Proponi la struttura della tabella ProspettoX
+   - campi mappabili da ImportX
+   - campi gestionali standard
+   - eventuali campi extra richiesti
+
+2. Aspetti la mia conferma
+
+3. Generi:
+   - CREATE TABLE
+   - Vista
+   - Stored procedure (una alla volta)
+
+============================================================
+📌 STATO ATTUALE DEL LAVORO (CONTESTO)
+============================================================
+Abbiamo già completato:
+- ProspettoCobral (modello originale)
+- ProspettoElektraWire (modello derivato)
+- Tutte le stored ElektraWire
+- Vista ElektraWire
+- Regole di adattamento consolidate
+
+Questo prompt serve per replicare il modello per qualsiasi nuovo mandatario.
+
+============================================================
+🚀 PROSSIMI PASSI
+============================================================
+Quando incollerò questo prompt in una nuova sessione:
+
+1. Tu mi chiedi:
+   “Dammi la tabella Import del nuovo mandatario”
+
+2. Io te la fornisco
+
+3. Tu analizzi e proponi:
+   “Ecco la struttura della tabella ProspettoX”
+
+4. Io confermo
+
+5. Tu generi:
+   - Tabella
+   - Vista
+   - Stored (una alla volta)
+
+============================================================
+FINE PROMPT
+============================================================

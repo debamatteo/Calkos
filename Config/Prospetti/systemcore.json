@@ -1,0 +1,122 @@
+{
+  "columns": [
+    {
+      "name": "NumeroOrdine",
+      "label": "Ordine",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroDDT",
+      "label": "DDT",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroFattura",
+      "label": "Fattura",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "RagioneSociale",
+      "label": "Cliente",
+      "visible": true,
+      "format": "text",
+      "width": 3
+    },
+    {
+      "name": "UnitaMisura",
+      "label": "U.M.",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Quantita",
+      "label": "Q.tà",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+    {
+      "name": "DescrizioneMateriale",
+      "label": "Materiale",
+      "visible": true,
+      "format": "text",
+      "width": 2
+    },
+    {
+      "name": "CostoLavorazione",
+      "label": "Lavorazione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoVendita",
+      "label": "Vendita",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "PercentualeQuotaFissa",
+      "label": "% QuotaFissa",
+      "visible": true,
+      "format": "percent",
+      "width": 1
+    },
+
+    {
+      "name": "ValoreQuotaFissa",
+      "label": "Quota fissa € 0,10/€ 0,05",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "TotaleProvvigioneVariabile",
+      "label": "Totale provv variabile",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "TotaleProvvigione",
+      "label": "Totalone",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "DataConsegna",
+      "label": "Data Consegna",
+      "visible": true,
+      "format": "date:dd/MM/yyyy",
+      "width": 2
+    },
+
+    {
+      "name": "TotaleProvvigioneDaFatturare",
+      "label": "Totale Provvigioni",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "Fatturata",
+      "label": "Fatturata",
+      "visible": true,
+      "export": false,
+      "format": "int",
+      "width": 1
+    }
+  ]
+}

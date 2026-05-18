@@ -1,0 +1,189 @@
+Formule ElektraWIRE
+
+
+
+--------------------------------------------------------------------------------
+Colonna H	Totale Mat+Lav	Campo DB PrezzoConLavorazione
+Formula	PrezzoConLavorazione	E13+G13
+Formula	PrezzoConLavorazione	=CostoLavorazione+Prezzo
+
+E		Lav	—	Campo DB	CostoLavorazione
+G		Base	—	Campo DB	Prezzo
+
+--------------------------------------------------------------------------------
+J		Delta	—	Decimal	DeltaMargine	I13-H13
+
+I		Vendita	—	Campo DB	PrezzoVendita
+H		Totale Mat+Lav	—	Campo DB	PrezzoConLavorazione
+
+
+
+--------------------------------------------------------------------------------
+K	Commisioni fisse 	1,50%	0,015 (soglia)	
+Campo DB	ValUnitProvvigioneFissa1_5	
+FORMULA =SE(F6="alluminio";0;I6*1,5%)
+
+F		Materiale	—	Campo DB	Materiale	—
+I		Vendita	—	Campo DB	PrezzoVendita	—
+
+
+--------------------------------------------------------------------------------
+L	Commisioni fisse 	1,50%<Delta	
+Campo DB	Delta1ProvvigioneFissa1_5	
+FORMULA=SE(K6<J6;K6;0) SE([1,50%]<Delta;[1,50%];0)
+FORMULA DB =SE(ValUnitProvvigioneFissa1_5<DeltaMargine;ValUnitProvvigioneFissa1_5;0)
+K	Commisioni fisse 	1,50%	Campo DB	ValUnitProvvigioneFissa1_5
+J		Delta	—	Campo DB	DeltaMargine	
+
+
+--------------------------------------------------------------------------------
+M	Commisioni fisse 	[1,5%>Delta]
+Campo DB Delta2ProvvigioneFissa1_5	
+FORMULA =SE(J6>K6;0;J6) FORMULA =SE(Delta>[1,50%];0;Delta)
+FORMULA DB =SE(DeltaMargine>ValUnitProvvigioneFissa1_5;0;DeltaMargine)
+
+K	Commisioni fisse 	[1,50%]	Campo DB	ValUnitProvvigioneFissa1_5
+J		Delta	—	Campo DB	DeltaMargine
+--------------------------------------------------------------------------------
+
+N	Commisioni fisse 	[1,5% fissa]
+Campo DB	TotProvvigioneFissa1_5	
+FORMULA=L6*D6
+FORMULA=[1,50%<Delta]*KG
+FORMULA=Delta1ProvvigioneFissa1_5 * Quantita
+
+L	Commisioni fisse 	[1,50%<Delta]	Campo DB	Delta1ProvvigioneFissa1_5
+D		KG	—	Campo DB	Quantita	
+
+
+
+--------------------------------------------------------------------------------
+
+O	Commisioni fisse 	[3%]	
+Campo DB	ValUnitProvvigioneFissa_03	
+FORMULA=SE(F6="rame";0;+I6*3%);FORMULA=SE(Materiale="rame";0;+Vendita*3%)
+FORMULA DB=SE(Materiale="rame";0;+PrezzoVendita*3%)
+
+F		Materiale	—	Campo DB	Materiale	—
+I		Vendita	—	Campo DB	PrezzoVendita	—
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+P	Commisioni fisse 	[3% < Delta]
+Campo DB	Delta1ProvvigioneFissa_03	
+FORMULA =SE(O6<J6;O6;0)
+FORMULA =SE([3%]<Delta;[3%];0)
+FORMULA DB =SE(ValUnitProvvigioneFissa_03<Delta;ValUnitProvvigioneFissa_03;0)
+
+O	Commisioni fisse 	[3%]	Campo DB	ValUnitProvvigioneFissa_03
+J		Delta	—	Campo DB	DeltaMargine	
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+Q	Commisioni fisse 	[3% > Delta]
+Campo DB	Delta2ProvvigioneFissa_03
+FORMULA	=SE(J6>O6;0;J6);FORMULA	=SE(Delta>[3%];0;Delta)
+FORMULA	=SE(DeltaMargine>ValUnitProvvigioneFissa_03;0;DeltaMargine)
+
+O	Commisioni fisse 	[3%]		Campo DB	ValUnitProvvigioneFissa_03
+J		Delta	—	Campo DB	DeltaMargine	
+--------------------------------------------------------------------------------
+
+--->proseguire
+--------------------------------------------------------------------------------
+R	Commisioni fisse 	[3% fissa]	
+Campo DB	TotProvvigioneFissa_03	
+FORMULA=P6*D6 ; FORMULA=[3% < Delta	]*KG
+FORMULA DB =TotProvvigioneFissa_03*Quantita
+
+P	Commisioni fisse 	[3% < Delta	]Campo DB	Delta1ProvvigioneFissa_03
+D		KG	—	Campo DB	Quantita	—
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+S		[Quota fissa 1,5%]	—	
+Campo DB	ValQuotaFissa_1_5	
+FORMULA=SE(K6=0;0;M6*D6) ; FORMULA=SE([1,50%]=0;0;[1,5%>Delta]*Quantita)
+FORMULA DB=SE(ValUnitProvvigioneFissa1_5=0;0;Delta2ProvvigioneFissa1_5*KG)
+
+K	[1,50%]	Campo DB	ValUnitProvvigioneFissa1_5
+D		KG	—	Campo DB	Quantita	—
+M	Commisioni fisse 	[1,5%>Delta]	Campo DB	Delta2ProvvigioneFissa1_5
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+T		[Quota fissa 3%]	—	
+Campo DB	ValQuotaFissa_03	
+FORMULA=+SE(K6=0;Q6*D6;0)
+FORMULA=+SE([1,50%]=0;[3% > Delta]*KG;0)
+FORMULA=+SE(ValUnitProvvigioneFissa1_5=0;Delta2ProvvigioneFissa_03*Quantita;0)
+K	[1,50%]	Campo DB	ValUnitProvvigioneFissa1_5
+D		KG	—	Campo DB	Quantita	—
+Q	Commisioni fisse 	[3% > Delta] Campo DB 	Delta2ProvvigioneFissa_03	
+--------------------------------------------------------------------------------
+
+--->proseguire 2
+
+
+
+--------------------------------------------------------------------------------
+U		Totale	—	
+Campo DB	TotaleFissoProvvigione	
+FORMULA= N6+R6+S6+T6 
+FORMULA= [1,5% fissa]+[3% fissa]+[Quota fissa 1,5%]+[Quota fissa 3%]
+FORMULA DB= TotProvvigioneFissa1_5 + TotProvvigioneFissa_03 + ValQuotaFissa_1_5 + ValQuotaFissa_03
+
+N	Commisioni fisse 	[1,5% fissa]		Campo DB	TotProvvigioneFissa1_5	
+R	Commisioni fisse 	[3% fissa]		Campo DB	TotProvvigioneFissa_03	
+S		[Quota fissa 1,5%]	—	Campo DB	ValQuotaFissa_1_5	
+T		[Quota fissa 3%]	—	Campo DB	ValQuotaFissa_03	
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+V		Delta	—	
+Campo DB	DeltaResiduoVariabile	
+FORMULA=SE(P6=0;0;I6-H6-O6)+SE(L6=0;0;I6-H6-K6)
+FORMULA=SE([3% < Delta]=0;0;Vendita-[Totale Mat+Lav]-[3%])
+       +SE([1,50%<Delta]=0;0;Vendita-[Totale Mat+Lav]-ValUnitProvvigioneFissa1_5)
+
+FORMULA DB=SE([3% < Delta]=0;0;PrezzoVendita-PrezzoConLavorazione-ValUnitProvvigioneFissa_03)+
+		SE([1,50%<Delta]=0;0;PrezzoVendita-PrezzoConLavorazione-ValUnitProvvigioneFissa1_5)
+
+
+P	Commisioni fisse 	[3% < Delta]	Campo DB Delta1ProvvigioneFissa_03	
+I		Vendita	—	Campo DB	PrezzoVendita	—
+H		[Totale Mat+Lav]	—	Campo DB	PrezzoConLavorazione	
+O	Commisioni fisse 	[3%]	Campo DB	ValUnitProvvigioneFissa_03	
+L	Commisioni fisse 	[1,50%<Delta]	 Campo DB	Delta1ProvvigioneFissa1_5	
+K	[1,50%]	Campo DB	ValUnitProvvigioneFissa1_5
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+W		Totale provv variabile	—	
+Campo DB	TotaleVariabileProvvigione	
+FORMULA=(V6*60%)*D6
+FORMULA=(Delta*60%)*KG
+FORMULA DB=(DeltaResiduoVariabile*60%)*Quantita
+
+V		Delta	—	Campo DB	DeltaResiduoVariabile	
+D		KG	—	Campo DB	Quantita	—
+60% da gestire con u nuovo campo
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+X		Tot. Provv.	—	
+Campo DB	TotaleSommaProvvigioni	
+FORMULA=U6+W6
+FORMULA=Totale+Totale provv variabile
+FORMULA DB=TotaleFissoProvvigione+TotaleVariabileProvvigione
+
+U		Totale	—	Campo DB	TotaleFissoProvvigione	
+W		Totale provv variabile	—	Campo DB	TotaleVariabileProvvigione	
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+Z		Totale Provvigioni	—	
+Campo DB	TotaleProvvigioneDaFatturare	
+FORMULA=SE(X6>I6;X6;I6)
+FORMULA=SE(Tot. Provv>Vendita;Tot. Provv;Vendita)
+FORMULA DB=SE(TotaleSommaProvvigioni>PrezzoVendita;TotaleSommaProvvigioni;PrezzoVendita)
+
+X		Tot. Provv.	—	Decimal	TotaleSommaProvvigioni	
+I		Vendita	—	numero	PrezzoVendita	—
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------

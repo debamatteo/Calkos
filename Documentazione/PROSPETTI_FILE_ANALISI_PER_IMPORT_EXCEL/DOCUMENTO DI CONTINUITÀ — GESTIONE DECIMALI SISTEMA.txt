@@ -1,0 +1,249 @@
+Ecco il **documento di continuità completo** della sessione, strutturato per permettere di riprendere il lavoro senza perdere alcun dettaglio.
+
+---
+
+# 📄 DOCUMENTO DI CONTINUITÀ — GESTIONE DECIMALI SISTEMA COBRAL
+
+---
+
+# 1) 🎯 OBIETTIVO PRINCIPALE DELLA CONVERSAZIONE
+
+Definire una **regola unica e coerente di gestione dei decimali** in un sistema ASP.NET MVC con:
+
+* SQL Server
+* C# (Entity + ADO.NET)
+* JavaScript (calcoli lato client)
+* Razor UI
+
+Obiettivo finale:
+
+> eliminare inconsistenze tra frontend, backend e database nei calcoli numerici (prezzi, commissioni, lavorazioni, totali ordine)
+
+---
+
+# 2) 📌 CONTESTO E INFORMAZIONI CHIAVE
+
+Il sistema presenta una pagina complessa (`ProspettoCobral`) con:
+
+* prezzi (Prezzo, PrezzoVendita)
+* quantità
+* commissioni
+* lavorazioni (spessore, larghezza)
+* margini e differenze
+* calcoli automatici JS
+* salvataggio su SQL Server
+
+### Problema principale riscontrato:
+
+* arrotondamenti incoerenti tra:
+
+  * JavaScript
+  * C#
+  * Database SQL
+* utilizzo errato di `.toFixed()`
+* perdita di precisione nei calcoli intermedi
+* mismatch tra valori visualizzati e salvati
+
+---
+
+# 3) 🧠 DECISIONI PRESE E RAGIONAMENTO
+
+## 🔥 DECISIONE 1 — PRECISIONE UNICA SISTEMICA
+
+È stato stabilito che:
+
+> Tutti i valori numerici devono essere gestiti internamente a **6 decimali (decimal(18,6))**
+
+### Motivazione:
+
+* eliminare errori di accumulo
+* garantire coerenza tra layer
+* standard industriale per calcoli finanziari
+
+---
+
+## 🔥 DECISIONE 2 — SEPARAZIONE TRA CALCOLO E OUTPUT
+
+### Regola:
+
+* Calcoli interni → 6 decimali
+* Solo output finale → 2 decimali
+
+### Motivazione:
+
+* preservare precisione nei passaggi intermedi
+* mantenere leggibilità per l’utente finale
+
+---
+
+## 🔥 DECISIONE 3 — JS UNICO SISTEMA DI ROUNDING
+
+Introduzione di funzioni standard:
+
+```js
+function round6(x) {
+    return Math.round((x + Number.EPSILON) * 1000000) / 1000000;
+}
+
+function round2(x) {
+    return Math.round((x + Number.EPSILON) * 100) / 100;
+}
+```
+
+### Motivazione:
+
+* eliminare `.toFixed()` (fonte di errori)
+* uniformare calcoli lato client
+
+---
+
+## 🔥 DECISIONE 4 — DB E C# NON DEVONO ARROTONDARE
+
+* SQL Server: `decimal(18,6)`
+* C#: `decimal`
+* nessun formatting logico
+
+---
+
+# 4) 🧾 MATERIALE PRODOTTO
+
+## 📌 STRUTTURA REGOLA FINALE
+
+```
+DATABASE → 18,6 (6 decimali)
+C# → decimal puro
+JS → round6 per tutti i calcoli
+UI → 2 decimali solo per totale finale
+```
+
+---
+
+## 📌 REGOLA FINALE COMPLETA
+
+> Tutti i valori numerici sono memorizzati e trasmessi a 6 decimali.
+> Nessun arrotondamento è consentito prima del salvataggio.
+> L’arrotondamento a 2 decimali è consentito solo per il totale finale mostrato all’utente.
+
+---
+
+## 📌 FLUSSO CORRETTO
+
+```
+INPUT UTENTE
+   ↓
+JS (round6 sempre)
+   ↓
+C# (nessun rounding)
+   ↓
+SQL (decimal(18,6))
+   ↓
+OUTPUT TOTALE (round2)
+```
+
+---
+
+## 📌 FUNZIONI JS STANDARD
+
+```js
+function round6(x) {
+    return Math.round((x + Number.EPSILON) * 1000000) / 1000000;
+}
+
+function round2(x) {
+    return Math.round((x + Number.EPSILON) * 100) / 100;
+}
+```
+
+---
+
+## 📌 ESEMPIO LOGICO
+
+```
+2.589675 → calcoli intermedi → 2.589675
+somma → 6 decimali → 10.123456
+totale finale → 10.12
+```
+
+---
+
+# 5) 📊 STATO ATTUALE DEL LAVORO
+
+## ✔ COMPLETATO
+
+* definizione architettura decimali
+* eliminazione concetto “tecnico/commerciale”
+* standardizzazione precisione unica (6 decimali)
+* definizione regole JS/C#/SQL
+* definizione regola UI (2 decimali finale)
+* creazione funzioni round6 / round2
+* definizione prompt per AI esterna
+
+---
+
+## ⚠ IN SOSPESO (NON IMPLEMENTATO ANCORA NEL CODICE REALE)
+
+* refactoring completo della pagina Razor
+* sostituzione `.toFixed()` nei calcoli JS
+* verifica completa pipeline `ricalcolaPrLavTotale` e simili
+* audit completo di tutti i punti di arrotondamento esistenti
+
+---
+
+# 6) 🚀 PROSSIMI PASSI
+
+## 🔧 STEP 1 — FIX CODICE JS
+
+* sostituire tutti `.toFixed()`
+* introdurre round6 in tutti i calcoli intermedi
+* usare round2 solo per:
+
+  * PrLavTotale finale
+  * Differenza finale
+  * Prezzo finale
+
+---
+
+## 🔧 STEP 2 — VALIDAZIONE RICALCOLI
+
+* controllare:
+
+  * PrLavSpess
+  * PrLavLarg
+  * PrLavTotale
+  * Differenza
+* verificare che non ci siano rounding anticipati
+
+---
+
+## 🔧 STEP 3 — ALLINEAMENTO UI
+
+* campi tecnici → 3/6 decimali
+* campi commerciali → 2 decimali
+* hidden fields → sempre 6 decimali
+
+---
+
+## 🔧 STEP 4 — TEST CONSISTENZA
+
+* confronto:
+
+  * JS vs C#
+  * C# vs DB
+* verifica assenza drift numerico
+
+---
+
+# 🧾 CONCLUSIONE
+
+Il sistema è stato normalizzato su un modello matematico coerente:
+
+* precisione unica interna (6 decimali)
+* output commerciale controllato (2 decimali)
+* eliminazione completa di arrotondamenti prematuri
+
+---
+
+Se vuoi, nel prossimo step posso trasformarti questo documento in:
+
+👉 checklist operativa da sviluppatore (da spuntare durante refactoring)
+👉 oppure un “coding standard aziendale” ufficiale per tutto il progetto

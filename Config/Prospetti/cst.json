@@ -1,0 +1,137 @@
+{
+  "columns": [
+    {
+      "name": "NumeroOrdine",
+      "label": "Ordine",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroDDT",
+      "label": "DDT",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroFattura",
+      "label": "Fattura",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "RagioneSociale",
+      "label": "Cliente",
+      "visible": true,
+      "format": "text",
+      "width": 3
+    },
+    {
+      "name": "UnitaMisura",
+      "label": "U.M.",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Quantita",
+      "label": "Q.tà",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+    {
+      "name": "CostoLavorazione",
+      "label": "Lavorazione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "DescrizioneMateriale",
+      "label": "Materiale",
+      "visible": true,
+      "format": "text",
+      "width": 2
+    },
+
+    {
+      "name": "PrezzoBase",
+      "label": "Materiale Euro di riferimento",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoBaseConLavorazione",
+      "label": "Materiale + Lav con commissione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoVendita",
+      "label": "Vendita",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "ProvvigioneFissa01_05",
+      "label": "1,5% fissa",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "ProvvigioneFissa03",
+      "label": "3,0% fissa",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "TotaleProvvigioneFissa",
+      "label": "Totale Fisso",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "Delta",
+      "label": "Delta",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "TotaleProvvigioneVariabile",
+      "label": "Totale provv variabile",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "TotaleProvvigioneFattura",
+      "label": "Totale fattura",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+        {
+      "name": "Fatturata",
+      "label": "Fatturata",
+      "visible": true,
+      "export": false,
+      "format": "int",
+      "width": 1
+    }
+  ]
+}

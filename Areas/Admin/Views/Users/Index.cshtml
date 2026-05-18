@@ -23,6 +23,12 @@
 </div>
 
 <div class="card shadow-sm">
+
+    <form id="tokenForm">
+        @Html.AntiForgeryToken()
+    </form>
+
+
     <div class="card-body p-0">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
@@ -90,15 +96,46 @@
                                 <i class="bi bi-trash"></i> Elimina
                             </a>
 
+                            <button class="btn btn-sm btn-outline-danger me-2"
+                                    onclick="resetPassword('@user.Email')">
+                                <i class="bi bi-key-fill"></i> Reset Password
+                            </button>
+
                         </td>
-
-
-
-
-
                     </tr>
                 }
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+    function resetPassword(email) {
+        if (!confirm("Sei sicuro di voler resettare la password di " + email + "?"))
+            return;
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        fetch('/Admin/ResetUserPassword', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify({ Email: email }) // "Email" con la maiuscola
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Errore 400 o 500');
+            return response.json();
+        })
+        .then(d => {
+            alert(d.message);
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Errore nella richiesta. Controlla i log del browser.");
+        });
+    }
+</script>
+
+

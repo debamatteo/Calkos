@@ -1,0 +1,36 @@
+[INPUT FILE] = Prospetto Elektra Wire Srl 2026
+[INPUT FOGLIO] = calcolo comm.
+[INPUT INTERVALLO COLONNE]= A-AA
+[RIGA INPUT INTESTAZIONI]=4-5
+[INPUT partenza Righe dati] = 7
+
+Analizza il foglio Excel chiamato “[INPUT FOGLIO]”.
+
+ISTRUZIONI OBBLIGATORIE (NON INTERPRETARE, NON INVENTARE):
+1. Leggi davvero il contenuto del file Excel, non il testo estratto.
+2. Vai al foglio chiamato “[INPUT FOGLIO]”.
+3. Identifica la riga [RIGA INPUT INTESTAZIONI] del foglio: quella contiene le intestazioni ufficiali.
+4. Leggi e ricostruisci esattamente le colonne dell intervallo [INPUT INTERVALLO COLONNE], riportando:
+   - Nome della colonna
+   - Posizione numerica  delle colonne (A=1, B=2, C=3 ....)
+   - Eventuale formula presente nella cella della riga 5
+   - Tipo di dato (testo, numero, data, formula, vuoto)
+
+5. Dopo aver identificato le colonne [INPUT INTERVALLO COLONNE], analizza le prime 10 righe di dati a partire dalla riga [INPUT partenza Righe dati]:
+   - Leggi i valori reali contenuti nelle celle
+   - Non saltare celle vuote
+   - Non riordinare i dati
+   - Non interpretare: riporta solo ciò che è realmente presente
+
+6. Se una colonna contiene formule, riportale esattamente come sono scritte nel file.
+7. Se una colonna è vuota indicarlo chiaramente.
+8. Non dedurre, non stimare, non ricostruire nulla che non sia presente nel file.
+
+OUTPUT RICHIESTO:
+
+- Tabella completa colonne A–V con intestazioni reali
+- Elenco delle formule effettivamente presenti BASANDOTI SULLE prime 30 righe (A6:v35)
+- Nessuna interpretazione, nessuna supposizione
+
+SE NON PUOI LEGGERE IL FILE:
+- Rispondi: “Non posso leggere il file Excel, fornisci uno screenshot della riga [RIGA INPUT INTESTAZIONI] con  le prime 10 righe di dati a partire dalla riga [INPUT partenza Righe dati]:

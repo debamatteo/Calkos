@@ -1,0 +1,113 @@
+Option Explicit
+
+' ======================================================================================
+' NOME MACRO: NormalizzaBlindata_Semplificata
+' DATA: Maggio 2026
+'
+' LOGICA DI FUNZIONAMENTO:
+' 1. LISTA COLONNE: In "OttieniMappatura" scrivi solo le lettere separate da virgola.
+' 2. PROTEZIONE: La macro rileva AUTOMATICAMENTE se una cella contiene una formula
+'    o un valore inserito manualmente.
+' 3. FORMULE: Se trova una formula, aggiunge il ROUND senza cancellarla.
+' 4. VALORI: Se trova un numero inserito a mano, lo arrotonda ai decimali scelti.
+' ======================================================================================
+
+' ======================================================================================
+' 1. CONFIGURAZIONE GENERALE
+' ======================================================================================
+Const PWD_RICHIESTA As String = "1976"
+Const RIGA_DATI     As Long = 6
+Const DECIMALI      As Integer = 6
+
+' ======================================================================================
+' 2. LISTA DELLE COLONNE (Solo Lettere)
+' ======================================================================================
+Function OttieniMappatura() As String
+'FORMULA PER OTTENERE LETTERA INTESTAZIOINE COLONNA  =SOSTITUISCI(INDIRIZZO(1;RIF.COLONNA();4);1;"")
+    ' Ho inserito tutte le colonne dalla D alla U come richiesto.
+    ' Basta la lettera separata dalla virgola.
+    'SYSTEMP
+    OttieniMappatura = "C, E, F, G, H, J, K, L, M, N, O, P, Q, R, S, T, U"
+End Function
+
+' ======================================================================================
+' 3. MOTORE DELLA MACRO
+' ======================================================================================
+Sub NormalizzaBlindata()
+    Dim pwdInserita As String, ws As Worksheet, rigaFineCell As Range
+    Dim lastRow As Long, vElementi As Variant, elemento As Variant
+    Dim colLettera As String, col As Long, i As Long
+    Dim formula As String, backupPath As String
+
+    ' --- CONTROLLO PASSWORD ---
+    pwdInserita = InputBox("Inserire password per procedere:", "Accesso Protetto")
+    If pwdInserita <> PWD_RICHIESTA Then
+        If pwdInserita <> "" Then MsgBox "Password errata!", vbCritical
+        Exit Sub
+    End If
+
+    ' --- BACKUP AUTOMATICO ---
+    Set ws = ActiveSheet
+    If ThisWorkbook.Path <> "" Then
+        backupPath = ThisWorkbook.Path & "\" & Format(Now, "YYYYMMDD_HHMMSS") & "_BACKUP_" & ThisWorkbook.Name
+        ThisWorkbook.SaveCopyAs backupPath
+    End If
+
+    ' --- RICERCA FINE TABELLA ---
+    Set rigaFineCell = ws.Cells.Find(What:="FINE_TABELLA", LookIn:=xlValues, LookAt:=xlWhole)
+    If rigaFineCell Is Nothing Then
+        MsgBox "Errore: 'FINE_TABELLA' non trovata nel foglio!", vbCritical
+        Exit Sub
+    End If
+    lastRow = rigaFineCell.Row - 1
+
+    ' --- ELABORAZIONE COLONNE ---
+    ' Dividiamo la stringa delle lettere usando la virgola
+    vElementi = Split(OttieniMappatura(), ",")
+
+    For Each elemento In vElementi
+        colLettera = Trim(elemento)
+        
+        If colLettera <> "" Then
+            ' Identifica la colonna in base alla lettera
+            col = ws.Range(colLettera & "1").Column
+
+            For i = RIGA_DATI To lastRow
+                With ws.Cells(i, col)
+                    ' 1. PARACADUTE: Se la cella contiene un errore (es. #N/D), la salta
+                    If Not IsError(.Value) Then
+                        
+                        ' 2. Processa solo se la cella non è vuota
+                        If .Value <> "" Then
+                            
+                            If .HasFormula Then
+                                ' CASO A: Formula
+                                formula = Mid(.formula, 2)
+                                If InStr(1, formula, "ROUND(", vbTextCompare) = 0 And _
+                                   InStr(1, formula, "ARROTONDA(", vbTextCompare) = 0 Then
+                                    .formula = "=ROUND(" & formula & "," & DECIMALI & ")"
+                                End If
+                            
+                            ElseIf IsNumeric(.Value) Then
+                                ' CASO B: Numero manuale
+                                .Value = WorksheetFunction.Round(.Value, DECIMALI)
+                            End If
+                            
+                        End If
+                    End If ' Fine controllo IsError
+                End With
+            Next i
+            
+            ' Formattazione visiva della colonna a 3 decimali
+            ws.Range(ws.Cells(RIGA_DATI, col), ws.Cells(lastRow, col)).NumberFormat = "#,##0.000"
+            
+        End If
+    Next elemento
+
+    MsgBox "Operazione conclusa con successo!" & vbCrLf & _
+           "Formule e valori manuali sono stati normalizzati.", vbInformation, "Fine"
+End Sub
+
+
+
+ 

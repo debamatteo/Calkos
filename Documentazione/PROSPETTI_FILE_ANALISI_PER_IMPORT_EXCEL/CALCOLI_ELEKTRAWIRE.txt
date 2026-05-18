@@ -1,0 +1,51 @@
+------------------------------------------------------------------------------------------------------------
+CALCOLO "% QUOTA FISSA"
+Campo DB PercentualeQuotaFissa
+=SE(H5=0;+D5*0,05;G5*H5)
+Questa formula decide come calcolare la mia provvigione base:
+se non c'è una percentuale concordata "% Quota fissa"(Colonna H=0), 
+prendo 5 centesimi per ogni chilo (Colonna D =KG) venduto.
+Se invece la percentuale c'è, prendo quella calcolata sul prezzo di vendita (Colonna "G" Vendita). 			
+H=% Quota fissa
+D =KG
+G = Prezzo Vendita
+
+Il valore "5 centesimi" è salvato nel database nel campo QuotaCentesimiPerKg
+
+------------------------------------------------------------------------------------------------------------
+CALCOLO "Quota fissa € 0,10"
+Campo DB ValoreQuotaFissa
+SE(H5=0;G5-E5;0)	Se % quota fissa = 0 → differenza (Vendita - Lav) , altrimenti 0
+H= % Quota fissa
+E= Costo Lavorazione (Lav)
+G = Prezzo Vendita (Vendita)
+
+
+------------------------------------------------------------------------------------------------------------
+CALCOLO  "Totale provv variabile"
+Campo DB= TotaleProvvigioneVariabile
+(J5*0,5)*D5	50% del delta moltiplicato per i Kg
+J=Delta
+D =KG
+Il valore 50% è salvato nel database nel campo Perc_Delta_Provvigione
+
+------------------------------------------------------------------------------------------------------------
+CALCOLO  "Totalone"
+Campo DB= TotaleProvvigione
+	I5+K5	Somma quota fissa + provvigione variabile
+I=Quota fissa € 0,10
+K=Totale provv variabile
+
+------------------------------------------------------------------------------------------------------------
+CALCOLO  "Totale Provvigioni"
+Campo DB= TotaleProvvigioneDaFatturare
+SE(H5=0;SE(L5>G5;L5;G5);L5)	
+Se H% = 0 → prende il maggiore tra Totalone e Vendita, altrimenti Totalone
+H= % Quota fissa
+L= Totale
+G = Prezzo Vendita (Vendita)
+
+			
+				
+				
+				

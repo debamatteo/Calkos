@@ -1,0 +1,135 @@
+Colonna(H)	Materiale+Lav con commissione	
+FORMULA= D+F
+Lavorazione + Materiale rif.
+FORMULA DB =  CostoLavorazione+ PrezzoBase
+
+
+D	Lav 	 Campo DB = CostoLavorazione
+F	Materiale Euro di riferimento	Campo DB = PrezzoBase
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Se il materiale è alluminio (di qualsiasi tipo ),l (Prezzo *  0,03) ; Altrimenti, il valore  è 0. 
+Colonna(K)	[3,0% fissa]
+Campo Db = ProvvigioneFissa03
+FORMULA =IF(E="alluminio",(I)*3%,0)+IF(E="alluminio smaltato",(I)*3%,0)
+FORMULA =IF([Tipologia Materiale]="alluminio",(Vendita)*3%,0)+IF([Tipologia Materiale]="alluminio smaltato",(Vendita)*3%,0)
+FORMULA DB =IF(Materiale="alluminio",(Vendita)*3%,0)+IF(Materiale="alluminio smaltato",(Vendita)*3%,0)
+
+E	[Tipologia Materiale]	—	 Campo DB = Materiale
+I	Vendita	—	 Campo DB = PrezzoVendita
+
+Sintesi:Se il materiale è alluminio (di qualsiasi tipo specificato), 
+la formula restituisce: (Prezzo *  0,03) ; Altrimenti, il valore restituito è 0.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+Colonna(L)	Totale Fisso	
+Campo Db = TotaleProvvigioneFissa
+FORMULA=(J*C)+(K*C)
+FORMULA=([1,5% fissa]*[Kg])+([3,0% fissa]*[Kg])
+FORMULA DB=(ProvvigioneFissa01_05*Quantita)+(ProvvigioneFissa03*Quantita)
+
+J	[1,5% fissa]	—		Campo DB=ProvvigioneFissa01_05
+C	[Kg]	—		Campo DB=Quantita
+K	[3,0% fissa] 	Campo DB= ProvvigioneFissa03	
+
+
+
+               @* L	Totale Fisso	-- TotaleProvvigioneFissa *@
+                @* 
+                Colonna(L)	Totale Fisso	
+                Campo Db = TotaleProvvigioneFissa
+                FORMULA=(J*C)+(K*C)
+                FORMULA=([1,5% fissa]*[Kg])+([3,0% fissa]*[Kg])
+                FORMULA DB=(ProvvigioneFissa01_05*Quantita)+(ProvvigioneFissa03*Quantita)
+
+                J	[1,5% fissa]	—		Campo DB=ProvvigioneFissa01_05
+                C	[Kg]	—		Campo DB=Quantita
+                K	[3,0% fissa] 	Campo DB= ProvvigioneFissa03
+                *@
+
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Totale Fisso</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   step="0.01"
+                                   id="TotaleProvvigioneFissaDisplay"
+                                   class="form-control input-readonly"
+                                   readonly
+                                   value="@FormatDecimal(Model.TotaleProvvigioneFissa, 2)"
+                               title="Totale Fisso = [1,5% fissa] * [Kg]) + ([3,0% fissa] * [Kg] )" />
+                            <button type="button" id="toggleTotaleProvvigioneFissa" class="btn btn-success">
+                                <i class="bi bi-lock-fill"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="TotaleProvvigioneFissa" name="TotaleProvvigioneFissa" value="@FormatDecimal(Model.TotaleProvvigioneFissa, 6)" />
+                    </div>
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Colonna(N)	Delta
+Campo Db = Delta
+FORMULA =I-H 
+FORMULA =Vendita-[Materiale+Lav con commissione]  
+FORMULA =PrezzoVendita-PrezzoBaseConLavorazione
+
+H	[Materiale+Lav con commissione]   	 Campo Db = PrezzoBaseConLavorazione
+I	Vendita   	 Campo Db = PrezzoVendita
+
+
+                @*N Delta	-	Delta	 *@
+                @* Colonna(N)	Delta  Campo Db = Delta
+                FORMULA =I-H
+                FORMULA =Vendita-[Materiale+Lav con commissione]
+                FORMULA =PrezzoVendita-PrezzoBaseConLavorazione
+                H	[Materiale+Lav con commissione]   	 Campo Db = PrezzoBaseConLavorazione
+                I	Vendita   	 Campo Db = PrezzoVendita *@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Delta</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="0.01"
+                               id="DeltaDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FormatDecimal(Model.Delta, 2)"
+                               title="Delta = Vendita-[Materiale+Lav con commissione] " />
+                        <button type="button" id="toggleDelta" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="Delta" name="Delta" value="@FormatDecimal(Model.Delta, 6)" />
+                </div>
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Colonna(O)	Totale provv variabile
+Campo Db = TotaleProvvigioneVariabile
+FORMULA =N*C*50% 
+FORMULA =Delta*Kg*Perc_Delta_Provvigione 
+FORMULA DB =Delta*Quantita*Perc_Delta_Provvigione
+
+50%=Perc_Delta_Provvigione
+N	Delta 	 Campo Db = Delta
+C	Kg	Campo Db =Quantita
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Colonna	P	Totale fattura
+Campo Db = TotaleProvvigioneFattura
+FORMULA =O+L
+FORMULA =[Totale provv variabile]+[Totale Fisso]
+FORMULA DB =TotaleProvvigioneVariabile+TotaleProvvigioneFissa
+
+O	[Totale provv variabile]	Campo Db = TotaleProvvigioneVariabile
+L	[Totale Fisso]	Campo Db =TotaleProvvigioneFissa
+
+
+

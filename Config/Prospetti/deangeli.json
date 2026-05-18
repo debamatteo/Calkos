@@ -1,0 +1,157 @@
+{
+  "columns": [
+    {
+      "name": "NumeroOrdine",
+      "label": "Ordine",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroDDT",
+      "label": "DDT",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "NumeroFattura",
+      "label": "Fattura",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "RagioneSociale",
+      "label": "Cliente",
+      "visible": true,
+      "format": "text",
+      "width": 3
+    },
+    {
+      "name": "UnitaMisura",
+      "label": "U.M.",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Quantita",
+      "label": "Q.tà",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+
+    {
+      "name": "CostoLavorazione",
+      "label": "Lavorazione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "DescrizioneMateriale",
+      "label": "Materiale",
+      "visible": true,
+      "format": "text",
+      "width": 2
+    },
+    {
+      "name": "Prezzo",
+      "label": "Materiale € Riferimento",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoConLavorazione",
+      "label": "Materiale Lav con Commissione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoVendita",
+      "label": "Vendita",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PercentualeProvvigioneVariabile",
+      "label": "Aliquota variabile",
+      "visible": true,
+      "format": "percent",
+      "width": 1
+    },
+    {
+      "name": "ValoreProvvigioneVariabile",
+      "label": "Commissione con aliquota Variabile",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "ValoreProvvigioneFissa1",
+      "label": "1,5% fissa",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "ValoreProvvigioneFissa2",
+      "label": "3% Fissa",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "ValoreProvvigioneFissa3",
+      "label": "8% Fissa",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+
+    {
+      "name": "TotaleFissoProvvigione",
+      "label": "Totale Fisso",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "Differenza",
+      "label": "Delta",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "TotaleVariabileProvvigione",
+      "label": "Totale Provv. Variabile",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "TotaleProvvigioneDaFatturare",
+      "label": "Totale Fattura",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "Fatturata",
+      "label": "Fatturata",
+      "visible": true,
+      "export": false,
+      "format": "int",
+      "width": 1
+    }
+  ]
+}

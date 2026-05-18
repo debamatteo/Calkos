@@ -26,6 +26,9 @@ using System.Globalization;
 //Services\Export\ExcelExportService.cs
 
 
+
+
+
 namespace Calkos.web.Areas.Admin.Controllers
 {
     [Area("Admin")]
@@ -105,8 +108,264 @@ namespace Calkos.web.Areas.Admin.Controllers
             _mandatarioService = mandatarioService;
         }
 
+
+
         // ============================================================
-        // 1) LISTA ORDINI COBRAL
+        // INIZIO IMPORTAZIONE COBRAL
+        //  GET: PAGINA DI IMPORTAZIONE COBRAL
+        // ============================================================
+
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public IActionResult Importa(int idMandatario)
+        {
+            // Salvo IdMandatario in sessione
+            HttpContext.Session.SetInt32("IdMandatario", idMandatario);
+
+            // Recupero il tipo pagamento del mandatario
+            int tipoPagamento = _mandatarioService.GetTipoPagamento(idMandatario);
+
+            // Lo salvo in sessione per tutto il flusso COBRAL
+            HttpContext.Session.SetInt32("TipoPagamentoMandatario", tipoPagamento);
+
+            // Mantengo anche il ViewBag se serve
+            ViewBag.IdMandatario = idMandatario;
+            ViewBag.TipoPagamento = tipoPagamento;
+
+            return View();
+        }
+
+        // ============================================================
+        // 3) POST: ESECUZIONE IMPORTAZIONE COBRAL
+        // ============================================================
+        /*
+         * Questo metodo:
+         * 1. Legge il file Excel
+         * 2. Converte ogni riga in ImportCobral
+         * 3. Crea un FileImportato
+         * 4. Avvia la pipeline di importazione tramite ImportazioneCobralService
+         * 5. Mostra una modale di conferma
+         */
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public IActionResult Importa(IFormFile fileExcel)//, int idMandatario ora uso la sessione
+        {
+            // Recupero IdMandatario dalla sessione (stabile, non dipende dal browser)
+            int idMandatario = HttpContext.Session.GetInt32("IdMandatario") ?? 0;//uso la sessione
+            if (idMandatario == 0)
+            {
+                TempData["Errore"] = "Si è persa la Sessione del  Mandatario .Ritorna alla Pagina Iniziale";
+                return View();
+            }
+
+            if (fileExcel == null || fileExcel.Length == 0)
+            {
+                TempData["Errore"] = "Seleziona un file Excel valido.";
+                return View();
+            }
+
+
+            // 0. Salvo il file in una cartella temporanea
+            var tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "tempCobral");
+            Directory.CreateDirectory(tempFolder);
+
+            var tempFileName = $"COBRAL_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(fileExcel.FileName)}";
+            var tempFilePath = Path.Combine(tempFolder, tempFileName);
+
+            using (var stream = new FileStream(tempFilePath, FileMode.Create))
+            {
+                fileExcel.CopyTo(stream);
+            }
+
+
+            // 1. BACKUP FISICO DEL FILE COBRAL (con gestione errori elegante)
+            try
+            {
+                _fileBackupService.BackupCobralAsync(tempFilePath).Wait();
+            }
+            catch (Exception ex)
+            {
+                // Non blocchiamo l'importazione COBRAL
+                // Registriamo l'errore in TempData (o log)
+                TempData["BackupWarning"] = "Backup non eseguito: " + ex.Message;
+
+                // Se hai un logger, puoi usare:
+                // _logger.LogError(ex, "Errore durante il backup del file COBRAL.");
+            }
+
+
+
+            // 2. Leggo l’Excel → List<RigaExcelCobral>
+            int firstRow = _config.GetValue<int>("ImportazioneCobral:FirstRow");
+            // CREA LA LISTA DEI VALORI AMMESSI (OK, SI, TRUE, ecc.)
+            //14/04/2026  operatore ?? per dare una lista vuota se manca la sezione
+            // Se la lista è null o vuota, inizializzo una nuova lista con "OK"
+            HashSet<string> valoriAmmessi = (_config.GetSection("ValoriFatturareTrue").Get<List<string>>() ?? new List<string>())
+                .DefaultIfEmpty("OK") // Se la lista è vuota, aggiunge "OK" come elemento predefinito
+                .Select(v => v.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // PASSA I VALORI AMMESSI//14/04/2026
+            //var righe = ExcelHelper.LeggiExcelCobral(fileExcel, firstRow, valoriAmmessi);
+            //15/04/2026
+            List<RigaExcelCobral> righe;
+            try
+            {
+                righe = ExcelHelper.LeggiExcelCobral(fileExcel, firstRow, valoriAmmessi);
+            }
+            catch (Exception ex)
+            {
+                TempData["Errore"] = "Errore durante la lettura del file Excel: " + ex.Message;
+                return View();
+            }
+            // 3. Converto ogni riga in ImportCobral
+            //Select = trasforma ogni elemento della collezione;
+            //r => Converti(r) = funzione lambda= Per ogni elemento r in righe, applica il metodo Converti(r);
+            var righeImportCobral = righe.Select(r => Converti(r)).ToList();
+            //15/04/2026
+            if (righeImportCobral.Count == 0)
+            {
+                TempData["Errore"] = "Non ci sono dati  da importare.";
+                return View();
+            }
+
+
+
+
+            // 4. Creo FileImportato
+            string utente = User.Identity?.Name ?? "Sistema";
+
+            int anno = int.Parse(Request.Form["Anno"]);
+            int mese = int.Parse(Request.Form["Mese"]);
+
+            var file = new FileImportato
+            {
+                IdMandatario = idMandatario,//uso la sessione
+                NomeFile = fileExcel.FileName,
+                DataImportazione = DateTime.Now,
+                Utente = utente,
+                Anno = anno,
+                Mese = mese
+
+            };
+
+            // 5. Avvio importazione ImportazioneCobralService
+
+            //gestione del tipopagamento di default del mandatario tramite sessione, così non devo passarlo come parametro da form o URL
+            int IdTipoPagamento = HttpContext.Session.GetInt32("TipoPagamentoMandatario") ?? 0;
+            //15/04/2026
+            //int idFile = _ImportazioneCobralService.ImportaFile(file, righeImportCobral, utente, IdTipoPagamento); 
+            int idFile;
+            try
+            {
+                idFile = _ImportazioneCobralService.ImportaFile(file, righeImportCobral, utente, IdTipoPagamento);
+            }
+            catch (Exception ex)
+            {
+                TempData["Errore"] = "Errore durante l'importazione dei dati: " + ex.Message;
+                return View();
+            }
+
+            // 6. Mostra modale di conferma
+            TempData["ImportSuccess"] = true;
+            TempData["IdFileImportato"] = idFile;
+            // 7. Pulizia del file temporaneo (non blocca l'importazione)
+            try
+            {
+                if (System.IO.File.Exists(tempFilePath))
+                    System.IO.File.Delete(tempFilePath);
+            }
+            catch
+            {
+                // Non blocchiamo nulla se la cancellazione fallisce
+            }
+            //return RedirectToAction("Importa", "ProspettiCobral", new { area = "Admin" });
+            //Così la pagina Importa si ricarica con il Mandatario corretto
+            return RedirectToAction("Importa", "ProspettiCobral", new { area = "Admin", idMandatario = file.IdMandatario });
+
+        }
+
+
+        // ============================================================
+        // 4) CONVERSIONE RIGA EXCEL COBRAL → ImportCobral
+        // ============================================================
+        /*
+         * Questo metodo converte una riga Excel COBRAL
+         * nel modello ImportCobral usato dalla pipeline.
+         * 
+         * È specifico per COBRAL, quindi sta nel controller COBRAL.
+         */
+
+        private ImportCobral Converti(RigaExcelCobral r)
+        {
+            var i = new ImportCobral();
+
+            // Campi base
+            i.OrdineDDT = r.OrdineDDT;
+            i.Cliente = r.Cliente;
+            i.Kg = r.Kg;
+            i.Materiale = r.Materiale;
+            i.Prezzo = r.Prezzo;
+
+            // CAMPO AGGIUNTO → DataRiferimentoPrezzo in ProspettoCobral
+            i.Al = r.Al;
+
+            // Caratteristiche tecniche
+            i.Spessore = r.Spessore;
+            i.Larghezza = r.Larghezza;
+            i.Provvigione = r.Provvigione;
+
+            i.AlluminioSpessore = r.AlluminioSpessore;
+            i.OttoneSpessore = r.OttoneSpessore;
+            i.RameSpessore = r.RameSpessore;
+            i.AltrePercentuali = r.AltrePercentuali;
+            i.PrLavSpess = r.PrLavSpess;
+
+            i.AlluminioLarghezza = r.AlluminioLarghezza;
+            i.OttoneLarghezza = r.OttoneLarghezza;
+            i.RameLarghezza = r.RameLarghezza;
+            i.BronzoLarghezza = r.BronzoLarghezza;
+            i.PrLavLarg = r.PrLavLarg;
+
+            i.ExtraPrezzoKg = r.ExtraPrezzoKg;
+            i.ExtraPrezzoStagnato = r.ExtraPrezzoStagnato;
+
+            // CAMPO AGGIUNTO → PrLavTotale
+            i.PrLavTotale = r.PrLavTotale;
+
+            // CAMPO AGGIUNTO → Commissioni → ValoreCommissioni
+            i.Commissioni = r.Commissioni;
+
+            // CAMPO AGGIUNTO → PrezzoVendita
+            i.PrezzoVendita = r.PrezzoVendita;
+
+            // CAMPO AGGIUNTO → Differenza
+            i.Differenza = r.Differenza;
+
+            // Date
+            i.DataConsegnaIpotetica = r.DataConsegnaIpotetica;
+            i.Scadenza = r.Scadenza;
+
+            // CAMPO AGGIUNTO → AgenteDescrizione (stringa Excel)
+            i.Agente = r.Agente;
+
+            // CAMPO AGGIUNTO → Fatturare
+            i.FatturareStringa = r.Fatturare;
+
+            return i;
+        }
+
+
+        // ============================================================
+        // FINE  IMPORTAZIONE COBRAL
+        // ============================================================
+
+
+
+        // ============================================================
+        // LISTA ORDINI COBRAL
         // ============================================================
         /*
          * Questa action mostra:
@@ -215,7 +474,7 @@ namespace Calkos.web.Areas.Admin.Controllers
             ViewBag.Anno = anno;
             ViewBag.Mese = mese;
             ViewBag.Fatturata = fatturata; //  Necessario per far funzionare il 'selected' nella View
-           // PASSA IL VALORE ALLA VIEW PER MANTENERE LA SELEZIONE NELLA DROPDOWN
+                                           // PASSA IL VALORE ALLA VIEW PER MANTENERE LA SELEZIONE NELLA DROPDOWN
             ViewBag.MostraEliminati = mostraEliminati;
 
             // ============================================================
@@ -245,224 +504,12 @@ namespace Calkos.web.Areas.Admin.Controllers
         }
 
 
-        // ============================================================
-        // 2) GET: PAGINA DI IMPORTAZIONE COBRAL
-        // ============================================================
-
-        //[HttpGet]
-        //[Authorize(Roles = "Admin")]
-        //public IActionResult Importa(int idMandatario)
-        //{
-
-        //    // Salvo IdMandatario in sessione per renderlo stabile
-        //    // per tutto il flusso di importazione COBRAL
-        //    HttpContext.Session.SetInt32("IdMandatario", idMandatario);
-
-        //    // Mantengo anche il ViewBag per la view, se serve
-        //    ViewBag.IdMandatario = idMandatario;
-
-        //    return View();
-        //}
-        [HttpGet]
-        [Authorize(Roles = "Admin")]
-        public IActionResult Importa(int idMandatario)
-        {
-            // Salvo IdMandatario in sessione
-            HttpContext.Session.SetInt32("IdMandatario", idMandatario);
-
-            // Recupero il tipo pagamento del mandatario
-            int tipoPagamento = _mandatarioService.GetTipoPagamento(idMandatario);
-
-            // Lo salvo in sessione per tutto il flusso COBRAL
-            HttpContext.Session.SetInt32("TipoPagamentoMandatario", tipoPagamento);
-
-            // Mantengo anche il ViewBag se serve
-            ViewBag.IdMandatario = idMandatario;
-            ViewBag.TipoPagamento = tipoPagamento;
-
-            return View();
-        }
 
         // ============================================================
-        // 3) POST: ESECUZIONE IMPORTAZIONE COBRAL
+        // GET:  DETTAGLIO ORDINE COBRAL (SOLO ADMIN)
         // ============================================================
-        /*
-         * Questo metodo:
-         * 1. Legge il file Excel
-         * 2. Converte ogni riga in ImportCobral
-         * 3. Crea un FileImportato
-         * 4. Avvia la pipeline di importazione tramite ImportazioneCobralService
-         * 5. Mostra una modale di conferma
-         */
-
-        [HttpPost]
-        [Authorize(Roles = "Admin")]
-        public IActionResult Importa(IFormFile fileExcel)//, int idMandatario ora uso la sessione
-        {
-            // Recupero IdMandatario dalla sessione (stabile, non dipende dal browser)
-            int idMandatario = HttpContext.Session.GetInt32("IdMandatario") ?? 0;//uso la sessione
-            if (idMandatario == 0)
-            {
-                TempData["Errore"] = "Si è persa la Sessione del  Mandatario .Ritorna alla Pagina Iniziale";
-                return View();
-            }
-
-            if (fileExcel == null || fileExcel.Length == 0)
-            {
-                TempData["Errore"] = "Seleziona un file Excel valido.";
-                return View();
-            }
 
 
-            // 0. Salvo il file in una cartella temporanea
-            var tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "tempCobral");
-            Directory.CreateDirectory(tempFolder);
-
-            var tempFileName = $"COBRAL_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(fileExcel.FileName)}";
-            var tempFilePath = Path.Combine(tempFolder, tempFileName);
-
-            using (var stream = new FileStream(tempFilePath, FileMode.Create))
-            {
-                fileExcel.CopyTo(stream);
-            }
-
-
-            // 1. BACKUP FISICO DEL FILE COBRAL (con gestione errori elegante)
-            try
-            {
-                _fileBackupService.BackupCobralAsync(tempFilePath).Wait();
-            }
-            catch (Exception ex)
-            {
-                // Non blocchiamo l'importazione COBRAL
-                // Registriamo l'errore in TempData (o log)
-                TempData["BackupWarning"] = "Backup non eseguito: " + ex.Message;
-
-                // Se hai un logger, puoi usare:
-                // _logger.LogError(ex, "Errore durante il backup del file COBRAL.");
-            }
-
-
-
-            // 2. Leggo l’Excel → List<RigaExcelCobral>
-            int firstRow = _config.GetValue<int>("ImportazioneCobral:FirstRow");
-
-            var righe = ExcelHelper.LeggiExcel(fileExcel, firstRow);
-
-            // 3. Converto ogni riga in ImportCobral
-            var righeImportCobral = righe.Select(r => Converti(r)).ToList();
-
-            // 4. Creo FileImportato
-            string utente = User.Identity?.Name ?? "Sistema";
-
-            int anno = int.Parse(Request.Form["Anno"]);
-            int mese = int.Parse(Request.Form["Mese"]);
-
-            var file = new FileImportato
-            {
-                IdMandatario = idMandatario,//uso la sessione
-                NomeFile = fileExcel.FileName,
-                DataImportazione = DateTime.Now,
-                Utente = utente   ,
-                Anno = anno,
-                Mese = mese
-
-            };
-
-            // 5. Avvio importazione ImportazioneCobralService
-
-            //gestione del tipopagamento di default del mandatario tramite sessione, così non devo passarlo come parametro da form o URL
-            int IdTipoPagamento = HttpContext.Session.GetInt32("TipoPagamentoMandatario") ?? 0;
-            int idFile = _ImportazioneCobralService.ImportaFile(file, righeImportCobral, utente, IdTipoPagamento); 
-
-            // 6. Mostra modale di conferma
-            TempData["ImportSuccess"] = true;
-            TempData["IdFileImportato"] = idFile;
-            // 7. Pulizia del file temporaneo (non blocca l'importazione)
-            try
-            {
-                if (System.IO.File.Exists(tempFilePath))
-                    System.IO.File.Delete(tempFilePath);
-            }
-            catch
-            {
-                // Non blocchiamo nulla se la cancellazione fallisce
-            }
-            //return RedirectToAction("Importa", "ProspettiCobral", new { area = "Admin" });
-            //Così la pagina Importa si ricarica con il Mandatario corretto
-            return RedirectToAction("Importa", "ProspettiCobral",new { area = "Admin", idMandatario = file.IdMandatario });
-
-        }
-
-
-        // ============================================================
-        // 4) CONVERSIONE RIGA EXCEL COBRAL → ImportCobral
-        // ============================================================
-        /*
-         * Questo metodo converte una riga Excel COBRAL
-         * nel modello ImportCobral usato dalla pipeline.
-         * 
-         * È specifico per COBRAL, quindi sta nel controller COBRAL.
-         */
-
-        private ImportCobral Converti(RigaExcelCobral r)
-        {
-            var i = new ImportCobral();
-
-            // Campi base
-            i.OrdineDDT = r.OrdineDDT;
-            i.Cliente = r.Cliente;
-            i.Kg = r.Kg;
-            i.Materiale = r.Materiale;
-            i.Prezzo = r.Prezzo;
-
-            // CAMPO AGGIUNTO → DataRiferimentoPrezzo in ProspettoCobral
-            i.Al = r.Al;
-
-            // Caratteristiche tecniche
-            i.Spessore = r.Spessore;
-            i.Larghezza = r.Larghezza;
-            i.Provvigione = r.Provvigione;
-
-            i.AlluminioSpessore = r.AlluminioSpessore;
-            i.OttoneSpessore = r.OttoneSpessore;
-            i.RameSpessore = r.RameSpessore;
-            i.AltrePercentuali = r.AltrePercentuali;
-            i.PrLavSpess = r.PrLavSpess;
-
-            i.AlluminioLarghezza = r.AlluminioLarghezza;
-            i.OttoneLarghezza = r.OttoneLarghezza;
-            i.RameLarghezza = r.RameLarghezza;
-            i.BronzoLarghezza = r.BronzoLarghezza;
-            i.PrLavLarg = r.PrLavLarg;
-
-            i.ExtraPrezzoKg = r.ExtraPrezzoKg;
-            i.ExtraPrezzoStagnato = r.ExtraPrezzoStagnato;
-
-            // CAMPO AGGIUNTO → PrLavTotale
-            i.PrLavTotale = r.PrLavTotale;
-
-            // CAMPO AGGIUNTO → Commissioni → ValoreCommissioni
-            i.Commissioni = r.Commissioni;
-
-            // CAMPO AGGIUNTO → PrezzoVendita
-            i.PrezzoVendita = r.PrezzoVendita;
-
-            // CAMPO AGGIUNTO → Differenza
-            i.Differenza = r.Differenza;
-
-            // Date
-            i.DataConsegnaIpotetica = r.DataConsegnaIpotetica;
-            i.Scadenza = r.Scadenza;
-
-            // CAMPO AGGIUNTO → AgenteDescrizione (stringa Excel)
-            i.Agente = r.Agente;
-
-            // CAMPO AGGIUNTO → Fatturare
-            i.FatturareStringa = r.Fatturare;
-
-            return i;
-        }
 
         [HttpGet]
         [Authorize(Roles = "Admin,Operatore")]
@@ -514,7 +561,7 @@ namespace Calkos.web.Areas.Admin.Controllers
              */
             int idMandatario = HttpContext.Session.GetInt32("IdMandatario") ?? 0;
             model.IdMandatario = idMandatario;
-            
+
 
             if (idMandatario == 0)
             {
@@ -571,7 +618,7 @@ namespace Calkos.web.Areas.Admin.Controllers
                     // Se è un nuovo inserimento, recuperiamo l'ID generato per il redirect
                     model.Anno = DateTime.Now.Year;
                     model.Mese = DateTime.Now.Month;
-                    //int nuovoId = _prospettoRepository.Insert(model, utente);//03/04/2026 REMMATA
+
                     int nuovoId = _prospettoRepository.Insert(model, utente);//03/04/2026 NUOVA
                     model.IdProspettoCobral = nuovoId;//03/04/2026 NUOVA
                     TempData["ModalMessage"] = "Nuova riga inserita con successo.";//03/04/2026 NUOVA
@@ -716,41 +763,68 @@ namespace Calkos.web.Areas.Admin.Controllers
 
         public IActionResult Nuovo()
         {
+            // 1. Contesto e Sessione
             int idMandatario = HttpContext.Session.GetInt32("IdMandatario") ?? 0;
+            string utenteCorrente = User.Identity?.Name ?? "Sistema";
+            DateTime oggi = DateTime.Today;
 
-            var model = new ProspettoCobral
-            {
-                IdMandatario = idMandatario,
-                DataRiferimentoPrezzo = DateTime.Today,
-                DataConsegnaIpotetica = DateTime.Today,
-                Scadenza = DateTime.Today,
-                Utente = User.Identity?.Name ?? "Sistema",
-                Anno = DateTime.Today.Year,
-                Mese = DateTime.Today.Month
+            var model = new ProspettoCobral();
 
-            };
+            model.IdMandatario = idMandatario;
+            model.IdFileImportato = 0;
+            model.IdImportCobral = 0;
+            model.IdCliente = 0;
+            model.IdMateriale = 0;
+            model.IdUnitaMisura = 0;
+            model.Utente = User.Identity?.Name ?? "Sistema";
+            model.DataInserimento = DateTime.Now;
 
+            model.DataRiferimentoPrezzo = DateTime.Today;
+            model.DataConsegnaIpotetica = DateTime.Today;
+            model.Scadenza = DateTime.Today;
+            model.Anno = DateTime.Today.Year;
+            model.Mese = DateTime.Today.Month;
+
+            model.NumeroOrdine = string.Empty;
+            model.NumeroDDT = string.Empty;
+            model.NumeroFattura = string.Empty;
+
+            // --- DECIMAL PER EVITARE NULL NEL JS ---
+            model.Quantita = 0m;
+            model.Prezzo = 0m;
+            model.Provvigione = 0m;
+            model.ProvvigioneAgente = 0m;
+            model.ValoreCommissioni = 0m;
+            model.PrezzoVendita = 0m;
+            model.Differenza = 0m;
+
+            // --- COMPOSIZIONE COSTI SPECIFICI COBRAL ---
+            model.AlluminioSpessore = 0m;
+            model.OttoneSpessore = 0m;
+            model.RameSpessore = 0m;
+            model.AltrePercentuali = 0m;
+            model.PrLavSpess = 0m;
+            model.AlluminioLarghezza = 0m;
+            model.OttoneLarghezza = 0m;
+            model.RameLarghezza = 0m;
+            model.BronzoLarghezza = 0m;
+            model.PrLavLarg = 0m;
+            model.ExtraPrezzoKg = 0m;
+            model.ExtraPrezzoStagnato = 0m;
+            model.PrLavTotale = 0m;
+
+            model.Fatturata = 0;
+            model.IsDeleted = false;
+
+            // 3. Lookup tabelle collegate
             CaricaLookup(model);
 
+            // 4. Ritorno alla View
             return View("DettaglioOrdine", model);
         }
         // ============================================================
         // DUPLICA  (SOLO ADMIN)
         // ============================================================
-
-        //public IActionResult Duplica(int id)
-        //{ //Salvare subito seza passare per il dettaglio
-        //    var originale = _prospettoRepository.GetById(id);
-        //    if (originale == null)
-        //        return NotFound();
-
-        //    var nuovo = originale.CloneForInsert(User.Identity?.Name);
-
-        //    _prospettoRepository.Insert(nuovo, User.Identity?.Name);
-
-        //    TempData["Success"] = "Riga duplicata con successo.";
-        //    return RedirectToAction("ListaOrdini");
-        //}
 
         public IActionResult Duplica(int id)
         {  //Aprire la pagina Dettaglio invece di salvare subito
@@ -947,9 +1021,6 @@ namespace Calkos.web.Areas.Admin.Controllers
         }
 
 
-
-
-
         [HttpGet]
         public IActionResult ReportStatistiche(int idMandatario, string nomeMandatario)
         {
@@ -962,7 +1033,7 @@ namespace Calkos.web.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public IActionResult EsportaStatisticheExcel(int anno, string mandatario, int IdMandatario,  string tipo)
+        public IActionResult EsportaStatisticheExcel(int anno, string mandatario, int IdMandatario, string tipo)
         {
             string connString = _config.GetConnectionString("CalkosConnection");
 
@@ -988,46 +1059,7 @@ namespace Calkos.web.Areas.Admin.Controllers
         }
 
 
-        //[HttpGet]
-        //public IActionResult ListaOrdiniJson(int? anno, int? mese, int? fatturata, bool mostraEliminati, int? idMandatario, int? idFileImportato)
-        //{
-        //    // 1. Recupero i dati filtrati dal repository
-        //    var dati = _prospettoRepository.GetFiltrati(idMandatario, idFileImportato, anno, mese, fatturata, mostraEliminati);
 
-        //    // 2. Proiezione in un oggetto anonimo
-        //    // Rispettando esattamente i nomi campi del tuo script JS e la logica originale
-        //    var risorsa = dati.Select(p => new
-        //    {
-        //        p.IdProspettoCobral,
-        //        NumeroOrdine = p.NumeroOrdine ?? "",
-        //        NumeroFattura = p.NumeroFattura ?? "",
-
-        //        // Formattazione server-side delle date per semplificare il JS
-        //        Data = p.DataRiferimentoPrezzo?.ToString("dd/MM/yyyy") ?? "",
-
-        //        RagioneSociale = p.RagioneSociale ?? "N.D.",
-        //        Quantita = p.Quantita,
-
-        //        // Mappatura nomi campi come richiesto dal tuo script
-        //        PrezzoBase = p.Prezzo,
-        //        PrezzoPraticato = p.PrezzoVendita,
-        //        CommissionePezzo = p.Provvigione,
-        //        TotaleCommissioniCalkos = p.ValoreCommissioni,
-
-        //        DataConsegna = p.DataConsegnaIpotetica?.ToString("dd/MM/yyyy") ?? "",
-
-        //        // Gestione sicura del nullo per l'Agente - COME ORIGINALE
-        //        Agente = p.IdAgente?.ToString() ?? "",
-
-        //        // Campi tecnici per la logica dei bottoni e dei colori righe
-        //        IsFatturata = p.Fatturata, // 0 o 1
-        //        IsDeleted = p.IsDeleted,   // true o false
-        //        FatturataDesc = p.Fatturata == 1 ? "Sì" : "No"
-        //    }).ToList();
-
-        //    // 3. Restituzione nel formato standard richiesto da DataTables
-        //    return Json(new { data = risorsa });
-        //}
         [HttpGet]
         public IActionResult ListaOrdiniJson(int? idMandatario, int? idFileImportato, int? anno, int? mese, int? fatturata, bool mostraEliminati = false)
         {

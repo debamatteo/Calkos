@@ -1,0 +1,40 @@
+🔥 PROMPT DA RIUTILIZZARE
+PROMPT:
+
+Sto creando un nuovo mandatario.
+Voglio che tu adatti tutta la struttura Cobral al nuovo mandatario, SENZA inventare nulla e SENZA dedurre nulla.
+Devi usare solo i dati reali che ti fornisco (tabella, campi, stored, viste, repository, servizi, controller, Converti(), Importa.cshtml).
+
+Regole obbligatorie:
+
+Copia la logica Cobral 1:1
+
+Adatta tutto ai campi reali del nuovo mandatario
+
+Se mancano campi Cobral, NON inventarli
+
+Se il nuovo mandatario ha campi in più, li includi
+
+Rispetta l’ordine dei campi Cobral
+
+Nessuna astrazione, nessuna classe nuova
+
+Nessun cambio di ordine dei campi
+
+Nessuna riga aggiunta o rimossa se non richiesta
+
+Ogni stored deve essere generata in formato CREATE OR ALTER
+
+Procediamo una stored alla volta, nell’ordine che ti dico
+
+Quando ti dico “procedi”, generi la prossima stored.
+
+Prima di iniziare, chiedimi:
+
+La tabella del nuovo mandatario
+
+I campi del nuovo mandatario
+
+Le stored Cobral da usare come modello (se non le hai già)
+
+Quando hai tutto, inizi dalla prima stored nell’ordine che ti indico.

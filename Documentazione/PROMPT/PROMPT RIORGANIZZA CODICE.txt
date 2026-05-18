@@ -1,0 +1,46 @@
+Ho una classe C# molto grande e te la invierò in più messaggi.
+
+⚠️ FINCHÉ NON SCRIVO “FINE CODICE”, NON DEVI:
+- rispondere
+- commentare
+- analizzare
+- riorganizzare
+- generare output
+- fare alcuna azione
+
+Devi SOLO attendere in silenzio.
+
+Quando scriverò “FINE CODICE”, allora dovrai:
+
+🎯 RIORGANIZZARE LA CLASSE SENZA MODIFICARE NEMMENO UNA RIGA DI CODICE.
+
+REGOLE OBBLIGATORIE:
+- NON devi modificare il codice.
+- NON devi riscrivere il codice.
+- NON devi inventare codice.
+- NON devi cambiare commenti.
+- NON devi rinominare nulla.
+- NON devi aggiungere logica.
+- NON devi togliere logica.
+- NON devi cambiare l’ordine interno delle righe.
+- Devi solo riorganizzare il file usando region/sezioni.
+
+OBIETTIVO:
+Riorganizza la classe in modo leggibile, creando region come:
+
+#region IMPORTAZIONI
+#region COSTRUTTORI
+#region PROPRIETÀ
+#region METODI PUBLIC
+#region METODI PRIVATE
+#region CRUD (Insert/Update/Delete/Get)
+#region MAPPATURA
+#region PARAMETRI
+#region HELPER
+#region VIEW / QUERY
+#region LOGICA DI BUSINESS
+
+Puoi aggiungere tutte le region che servono, ma SENZA modificare il contenuto.
+
+Aspetta in silenzio finché non scrivo:  
+👉 “FINE CODICE”

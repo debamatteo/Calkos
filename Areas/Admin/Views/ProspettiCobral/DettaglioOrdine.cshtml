@@ -1,4 +1,8 @@
-﻿@using Calkos.web.Models.DTO
+﻿@* 
+C:\Lavoro\Calkos\Calkos.web\Areas\Admin\Views\ProspettiCobral\DettaglioOrdine.cshtml
+MODIFICA 13/05/2026
+ *@
+@using Calkos.web.Models.DTO
 @model CalkosManager.Domain.Entities.ProspettoCobral
 @* ============================================================
    ANTIFORGERY TOKEN — Inserito UNA SOLA VOLTA qui in cima.
@@ -29,7 +33,7 @@
    Forza il punto decimale (InvariantCulture) per i campi
    type="number" del browser, che non accetta la virgola.
    ============================================================ *@
-@functions {
+@* @functions {
     public string FormatDecimal(object? valore, int decimali = 3)
     {
         if (valore == null || valore == DBNull.Value) return string.Empty;
@@ -37,8 +41,50 @@
             return d.ToString("F" + decimali, System.Globalization.CultureInfo.InvariantCulture);
         return valore.ToString() ?? string.Empty;
     }
-}
+} *@
+@functions {
 
+    // ============================================================
+    // CONFIGURAZIONE CENTRALIZZATA DECIMALI DELLA VIEW
+    // Cambi qui e aggiorni tutta la pagina
+    // ============================================================
+    public const int DECIMALI_DISPLAY = 4;
+    public const int DECIMALI_TECNICI = 4;
+
+    public string FormatDecimal(object? valore, int decimali = DECIMALI_DISPLAY)
+    {
+        if (valore == null || valore == DBNull.Value)
+            return string.Empty;
+
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+        {
+            return d.ToString(
+                "F" + decimali,
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+        }
+
+        return valore?.ToString() ?? string.Empty;
+    }
+
+    // ============================================================
+    // DISPLAY UI
+    // ============================================================
+    public string FDisplay(object? valore, int decimali = 0)
+    {
+        //int decimali = 0 introdotto  solo per non cambiare decine di chiamate a FDisplay, ma in realtà ora è ridondante perché FormatDecimal ha già un default.
+        return FormatDecimal(valore, DECIMALI_DISPLAY);
+    }
+
+    // ============================================================
+    // VALORI TECNICI/HIDDEN
+    // ============================================================
+    public string FTecnico(object? valore, int decimali = 0)
+    {
+        //int decimali = 0 introdotto  solo per non cambiare decine di chiamate a FDisplay, ma in realtà ora è ridondante perché FormatDecimal ha già un default.
+        return FormatDecimal(valore, DECIMALI_TECNICI);
+    }
+}
 <div class="d-flex align-items-center mb-4">
     <h1 class="h3 fw-bold">Dettaglio Ordine COBRAL</h1>
 </div>
@@ -183,21 +229,21 @@
                 </div>
 
                 <div class="col-md-2">
-                    @* Quantita: FormatDecimal con 2 decimali (kg commerciali).
+                    @* Quantita: FormatDecimal con 3 decimali (kg commerciali).
                        Input type="number" richiede il punto come separatore decimale,
                        da qui l'uso di InvariantCulture nel FormatDecimal. *@
                     <label class="form-label fw-bold required-label">Quantità (Kg)</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="Quantita" id="Quantita" type="number" step="0.01"
+                        <input asp-for="Quantita" id="Quantita" type="number" step="any"
                                class="form-control"
-                               value="@FormatDecimal(Model.Quantita, 2)" />
+                               value="@FDisplay(Model.Quantita, 3)" />
                     }
                     else
                     {
-                        <input asp-for="Quantita" id="Quantita" type="number" step="0.01"
+                        <input asp-for="Quantita" id="Quantita" type="number" step="any"
                                class="form-control input-readonly" readonly="readonly"
-                               value="@FormatDecimal(Model.Quantita, 2)" />
+                               value="@FDisplay(Model.Quantita, 3)" />
                     }
                     <span asp-validation-for="Quantita" class="text-danger small"></span>
                 </div>
@@ -206,15 +252,15 @@
                     <label class="form-label fw-bold required-label">Prezzo</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="Prezzo" id="Prezzo" type="number" step="0.01"
+                        <input asp-for="Prezzo" id="Prezzo" type="number" step="any"
                                class="form-control"
-                               value="@FormatDecimal(Model.Prezzo, 2)" />
+                               value="@FDisplay(Model.Prezzo, 3)" />
                     }
                     else
                     {
-                        <input asp-for="Prezzo" id="Prezzo" type="number" step="0.01"
+                        <input asp-for="Prezzo" id="Prezzo" type="number" step="any"
                                class="form-control input-readonly" readonly="readonly"
-                               value="@FormatDecimal(Model.Prezzo, 2)" />
+                               value="@FDisplay(Model.Prezzo, 3)" />
                     }
                     <span asp-validation-for="Prezzo" class="text-danger small"></span>
                 </div>
@@ -266,18 +312,19 @@
                     <label class="form-label fw-bold">Prz.Lav.Spessore</label>
                     <div class="input-group">
                         <input type="number"
-                               step="0.001"
+                               step="any"
                                id="PrLavSpessDisplay"
                                class="form-control input-readonly"
                                readonly
-                               value="@FormatDecimal(Model.PrLavSpess, 3)"
+                               value="@FDisplay(Model.PrLavSpess, 3)"
                                title="PrLavSpess = Lav.AlluminioSpessore + Lav.OttoneSpessore + Lav.RameSpessore + AltrePercentuali" />
                         <button type="button" id="togglePrLavSpess" class="btn btn-success">
                             <i class="bi bi-lock-fill"></i>
                         </button>
                     </div>
-                    <input type="hidden" id="PrLavSpess" name="PrLavSpess" value="@FormatDecimal(Model.PrLavSpess, 3)" />
+                    <input type="hidden" id="PrLavSpess" name="PrLavSpess" value="@FTecnico(Model.PrLavSpess, 6)" />
                 </div>
+
 
                 <div class="col-md-2">
                     @* Larghezza: select popolata dinamicamente via AJAX, come Spessore *@
@@ -297,18 +344,20 @@
                     <label class="form-label fw-bold">Prz.Lav.Larghezza</label>
                     <div class="input-group">
                         <input type="number"
-                               step="0.001"
+                               step="any"
                                id="PrLavLargDisplay"
                                class="form-control input-readonly"
                                readonly
-                               value="@FormatDecimal(Model.PrLavLarg, 3)"
+                               value="@FDisplay(Model.PrLavLarg, 3)"
                                title="PrLavLarg = Lav.AlluminioLarghezza + Lav.OttoneLarghezza + Lav.RameLarghezza + Lav.BronzoLarghezza" />
                         <button type="button" id="togglePrLavLarg" class="btn btn-success">
                             <i class="bi bi-lock-fill"></i>
                         </button>
                     </div>
-                    <input type="hidden" id="PrLavLarg" name="PrLavLarg" value="@FormatDecimal(Model.PrLavLarg, 3)" />
+
+                    <input type="hidden" id="PrLavLarg" name="PrLavLarg" value="@FTecnico(Model.PrLavLarg, 6)" />
                 </div>
+
 
                 <div class="col-md-2">
                     @* PrLavTotale (Prezzo Lavorazione Totale):
@@ -317,17 +366,17 @@
                     <label class="form-label fw-bold">Pr. Lav. Totale</label>
                     <div class="input-group">
                         <input type="number"
-                               step="0.001"
+                               step="any"
                                id="PrLavTotaleDisplay"
                                class="form-control input-readonly"
                                readonly
-                               value="@FormatDecimal(Model.PrLavTotale, 3)"
+                               value="FDisplay(Model.PrLavTotale, 3)"
                                title="PrLavTotale = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato" />
                         <button type="button" id="togglePrLavTotale" class="btn btn-success">
                             <i class="bi bi-lock-fill"></i>
                         </button>
                     </div>
-                    <input type="hidden" id="PrLavTotale" name="PrLavTotale" value="@FormatDecimal(Model.PrLavTotale, 3)" />
+                    <input type="hidden" id="PrLavTotale" name="PrLavTotale" value="@FTecnico(Model.PrLavTotale, 6)" />
                 </div>
 
             </div>
@@ -342,15 +391,15 @@
                     <label class="form-label fw-bold">Provvigione</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="Provvigione" id="Provvigione" type="number" step="0.01"
+                        <input asp-for="Provvigione" id="Provvigione" type="number" step="any"
                                class="form-control"
-                               value="@FormatDecimal(Model.Provvigione, 2)" />
+                               value="@FDisplay(Model.Provvigione, 3)" />
                     }
                     else
                     {
-                        <input asp-for="Provvigione" id="Provvigione" type="number" step="0.01"
+                        <input asp-for="Provvigione" id="Provvigione" type="number" step="any"
                                class="form-control input-readonly" readonly="readonly"
-                               value="@FormatDecimal(Model.Provvigione, 2)" />
+                               value="@FDisplay(Model.Provvigione, 3)" />
                     }
                 </div>
 
@@ -362,32 +411,32 @@
                     <label class="form-label fw-bold">Commissioni €</label>
                     <div class="input-group">
                         <input type="number"
-                               step="0.01"
+                               step="any"
                                id="ValoreCommissioniDisplay"
                                class="form-control input-readonly"
                                readonly
-                               value="@FormatDecimal(Model.ValoreCommissioni, 2)"
+                               value="@FDisplay(Model.ValoreCommissioni, 3)"
                                title="ValoreCommissioni = Provvigione × Quantita" />
                         <button type="button" id="toggleValoreCommissioni" class="btn btn-success">
                             <i class="bi bi-lock-fill"></i>
                         </button>
                     </div>
-                    <input type="hidden" id="ValoreCommissioni" name="ValoreCommissioni" value="@FormatDecimal(Model.ValoreCommissioni, 2)" />
+                    <input type="hidden" id="ValoreCommissioni" name="ValoreCommissioni" value="@FTecnico(Model.ValoreCommissioni, 6)" />
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Prezzo Vendita</label>
                     @if (isAdmin)
                     {
-                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="0.01"
+                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="any"
                                class="form-control"
-                               value="@FormatDecimal(Model.PrezzoVendita, 2)" />
+                               value="@FDisplay(Model.PrezzoVendita, 3)" />
                     }
                     else
                     {
-                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="0.01"
+                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="any"
                                class="form-control input-readonly" readonly="readonly"
-                               value="@FormatDecimal(Model.PrezzoVendita, 2)" />
+                               value="@FDisplay(Model.PrezzoVendita, 3)" />
                     }
                 </div>
 
@@ -398,17 +447,17 @@
                     <label class="form-label fw-bold">Differenza</label>
                     <div class="input-group">
                         <input type="number"
-                               step="0.01"
+                               step="any"
                                id="DifferenzaDisplay"
                                class="form-control input-readonly"
                                readonly
-                               value="@FormatDecimal(Model.Differenza, 2)"
+                               value="@FDisplay(Model.Differenza, 3)"
                                title="Differenza = PrezzoVendita - PrLavTotale - Prezzo" />
                         <button type="button" id="toggleDifferenza" class="btn btn-success">
                             <i class="bi bi-lock-fill"></i>
                         </button>
                     </div>
-                    <input type="hidden" id="Differenza" name="Differenza" value="@FormatDecimal(Model.Differenza, 2)" />
+                    <input type="hidden" id="Differenza" name="Differenza" value="@FTecnico(Model.Differenza, 6)" />
                 </div>
 
             </div>
@@ -428,76 +477,7 @@
                 </div>
             </div>
 
-            @* ============================================================
-               SEZIONE: ALTRI CAMPI (collapsible)
-               Generata via Reflection su tutte le proprietà del modello
-               non già presenti nelle sezioni precedenti.
-               Usa FormatDecimal per i campi decimal (3 decimali = precisione tecnica Cobral).
-               ============================================================ *@
-            <h5 class="fw-bold mt-4">Altri Campi</h5>
-            <button class="btn btn-outline-primary mb-3" type="button"
-                    data-bs-toggle="collapse" data-bs-target="#tecnici">
-                Mostra / Nascondi Altri Campi
-            </button>
 
-            <div class="collapse" id="tecnici">
-                <div class="row g-3">
-                    @foreach (var prop in typeof(CalkosManager.Domain.Entities.ProspettoCobral).GetProperties())
-                    {
-                        @* Lista completa dei campi da escludere dalla sezione "Altri Campi"
-                           perché già gestiti nelle sezioni precedenti o non rilevanti per l'utente *@
-                        var skip = new[] {
-                                        "IdProspettoCobral","IdFileImportato","IdImportCobral",
-                                        "IdCliente","IdMateriale","IdUnitaMisura",
-                                        "NumeroOrdine","NumeroDDT","NumeroFattura",
-                                        "Quantita","Prezzo","ValoreCommissioni","PrezzoVendita","Differenza",
-                                        "DataRiferimentoPrezzo","DataConsegnaIpotetica","Scadenza",
-                                        "RagioneSociale","DescrizioneMateriale","UnitaMisura",
-                                        "Agente","PercentualeDefaultAgente","ProvvigioneAgente","TipoPagamento",
-                                        "IdAgente","IdTipoPagamento","IdMandatario",
-                                        "PrLavLarg","PrLavTotale","DataModifica","Anno","Mese",
-                                        "Utente","DataInserimento","Spessore","Larghezza",
-                                        "Provvigione","PrLavSpess"
-                                        };
-
-                        if (skip.Contains(prop.Name)) continue;
-
-                        bool isDecimal = prop.PropertyType == typeof(decimal) || prop.PropertyType == typeof(decimal?);
-                        string inputType = isDecimal ? "number" :
-                        (prop.PropertyType == typeof(int?) || prop.PropertyType == typeof(int)) ? "number" :
-                        (prop.PropertyType == typeof(DateTime?) || prop.PropertyType == typeof(DateTime)) ? "date" : "text";
-
-                        @* step="0.001" per tutti i decimal tecnici Cobral (massima precisione) *@
-                        string stepAttr = isDecimal ? "step=0.001" : "";
-
-                        var rawValue = prop.GetValue(Model);
-                        string formattedValue;
-
-                        if (isDecimal)
-                        {
-                            formattedValue = FormatDecimal(rawValue, 3);
-                        }
-                        else if (inputType == "date" && rawValue is DateTime dt)
-                        {
-                            formattedValue = dt.ToString("yyyy-MM-dd");
-                        }
-                        else
-                        {
-                            formattedValue = rawValue?.ToString() ?? "";
-                        }
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">@prop.Name</label>
-                            <input class="form-control"
-                                   name="@prop.Name"
-                                   id="@prop.Name"
-                                   type="@inputType"
-                                   @stepAttr
-                                   value="@formattedValue" />
-                        </div>
-                    }
-                </div>
-            </div>
 
             @* ============================================================
                SEZIONE: AGENTE E PAGAMENTO
@@ -535,18 +515,19 @@
                 <div class="col-md-4">
                     @* ProvvigioneAgente: recuperata via AJAX dal controller al cambio di Agente o Cliente.
                        Campo readonly di default, sbloccabile da Admin tramite il lucchetto.
-                       Formattiamo con F2 + InvariantCulture per type="number". *@
+                       Formattiamo con F3 + InvariantCulture per type="number". *@
                     <label class="form-label fw-bold">Provvigione Agente (%)</label>
+                    <i class="bi bi-info-circle-fill text-danger ms-2" style="font-size: 1.2rem;" title="Inserire la percentuale in formato umano: 5 significa 5%, NON 0,05"></i>
                     <div class="input-group">
                         @{
-                            string provValue = Model.ProvvigioneAgente?.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) ?? "0.00";
+                            string provValue = FTecnico(Model.ProvvigioneAgente);
                         }
-                        @* Il campo non usa asp-for per evitare conflitti col binding automatico;
-                           il name="ProvvigioneAgente" garantisce comunque l'invio nel POST. *@
-                        <input name="ProvvigioneAgente"
-                               id="ProvvigioneAgente"
+                        @* Campo visibile: solo id (niente name) per evitare doppio invio nel POST.
+                           Il name="ProvvigioneAgente" è sull'hidden qui sotto, che è l'unico
+                           che partecipa al binding del controller. *@
+                        <input id="ProvvigioneAgenteDisplay"
                                type="number"
-                               step="0.01"
+                               step="any"
                                class="form-control input-readonly"
                                readonly="readonly"
                                value="@provValue" />
@@ -557,6 +538,13 @@
                             </button>
                         }
                     </div>
+                    @* Hidden: porta il valore al POST esattamente come tutti gli altri campi calcolati
+                       (es. ValoreCommissioni, Differenza, ecc.).
+                       Il JS lo aggiorna in sincronia con il Display. *@
+                    <input type="hidden"
+                           id="ProvvigioneAgente"
+                           name="ProvvigioneAgente"
+                           value="@provValue" />
                 </div>
 
                 <div class="col-md-4">
@@ -566,6 +554,86 @@
                     </select>
                 </div>
 
+            </div>
+
+
+            @* ============================================================
+               SEZIONE: ALTRI CAMPI (collapsible)
+               Generata via Reflection su tutte le proprietà del modello
+               non già presenti nelle sezioni precedenti.
+               Usa FormatDecimal per i campi decimal (3 decimali = precisione tecnica Cobral).
+               ============================================================ *@
+            <div class="row g-3">
+                <div class="col-md-2">
+
+                    <h5 class="fw-bold mt-4">Altri Campi</h5>
+                    <button class="btn btn-outline-primary mb-3" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#tecnici">
+                        Mostra / Nascondi Altri Campi
+                    </button>
+                </div>
+            </div>
+
+            <div class="collapse" id="tecnici">
+                <div class="card card-body bg-light">
+                    @* Aggiunta card per pulizia visiva *@
+                    <div class="row g-3">
+                        @foreach (var prop in typeof(CalkosManager.Domain.Entities.ProspettoCobral).GetProperties())
+                        {
+                            @* Lista completa dei campi da escludere dalla sezione "Altri Campi"
+                               perché già gestiti nelle sezioni precedenti o non rilevanti per l'utente *@
+                            var skip = new[] {
+                                                "IdProspettoCobral","IdFileImportato","IdImportCobral",
+                                                "IdCliente","IdMateriale","IdUnitaMisura",
+                                                "NumeroOrdine","NumeroDDT","NumeroFattura",
+                                                "Quantita","Prezzo","ValoreCommissioni","PrezzoVendita","Differenza",
+                                                "DataRiferimentoPrezzo","DataConsegnaIpotetica","Scadenza",
+                                                "RagioneSociale","DescrizioneMateriale","UnitaMisura",
+                                                "Agente","PercentualeDefaultAgente","ProvvigioneAgente","TipoPagamento",
+                                                "IdAgente","IdTipoPagamento","IdMandatario",
+                                                "PrLavLarg","PrLavTotale","DataModifica","Anno","Mese",
+                                                "Utente","DataInserimento","Spessore","Larghezza",
+                                                "Provvigione","PrLavSpess","IsDeleted","Fatturata", "DataFatturazione"
+                                                };
+
+                            if (skip.Contains(prop.Name)) continue;
+
+                            bool isDecimal = prop.PropertyType == typeof(decimal) || prop.PropertyType == typeof(decimal?);
+                            string inputType = isDecimal ? "number" :
+                            (prop.PropertyType == typeof(int?) || prop.PropertyType == typeof(int)) ? "number" :
+                            (prop.PropertyType == typeof(DateTime?) || prop.PropertyType == typeof(DateTime)) ? "date" : "text";
+
+                            @* step="any" per tutti i decimal tecnici Cobral (massima precisione) *@
+                            string stepAttr = isDecimal ? "step=any" : "";
+
+                            var rawValue = prop.GetValue(Model);
+                            string formattedValue;
+
+                            if (isDecimal)
+                            {
+                                formattedValue = FormatDecimal(rawValue); //formattedValue = FormatDecimal(rawValue, 3);
+                            }
+                            else if (inputType == "date" && rawValue is DateTime dt)
+                            {
+                                formattedValue = dt.ToString("yyyy-MM-dd");
+                            }
+                            else
+                            {
+                                formattedValue = rawValue?.ToString() ?? "";
+                            }
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">@prop.Name</label>
+                                <input class="form-control"
+                                       name="@prop.Name"
+                                       id="@prop.Name"
+                                       type="@inputType"
+                                       @stepAttr
+                                       value="@formattedValue" />
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
 
             <hr />
@@ -578,331 +646,760 @@
         </form>
     </div>
 </div>
+@* C:\Lavoro\Calkos\Calkos.web\Areas\Admin\Views\ProspettiCobral\DettaglioOrdine.cshtml *@
 
+@* /**
+ * ============================================================
+ * PROMEMORIA PERCENTUALI — STANDARD COBRAL (CASO PROVVIGIONE)
+ * ============================================================
+ *
+ * PROVVIGIONE 
+ *
+ * Formato utilizzato in COBRAL:
+ *
+ *   - Excel mostra:        0.07
+ *   - DB salva:            0.07
+ *   - Hidden contiene:     0.07
+ *   - Display mostra:      0.07
+ *   - Calcoli usano:       0.07 (nessuna divisione per 100)
+ *
+ * Significato:
+ *   0.07 = 7%
+ *
+ * ATTENZIONE:
+ *   Questo modulo NON usa il formato “50 → 50%”.
+ *   Le percentuali sono già in formato decimale.
+ *
+ *   Usare SEMPRE il valore così com’è:
+ *       prov = safeField("#Provvigione");   // es. 0.07
+ *       valore = prov * Quantita;           // corretto
+ *
+ *   NON dividere per 100.
+ *   NON moltiplicare per 100.
+ *
+ * ============================================================
+ */ *@
 
+@*LOGICA DI COBRAL 13/05/2026*@
 @section Scripts {
     <script>
         $(document).ready(function () {
 
-            /**
-             * ============================================================
-             * CENTRALIZZAZIONE ANTIFORGERY 05/04/2026
-             * Invece di aggiungere il token a ogni singola chiamata $.ajax o $.getJSON,
-             * uso $.ajaxSetup.
-             * Aggiunge automaticamente il token CSRF a tutte le chiamate AJAX jQuery.
-             * Il token è letto dall'unico campo presente nel DOM
-             * ============================================================
-             */
-            $.ajaxSetup({
-                headers: {
-                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                  /**
+                   * ============================================================
+                   * CENTRALIZZAZIONE ANTIFORGERY
+                   * Aggiunge automaticamente il token CSRF a tutte le chiamate
+                   * AJAX jQuery, evitando di doverlo passare manualmente ogni volta.
+                   * ============================================================
+                   */
+                  $.ajaxSetup({
+                      headers: {
+                          "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                      }
+                  });
+
+                  /**
+                   * ============================================================
+                   * CONFIGURAZIONE DECIMALI CENTRALIZZATA
+                   * Cambia qui e aggiorni tutta la logica JS.
+                   * Deve essere allineata con le costanti C# in cima alla view:
+                   *   DECIMALI_TECNICI  → usati nei campi hidden (inviati al server)
+                   *   DECIMALI_DISPLAY  → usati nei campi visibili all'utente
+                   * ============================================================
+                   */
+                  const DECIMALI_TECNICI = 4;
+                  const DECIMALI_DISPLAY = 4;
+
+                  // 13/05/2026 — MODIFICA: aggiunto Number.EPSILON prima di toFixed.
+                  // Problema: V8 (Chrome/Edge) rappresenta alcune moltiplicazioni decimali
+                  // con errore IEEE 754. Esempio: 14.85*0.015 = 0.22274999999999998
+                  // (appena sotto 0.22275), quindi toFixed(4) arrotonda a 0.2227 invece di 0.2228.
+                  // Excel e C# Decimal usano aritmetica a precisione fissa e producono 0.2228.
+                  // I valori nel DB sono stati calcolati da C# con MidpointRounding.AwayFromZero
+                  // (equivalente all'half-up di Excel), quindi JS deve replicare lo stesso risultato.
+                  // Number.EPSILON = 2.22e-16 compensa l'errore di rappresentazione IEEE 754
+                  // senza alcun impatto sui valori già esatti (es. 1.22 + 2.22e-16 ≈ 1.22).
+                  // Verificato in console browser:
+                  //   (0.22274999999999998).toFixed(4)                  → "0.2227" ✗
+                  //   (0.22274999999999998 + Number.EPSILON).toFixed(4) → "0.2228" ✓
+                  // Stessa modifica applicata su DettaglioOrdine.cshtml di ElektraWire.
+                  function roundTec(v) {
+                      return Number((toNum(v) + Number.EPSILON).toFixed(DECIMALI_TECNICI));
+                  }
+
+                  function roundDisplay(v) {
+                      return Number((toNum(v) + Number.EPSILON).toFixed(DECIMALI_DISPLAY));
+                  }
+
+                  /**
+                   * ============================================================
+                   * HELPER NUMERICI
+                   * ============================================================
+                   */
+
+                  /**
+                   * toNum — conversione grezza stringa → numero.
+                   * Gestisce: null, undefined, stringa vuota, virgola decimale.
+                   * Restituisce sempre 0 in caso di fallimento (mai NaN).
+                   */
+                  function toNum(v) {
+                      if (v === null || v === undefined) return 0;
+                      if (typeof v === "string") {
+                          v = v.replace(',', '.').trim();
+                          if (v === "") return 0;
+                      }
+                      const n = parseFloat(v);
+                      return isNaN(n) ? 0 : n;
+                  }
+
+                  /**
+                   * safeNum — bonifica un valore già letto (variabile JS o $(this).val()).
+                   * Usa: safeNum($(this).val())  oppure  safeNum(miaVariabile)
+                   * Accetta un fallback opzionale (default: 0).
+                   */
+                  function safeNum(v, fallback) {
+                      if (fallback === undefined) fallback = 0;
+                      if (v === null || v === undefined) return fallback;
+                      if (typeof v === "string") {
+                          v = v.replace(',', '.').trim();
+                          if (v === "") return fallback;
+                      }
+                      const n = parseFloat(v);
+                      if (isNaN(n) || !isFinite(n)) return fallback;
+                      return n;
+                  }
+
+                  /**
+                   * safeField — legge un campo jQuery dal DOM e lo bonifica.
+                   * Usa: safeField("#MioCampo")  invece di  toNum($("#MioCampo").val())
+                   * Emette un warning in console se il selettore non trova nulla.
+                   */
+                  function safeField(selector, fallback) {
+                      if (fallback === undefined) fallback = 0;
+                      const el = $(selector);
+                      if (el.length === 0) {
+                          console.warn("safeField: campo non trovato →", selector);
+                          return fallback;
+                      }
+                      return safeNum(el.val(), fallback);
+                  }
+
+                  /**
+                   * ============================================================
+                   * REGOLA DI SCELTA TRA safeNum e safeField
+                   * ============================================================
+                   *
+                   *  safeField("#MioCampo")       → quando leggi direttamente dal DOM
+                   *  safeNum($(this).val())       → quando hai già il valore in una variabile
+                   *  safeNum(miaVariabile)        → stessa cosa
+                   *
+                   *  Mnemonica: vedi il cancelletto "#"? → safeField.
+                   *             Hai già il valore? → safeNum.
+                   */
+
+                  /**
+                   * ============================================================
+                   * VARIABILI DI STATO LUCCHETTI
+                   * true  = calcolo automatico attivo (lucchetto chiuso, verde)
+                   * false = valore forzato manualmente (lucchetto aperto, rosso)
+                   *
+                   * I lock per PrLavSpess, PrLavLarg, PrLavTotale vengono
+                   * inizializzati a true e poi corretti da rilevaDivergenze()
+                   * dopo il caricamento dei dati dal DOM.
+                   * ============================================================
+                   */
+                  let lockValoreCommissioni = true;
+                  let lockDifferenza        = true;
+                  let lockPrLavSpess        = true;
+                  let lockPrLavLarg         = true;
+                  let lockPrLavTotale       = true;
+                  let lockProvAgente        = true;
+
+                  /**
+                   * ============================================================
+                   * FUNZIONI DI CALCOLO PURE (senza side-effect)
+                   * Queste funzioni SOLO calcolano e restituiscono il valore.
+                   * Non scrivono nulla nel DOM. Servono a due scopi:
+                   *   1. Essere chiamate da rilevaDivergenze() al caricamento
+                   *      per capire se un campo è stato forzato nel DB.
+                   *   2. Essere chiamate dalle funzioni "ricalcola*" che invece
+                   *      scrivono nel DOM.
+                   * ============================================================
+                   */
+
+                  function calcolaPrLavSpessValore() {
+                      return roundTec(
+                          safeField("#AlluminioSpessore") +
+                          safeField("#OttoneSpessore")    +
+                          safeField("#RameSpessore")      +
+                          safeField("#AltrePercentuali")
+                      );
+                  }
+
+                  function calcolaPrLavLargValore() {
+                      return roundTec(
+                          safeField("#AlluminioLarghezza") +
+                          safeField("#OttoneLarghezza")    +
+                          safeField("#RameLarghezza")      +
+                          safeField("#BronzoLarghezza")
+                      );
+                  }
+
+                  function calcolaPrLavTotaleValore() {
+                      return roundTec(
+                          safeField("#PrLavSpess")          +
+                          safeField("#PrLavLarg")            +
+                          safeField("#ExtraPrezzoKg")        +
+                          safeField("#ExtraPrezzoStagnato")
+                      );
+                  }
+
+                  function calcolaValoreCommissioniValore() {
+                      return roundTec(
+                          safeField("#Provvigione") * safeField("#Quantita")
+                      );
+                  }
+
+                  function calcolaDifferenzaValore() {
+                      return roundTec(
+                          safeField("#PrezzoVendita") -
+                          safeField("#PrLavTotale")   -
+                          safeField("#Prezzo")
+                      );
+                  }
+
+                  /**
+                   * ============================================================
+                   * FUNZIONI DI RICALCOLO (con side-effect: scrivono nel DOM)
+                   * Ogni funzione:
+                   *   1. Controlla se il lucchetto è chiuso (lock = true).
+                   *      Se aperto, non fa nulla (il valore è stato forzato).
+                   *   2. Usa la corrispondente funzione "pura" per calcolare.
+                   *   3. Aggiorna Display (visibile) e Hidden (inviato al server).
+                   * ============================================================
+                   */
+
+                  // ValoreCommissioni = Provvigione × Quantita
+                  function ricalcolaValoreCommissioni() {
+                      if (!lockValoreCommissioni) return;
+
+                      const valoreTec = calcolaValoreCommissioniValore();
+                      const valoreVis = roundDisplay(valoreTec);
+
+                      log("Calcolo ValoreCommissioni: [Prov](" + safeField("#Provvigione") +
+                          ") * [Qta](" + safeField("#Quantita") + ") = " + valoreTec);
+
+                      $("#ValoreCommissioniDisplay").val(valoreVis);
+                      $("#ValoreCommissioni").val(valoreTec);
+                  }
+
+                  // Differenza = PrezzoVendita - PrLavTotale - Prezzo
+                  function ricalcolaDifferenza() {
+                      if (!lockDifferenza) return;
+
+                      const valoreTec = calcolaDifferenzaValore();
+                      const valoreVis = roundDisplay(valoreTec);
+
+                      log("Calcolo Differenza: [PrezzoVendita](" + safeField("#PrezzoVendita") +
+                          ") - [PrLavTotale](" + safeField("#PrLavTotale") +
+                          ") - [Prezzo](" + safeField("#Prezzo") + ") = " + valoreTec);
+
+                      $("#DifferenzaDisplay").val(valoreVis);
+                      $("#Differenza").val(valoreTec);
+                  }
+
+                  // PrLavSpess = AlluminioSpessore + OttoneSpessore + RameSpessore + AltrePercentuali
+                  function ricalcolaPrLavSpess() {
+                      if (!lockPrLavSpess) return;
+
+                      const a = safeField("#AlluminioSpessore");
+                      const o = safeField("#OttoneSpessore");
+                      const r = safeField("#RameSpessore");
+                      const x = safeField("#AltrePercentuali");
+
+                      const valoreTec = roundTec(a + o + r + x);
+                      const valoreVis = roundDisplay(valoreTec);
+
+                      log("Calcolo PrLavSpess: [Alu](" + a + ") + [Ott](" + o +
+                          ") + [Ram](" + r + ") + [Altre](" + x + ") = " + valoreTec);
+
+                      $("#PrLavSpessDisplay").val(valoreVis);
+                      $("#PrLavSpess").val(valoreTec);
+
+                      // PrLavTotale dipende da PrLavSpess → ricalcola a cascata
+                      ricalcolaPrLavTotale();
+                  }
+
+                  // PrLavLarg = AlluminioLarghezza + OttoneLarghezza + RameLarghezza + BronzoLarghezza
+                  function ricalcolaPrLavLarg() {
+                      if (!lockPrLavLarg) return;
+
+                      const a = safeField("#AlluminioLarghezza");
+                      const o = safeField("#OttoneLarghezza");
+                      const r = safeField("#RameLarghezza");
+                      const b = safeField("#BronzoLarghezza");
+
+                      const valoreTec = roundTec(a + o + r + b);
+                      const valoreVis = roundDisplay(valoreTec);
+
+                      log("Calcolo PrLavLarg: [Alu](" + a + ") + [Ott](" + o +
+                          ") + [Ram](" + r + ") + [Bro](" + b + ") = " + valoreTec);
+
+                      $("#PrLavLargDisplay").val(valoreVis);
+                      $("#PrLavLarg").val(valoreTec);
+
+                      // PrLavTotale dipende da PrLavLarg → ricalcola a cascata
+                      ricalcolaPrLavTotale();
+                  }
+
+                  // PrLavTotale = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato
+                  function ricalcolaPrLavTotale() {
+                      if (!lockPrLavTotale) return;
+
+                      const sp   = safeField("#PrLavSpess");
+                      const lg   = safeField("#PrLavLarg");
+                      const exKg = safeField("#ExtraPrezzoKg");
+                      const exSt = safeField("#ExtraPrezzoStagnato");
+
+                      const valoreTec = roundTec(sp + lg + exKg + exSt);
+                      const valoreVis = roundDisplay(valoreTec);
+
+                      log("Calcolo PrLavTotale: [Spess](" + sp + ") + [Larg](" + lg +
+                          ") + [ExtraKg](" + exKg + ") + [ExtraStagnato](" + exSt + ") = " + valoreTec);
+
+                      $("#PrLavTotaleDisplay").val(valoreVis);
+                      $("#PrLavTotale").val(valoreTec);
+
+                      // Differenza dipende da PrLavTotale → ricalcola a cascata
+                      ricalcolaDifferenza();
+                  }
+
+                  /**
+                   * ============================================================
+                   * ricalcolaTutto — punto di ingresso principale
+                   * Chiamato da tutti gli event listener sui campi di input.
+                   * Esegue i calcoli nell'ordine corretto di dipendenza:
+                   *   1. ValoreCommissioni  (dipende da Provvigione, Quantita)
+                   *   2. PrLavSpess         (dipende dai componenti spessore)
+                   *      └─ PrLavTotale     (chiamato in cascata da PrLavSpess)
+                   *         └─ Differenza   (chiamata in cascata da PrLavTotale)
+                   *   3. PrLavLarg          (dipende dai componenti larghezza)
+                   *      └─ PrLavTotale     (chiamato in cascata da PrLavLarg)
+                   *         └─ Differenza   (chiamata in cascata da PrLavTotale)
+                   *   4. PrLavTotale        (chiamata esplicita finale per sicurezza)
+                   *      └─ Differenza      (chiamata in cascata)
+                   *
+                   * NOTA: i campi con lucchetto aperto (lock = false) vengono
+                   * ignorati automaticamente dalla loro funzione ricalcola*.
+                   * ============================================================
+                   */
+                  function ricalcolaTutto() {
+                      log("--- ricalcolaTutto START ---");
+                      log("Quantita:", safeField("#Quantita"));
+                      log("Provvigione:", safeField("#Provvigione"));
+                      log("PrezzoVendita:", safeField("#PrezzoVendita"));
+                      log("Prezzo:", safeField("#Prezzo"));
+                      log("PrLavSpess:", safeField("#PrLavSpess"));
+                      log("PrLavLarg:", safeField("#PrLavLarg"));
+                      log("PrLavTotale:", safeField("#PrLavTotale"));
+                      log("ExtraPrezzoKg:", safeField("#ExtraPrezzoKg"));
+                      log("ExtraPrezzoStagnato:", safeField("#ExtraPrezzoStagnato"));
+                      log("IdAgente:", safeField("#IdAgente"));
+                      log("IdCliente:", safeField("#IdCliente"));
+
+                      ricalcolaValoreCommissioni();
+                      log("ValoreCommissioni dopo:", $("#ValoreCommissioni").val());
+
+                      ricalcolaPrLavSpess();
+                      log("PrLavSpess dopo:", $("#PrLavSpess").val());
+
+                      ricalcolaPrLavLarg();
+                      log("PrLavLarg dopo:", $("#PrLavLarg").val());
+
+                      ricalcolaPrLavTotale();
+                      log("PrLavTotale dopo:", $("#PrLavTotale").val());
+
+                      ricalcolaDifferenza();
+                      log("Differenza dopo:", $("#Differenza").val());
+
+                      log("--- ricalcolaTutto END ---");
+                  }
+
+                  /**
+                   * ============================================================
+                   * PROVVIGIONE AGENTE (AJAX)
+                   * Recupera la percentuale di provvigione dell'agente per il
+                   * cliente selezionato. Chiamata al cambio di IdAgente o IdCliente.
+                   * Non fa nulla se il lucchetto è aperto (valore forzato).
+                   * ============================================================
+                   */
+                  function ricalcolaProvvigioneAgente() {
+                      if (!lockProvAgente) return;
+
+                      const idAgente  = $("#IdAgente").val();
+                      const idCliente = $("#IdCliente").val();
+
+                      if (!idAgente || !idCliente) {
+                          log("Salto ricalcolaProvvigioneAgente: IdAgente o IdCliente mancante.");
+                          return;
+                      }
+
+                      log("Chiamata AJAX ProvvigioneAgente: idAgente=" + idAgente + ", idCliente=" + idCliente);
+
+                      $.getJSON(
+                          '/Admin/ProspettiCobral/GetPercentualeProvvigione',
+                          { idAgente: idAgente, idCliente: idCliente },
+                          function (percentuale) {
+                              const valTec = roundTec(safeNum(percentuale));
+                              const valVis = roundDisplay(valTec);
+
+                              log("Risultato AJAX ProvvigioneAgente: Percentuale ricevuta=" +
+                                  percentuale + " → Formattata=" + valTec);
+
+                              $("#ProvvigioneAgenteDisplay").val(valVis);
+                              $("#ProvvigioneAgente").val(valTec);
+                          }
+                      ).fail(function (jqXHR, textStatus, error) {
+                          log("ERRORE AJAX ricalcolaProvvigioneAgente:", textStatus, error);
+                      });
+                  }
+
+                  /**
+                   * ============================================================
+                   * GESTIONE LUCCHETTI — aggiornaUILucchetto
+                   * Funzione condivisa che aggiorna l'aspetto visivo del pulsante
+                   * e lo stato readonly del campo Display associato.
+                   *
+                   * isLocked = true  → campo readonly, pulsante verde con lucchetto chiuso
+                   * isLocked = false → campo editabile, pulsante rosso con lucchetto aperto
+                   *
+                   * Usata sia da setupToggle (click utente) sia da rilevaDivergenze
+                   * (inizializzazione automatica al caricamento pagina).
+                   * ============================================================
+                   */
+                  function aggiornaUILucchetto(idBtn, idInputDisplay, isLocked) {
+                      const $input = $(idInputDisplay);
+                      const $btn   = $(idBtn);
+
+                      if (isLocked) {
+                          $input.prop("readonly", true).addClass("input-readonly");
+                          $btn.removeClass("btn-danger").addClass("btn-success")
+                              .html('<i class="bi bi-lock-fill"></i>');
+                      } else {
+                          $input.prop("readonly", false).removeClass("input-readonly");
+                          $btn.removeClass("btn-success").addClass("btn-danger")
+                              .html('<i class="bi bi-unlock-fill"></i>');
+                      }
+                  }
+
+                  /**
+                   * ============================================================
+                   * GESTIONE LUCCHETTI — setupToggle
+                   * Registra il click sul pulsante lucchetto per un campo calcolato.
+                   * Al click:
+                   *   - se si chiude il lucchetto (lock → true): il valore corrente
+                   *     del Display viene scritto nell'Hidden, poi UI aggiornata.
+                   *   - se si apre il lucchetto (lock → false): il campo diventa
+                   *     editabile; il valore NON viene resettato a quello originale.
+                   *
+                   * Parametri:
+                   *   idBtn          → selettore jQuery del pulsante (#toggleXxx)
+                   *   idInputDisplay → selettore jQuery del campo Display (#XxxDisplay)
+                   *   type           → stringa che identifica quale variabile lock gestire
+                   * ============================================================
+                   */
+                  function setupToggle(idBtn, idInputDisplay, type) {
+                      $(idBtn).on("click", function () {
+
+                          // 1. Inverti lo stato del lock corretto
+                          let isLocked;
+                          switch (type) {
+                              case 'spess': lockPrLavSpess        = !lockPrLavSpess;        isLocked = lockPrLavSpess;        break;
+                              case 'larg':  lockPrLavLarg          = !lockPrLavLarg;          isLocked = lockPrLavLarg;          break;
+                              case 'tot':   lockPrLavTotale         = !lockPrLavTotale;         isLocked = lockPrLavTotale;         break;
+                              case 'comm':  lockValoreCommissioni   = !lockValoreCommissioni;   isLocked = lockValoreCommissioni;   break;
+                              case 'diff':  lockDifferenza           = !lockDifferenza;           isLocked = lockDifferenza;           break;
+                              case 'agente':lockProvAgente           = !lockProvAgente;           isLocked = lockProvAgente;           break;
+                          }
+
+                          // 2. Se si chiude il lucchetto, sincronizza l'hidden col valore
+                          //    attuale del Display (preserva eventuali modifiche manuali).
+                          if (isLocked) {
+                              const hiddenId = idInputDisplay.replace("#", "").replace("Display", "");
+                              $("#" + hiddenId).val(roundTec(safeNum($(idInputDisplay).val())));
+                          }
+
+                          // 3. Aggiorna aspetto visivo
+                          aggiornaUILucchetto(idBtn, idInputDisplay, isLocked);
+                      });
+                  }
+
+                  // Registra tutti i lucchetti
+                  setupToggle("#togglePrLavSpess",          "#PrLavSpessDisplay",          'spess');
+                  setupToggle("#togglePrLavLarg",            "#PrLavLargDisplay",            'larg');
+                  setupToggle("#togglePrLavTotale",          "#PrLavTotaleDisplay",          'tot');
+                  setupToggle("#toggleValoreCommissioni",    "#ValoreCommissioniDisplay",    'comm');
+                  setupToggle("#toggleDifferenza",           "#DifferenzaDisplay",           'diff');
+                  setupToggle("#toggleProvAgente",           "#ProvvigioneAgenteDisplay",    'agente');
+
+                  /**
+                   * ============================================================
+                   * rilevaDivergenze — inizializzazione automatica lucchetti
+                   * ============================================================
+                   * Problema: un campo calcolato può essere stato forzato
+                   * manualmente nel DB (es. PrLavSpess = 1.65 mentre la somma
+                   * dei componenti vale 1.40). In quel caso, al primo ricalcolo
+                   * il valore forzato verrebbe sovrascritto silenziosamente.
+                   *
+                   * Soluzione: al caricamento pagina, confronta il valore salvato
+                   * nel DB (campo Hidden) con il valore che risulterebbe dal calcolo
+                   * automatico. Se differiscono oltre una soglia (0.0001), apre
+                   * automaticamente il lucchetto per proteggere il valore forzato.
+                   *
+                   * Deve essere chiamata DOPO caricaDimensioni() perché i campi
+                   * "Altri Campi" (AlluminioSpessore ecc.) devono essere nel DOM
+                   * e valorizzati prima del confronto.
+                   *
+                   * ATTENZIONE: viene chiamata dentro la callback AJAX di
+                   * caricaDimensioni, così è garantito che i dati siano pronti.
+                   * ============================================================
+                   */
+         function rilevaDivergenze() {
+            const SOGLIA = 0.001;
+
+            // 13/05/2026 — MODIFICA: rimossa la logica con toFixed(3) sugli operandi
+            // che arrotondava PRIMA della sottrazione generando falsi negativi.
+            // Soluzione: confronto sulla differenza GREZZA tra valoreDB e valoreCalc.
+            // La soglia 0.001 assorbe solo floating-point noise (< 0.0001),
+            // non divergenze reali del dominio (≥ 0.01).
+            function controlla(idHidden, idBtn, idDisplay, fnCalcola, setLock) {
+                const valoreDB   = safeField(idHidden);
+                const valoreCalc = fnCalcola();
+                const diff       = Math.abs(valoreDB - valoreCalc);
+
+                if (diff > SOGLIA) {
+                    log("⚠ Valore forzato rilevato per", idHidden,
+                        "| DB =", valoreDB,
+                        "| Calcolato =", valoreCalc,
+                        "| Diff =", diff,
+                        "→ lucchetto aperto automaticamente");
+                    setLock(false);
+                    aggiornaUILucchetto(idBtn, idDisplay, false);
                 }
-            });
-
-            /**
-             * ============================================================
-             * VARIABILI DI STATO (LOCK)
-             * true  = campo calcolato automaticamente (lucchetto chiuso, verde)
-             * false = campo sbloccato per inserimento manuale (lucchetto aperto, rosso)
-             * ============================================================
-             */
-            let lockValoreCommissioni = true;
-            let lockDifferenza        = true;
-            let lockPrLavSpess        = true;
-            let lockPrLavLarg         = true;
-            let lockPrLavTotale       = true;
-            let lockProvAgente        = true;
-
-            /**
-             * ============================================================
-             * INIZIALIZZAZIONE SELECT DIMENSIONI
-             * Recupera il materiale già selezionato e i valori salvati
-             * di Spessore e Larghezza per pre-selezionare le option dopo l'AJAX.
-             * ============================================================
-             */
-            const idMateriale  = $("#IdMateriale").val();
-            const spessoreSel  = $("#SpessoreSelezionato").val();
-            const larghezzaSel = $("#LarghezzaSelezionata").val();
-
-            caricaDimensioni(idMateriale, spessoreSel, larghezzaSel);
-
-            /**
-             * ============================================================
-             * FUNZIONI DI CALCOLO
-             * Ogni funzione aggiorna sia il campo Display (visivo)
-             * che il campo Hidden (inviato al server nel POST).
-             * Il calcolo avviene solo se il relativo lock è attivo.
-             * ============================================================
-             */
-
-            /**
-             * ValoreCommissioni = Provvigione × Quantita
-             * Si attiva al cambio di Provvigione o Quantita.
-             */
-            function ricalcolaValoreCommissioni() {
-                if (!lockValoreCommissioni) return;
-                const prov   = parseFloat($("#Provvigione").val()) || 0;
-                const qta    = parseFloat($("#Quantita").val()) || 0;
-                const valore = (prov * qta).toFixed(2);
-                $("#ValoreCommissioniDisplay").val(valore);
-                $("#ValoreCommissioni").val(valore);
             }
 
-            /**
-             * Differenza = PrezzoVendita - PrLavTotale - Prezzo
-             * Rappresenta il margine finale dell'ordine.
-             * Viene chiamata anche da ricalcolaPrLavTotale (cascata).
-             */
-            function ricalcolaDifferenza() {
-                if (!lockDifferenza) return;
-                const pv     = parseFloat($("#PrezzoVendita").val()) || 0;
-                const pr     = parseFloat($("#Prezzo").val()) || 0;
-                const pl     = parseFloat($("#PrLavTotale").val()) || 0;
-                const valore = (pv - pl - pr).toFixed(2);
-                $("#DifferenzaDisplay").val(valore);
-                $("#Differenza").val(valore);
-            }
+            controlla(
+                "#PrLavSpess", "#togglePrLavSpess", "#PrLavSpessDisplay",
+                calcolaPrLavSpessValore,
+                (v) => { lockPrLavSpess = v; }
+            );
+
+            controlla(
+                "#PrLavLarg", "#togglePrLavLarg", "#PrLavLargDisplay",
+                calcolaPrLavLargValore,
+                (v) => { lockPrLavLarg = v; }
+            );
 
             /**
-             * PrLavSpess = AlluminioSpessore + OttoneSpessore + RameSpessore + AltrePercentuali
-             * Dopo il calcolo, propaga la variazione a PrLavTotale (cascata).
+             * PrLavTotale: il confronto usa i valori già eventualmente
+             * corretti da PrLavSpess e PrLavLarg qui sopra, perché
+             * calcolaPrLavTotaleValore() legge #PrLavSpess e #PrLavLarg
+             * dal DOM (che rispecchiano ancora il valore DB a questo punto).
              */
-            function ricalcolaPrLavSpess() {
-                if (!lockPrLavSpess) return;
-                const a      = parseFloat($("#AlluminioSpessore").val()) || 0;
-                const o      = parseFloat($("#OttoneSpessore").val()) || 0;
-                const r      = parseFloat($("#RameSpessore").val()) || 0;
-                const x      = parseFloat($("#AltrePercentuali").val()) || 0;
-                const valore = (a + o + r + x).toFixed(3);
-                $("#PrLavSpessDisplay").val(valore);
-                $("#PrLavSpess").val(valore);
-                ricalcolaPrLavTotale(); // cascata → PrLavTotale → Differenza
-            }
+            controlla(
+                "#PrLavTotale", "#togglePrLavTotale", "#PrLavTotaleDisplay",
+                calcolaPrLavTotaleValore,
+                (v) => { lockPrLavTotale = v; }
+            );
 
-            /**
-             * PrLavLarg = AlluminioLarghezza + OttoneLarghezza + RameLarghezza + BronzoLarghezza
-             * Dopo il calcolo, propaga la variazione a PrLavTotale (cascata).
-             */
-            function ricalcolaPrLavLarg() {
-                if (!lockPrLavLarg) return;
-                const a      = parseFloat($("#AlluminioLarghezza").val()) || 0;
-                const o      = parseFloat($("#OttoneLarghezza").val()) || 0;
-                const r      = parseFloat($("#RameLarghezza").val()) || 0;
-                const b      = parseFloat($("#BronzoLarghezza").val()) || 0;
-                const valore = (a + o + r + b).toFixed(3);
-                $("#PrLavLargDisplay").val(valore);
-                $("#PrLavLarg").val(valore);
-                ricalcolaPrLavTotale(); // cascata → PrLavTotale → Differenza
-            }
+            // 13/05/2026 — AGGIUNTA: controllo ValoreCommissioni e Differenza.
+            // Problema: rilevaDivergenze non controllava questi due campi, quindi
+            // lockValoreCommissioni e lockDifferenza rimanevano sempre true anche
+            // quando il valore nel DB era stato forzato manualmente.
+            // Conseguenza: ricalcolaTutto() sovrascriveva il valore forzato
+            // (es. ValoreCommissioni=145 veniva riscritto a 140.42).
+            // Fix: aggiungere i controlla per entrambi i campi, usando le stesse
+            // funzioni pure già esistenti calcolaValoreCommissioniValore() e
+            // calcolaDifferenzaValore().
+            controlla(
+                "#ValoreCommissioni", "#toggleValoreCommissioni", "#ValoreCommissioniDisplay",
+                calcolaValoreCommissioniValore,
+                (v) => { lockValoreCommissioni = v; }
+            );
 
-            /**
-             * PrLavTotale = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato
-             * Dopo il calcolo, propaga la variazione a Differenza (cascata).
-             */
-            function ricalcolaPrLavTotale() {
-                if (!lockPrLavTotale) return;
-                const sp     = parseFloat($("#PrLavSpess").val()) || 0;
-                const lg     = parseFloat($("#PrLavLarg").val()) || 0;
-                const exKg   = parseFloat($("#ExtraPrezzoKg").val()) || 0;
-                const exStag = parseFloat($("#ExtraPrezzoStagnato").val()) || 0;
-                const valore = (sp + lg + exKg + exStag).toFixed(3);
-                $("#PrLavTotaleDisplay").val(valore);
-                $("#PrLavTotale").val(valore);
-                ricalcolaDifferenza(); // cascata → Differenza
-            }
+            controlla(
+                "#Differenza", "#toggleDifferenza", "#DifferenzaDisplay",
+                calcolaDifferenzaValore,
+                (v) => { lockDifferenza = v; }
+            );
+        }
 
-            /**
-             * ============================================================
-             * RECUPERO DINAMICO PROVVIGIONE AGENTE
-             * Interroga il controller via AJAX al cambio di Agente o Cliente.
-             * La chiamata è protetta automaticamente dall'header CSRF
-             * configurato in ajaxSetup.
-             * ============================================================
-             */
-            function ricalcolaProvvigioneAgente() {
-                if (!lockProvAgente) return;
+                  /**
+                   * ============================================================
+                   * EVENT LISTENERS — campi principali
+                   * ============================================================
+                   * Triggera ricalcolaTutto() su ogni modifica.
+                   * NON includere #PrLavSpess, #PrLavLarg, #PrLavTotale perché
+                   * sono campi calcolati: ascoltarli creerebbe loop di aggiornamento.
+                   * ============================================================
+                   */
+                  $("#Quantita, #Provvigione, #Prezzo, #PrezzoVendita, #ExtraPrezzoKg, #ExtraPrezzoStagnato, " +
+                    "#AlluminioSpessore, #OttoneSpessore, #RameSpessore, #AltrePercentuali, " +
+                    "#AlluminioLarghezza, #OttoneLarghezza, #RameLarghezza, #BronzoLarghezza")
+                      .on("input change", ricalcolaTutto);
 
-                const idAgente  = $("#IdAgente").val();
-                const idCliente = $("#IdCliente").val();
+                  // Agente / Cliente → provvigione agente via AJAX
+                  $("#IdAgente, #IdCliente").on("change", ricalcolaProvvigioneAgente);
 
-                if (!idAgente || !idCliente) return;
+                  /**
+                   * ============================================================
+                   * EVENT LISTENERS — modifica manuale Display (lucchetto aperto)
+                   * Quando il lucchetto è aperto, l'utente può digitare direttamente
+                   * nel campo Display. Questi listener sincronizzano il campo Hidden
+                   * (quello che va in POST) e, dove necessario, propagano a cascata.
+                   * ============================================================
+                   */
+                  $("#ValoreCommissioniDisplay").on("input", function () {
+                      $("#ValoreCommissioni").val(roundTec(safeNum($(this).val())));
+                  });
 
-                $.getJSON(
-                    '/Admin/ProspettiCobral/GetPercentualeProvvigione',
-                    { idAgente: idAgente, idCliente: idCliente },
-                    function (percentuale) {
-                        console.log("Provvigione agente ricevuta:", percentuale);
-                        $("#ProvvigioneAgente").val(parseFloat(percentuale).toFixed(2));
-                    }
-                ).fail(function (jqXHR, textStatus, errorThrown) {
-                    console.error("Errore recupero provvigione agente:", textStatus, errorThrown);
-                });
-            }
+                  $("#DifferenzaDisplay").on("input", function () {
+                      $("#Differenza").val(roundTec(safeNum($(this).val())));
+                  });
 
-            /**
-             * ============================================================
-             * EVENT LISTENERS — INPUT
-             * Collegano i campi sorgente alle relative funzioni di calcolo.
-             * ============================================================
-             */
-            $("#Quantita, #Provvigione")
-                .on("input", ricalcolaValoreCommissioni);
+                  // PrLavSpessDisplay → aggiorna hidden e propaga a PrLavTotale → Differenza
+                  $("#PrLavSpessDisplay").on("input", function () {
+                      $("#PrLavSpess").val(roundTec(safeNum($(this).val())));
+                      ricalcolaPrLavTotale();
+                  });
 
-            $("#PrezzoVendita, #Prezzo")
-                .on("input", ricalcolaDifferenza);
+                  // PrLavLargDisplay → aggiorna hidden e propaga a PrLavTotale → Differenza
+                  $("#PrLavLargDisplay").on("input", function () {
+                      $("#PrLavLarg").val(roundTec(safeNum($(this).val())));
+                      ricalcolaPrLavTotale();
+                  });
 
-            $("#AlluminioSpessore, #OttoneSpessore, #RameSpessore, #AltrePercentuali")
-                .on("input", ricalcolaPrLavSpess);
+                  // PrLavTotaleDisplay → aggiorna hidden e propaga a Differenza
+                  $("#PrLavTotaleDisplay").on("input", function () {
+                      $("#PrLavTotale").val(roundTec(safeNum($(this).val())));
+                      ricalcolaDifferenza();
+                  });
 
-            $("#AlluminioLarghezza, #OttoneLarghezza, #RameLarghezza, #BronzoLarghezza")
-                .on("input", ricalcolaPrLavLarg);
+                  $("#ProvvigioneAgenteDisplay").on("input", function () {
+                      $("#ProvvigioneAgente").val(roundTec(safeNum($(this).val())));
+                  });
 
-            $("#ExtraPrezzoKg, #ExtraPrezzoStagnato")
-                .on("input", ricalcolaPrLavTotale);
+                  /**
+                   * ============================================================
+                   * SINCRONIZZAZIONE DISPLAY → HIDDEN (generica — tutti gli altri)
+                   * Cattura tutti i campi Display non già gestiti sopra.
+                   * Pattern: XxxDisplay → hidden con id "Xxx" (senza "Display").
+                   * ============================================================
+                   */
+                  $("input[id$='Display']")
+                      .not("#ValoreCommissioniDisplay, #DifferenzaDisplay, " +
+                           "#PrLavSpessDisplay, #PrLavLargDisplay, " +
+                           "#PrLavTotaleDisplay, #ProvvigioneAgenteDisplay")
+                      .on("input", function () {
+                          const hiddenId = $(this).attr("id").replace("Display", "");
+                          $("#" + hiddenId).val(roundTec(safeNum($(this).val())));
+                      });
 
-            /**
-             * Al cambio di Agente o Cliente, recuperiamo la provvigione aggiornata dal server.
-             */
-            $("#IdAgente, #IdCliente").on("change", ricalcolaProvvigioneAgente);
+                  /**
+                   * ============================================================
+                   * AJAX — CARICAMENTO DIMENSIONI MATERIALE
+                   * Popola le select Spessore e Larghezza in base al materiale.
+                   * Al completamento chiama rilevaDivergenze() per inizializzare
+                   * correttamente i lucchetti DOPO che i campi "Altri Campi"
+                   * (AlluminioSpessore ecc.) sono nel DOM e valorizzati.
+                   * ============================================================
+                   */
+                  function caricaDimensioni(idMateriale, spessoreSel, larghezzaSel) {
+                      if (!idMateriale) return;
 
-            /**
-             * ============================================================
-             * SINCRONIZZAZIONE DISPLAY → HIDDEN
-             * Quando un campo viene sbloccato e l'utente lo modifica manualmente,
-             * il valore deve essere copiato nel corrispondente campo Hidden
-             * (es. "PrLavSpessDisplay" → "PrLavSpess") affinché venga inviato al server.
-             * La convenzione di naming è: idDisplay = idHidden + "Display".
-             * ============================================================
-             */
-            $("input[id$='Display']").on("input", function () {
-                const hiddenId = $(this).attr("id").replace("Display", "");
-                $("#" + hiddenId).val($(this).val());
-            });
+                      $.getJSON(
+                          '/Admin/ProspettiCobral/GetDimensioniMateriale',
+                          { idMateriale: idMateriale },
+                          function (data) {
+                              const listaSpessori  = data.spessori  || data.Spessori  || [];
+                              const listaLarghezze = data.larghezze || data.Larghezze || [];
 
-            /**
-             * ============================================================
-             * CARICAMENTO INIZIALE PROVVIGIONE AGENTE
-             * Se al caricamento della pagina la provvigione è assente o zero,
-             * tentiamo di recuperarla dal server (es. dopo un redirect da salvataggio).
-             * ============================================================
-             */
-            if ($("#IdAgente").val() && $("#IdCliente").val()) {
-                const valAttuale = parseFloat($("#ProvvigioneAgente").val());
-                if (isNaN(valAttuale) || valAttuale === 0) {
-                    ricalcolaProvvigioneAgente();
-                }
-            }
+                              /**
+                               * normalize — normalizza un valore dimensione per il confronto.
+                               * Rimuove "mm", gestisce i range "15,1 - 30" (prende il primo),
+                               * converte virgola in punto.
+                               */
+                              function normalize(val) {
+                                  if (!val) return "";
+                                  let v = val.toString().trim().replace("mm", "").trim();
+                                  if (v.includes("-")) v = v.split("-")[0].trim();
+                                  return v.replace(",", ".");
+                              }
 
-            /**
-             * ============================================================
-             * GESTIONE LUCCHETTI (setupToggle)
-             * Parametri:
-             *   idBtn          — selettore del pulsante lucchetto
-             *   idInputDisplay — selettore del campo visivo da sbloccare/bloccare
-             *   type           — stringa identificativa per aggiornare la variabile lock corretta
-             *
-             * Comportamento:
-             *   BLOCCATO  → campo readonly, pulsante verde con icona lock-fill
-             *   SBLOCCATO → campo editabile, pulsante rosso con icona unlock-fill
-             *
-             * Al momento del blocco, sincronizza il valore dal Display all'Hidden.
-             * ============================================================
-             */
-            function setupToggle(idBtn, idInputDisplay, type) {
-                $(idBtn).on("click", function () {
-                    let isLocked;
+                              // Popola select Spessore
+                              const $spess       = $("#Spessore");
+                              const cleanSelSpess = normalize(spessoreSel);
+                              $spess.empty().append('<option value="">-- seleziona --</option>');
 
-                    // Invertiamo lo stato del lock corrispondente
-                    if      (type === 'spess')  { lockPrLavSpess        = !lockPrLavSpess;        isLocked = lockPrLavSpess;        }
-                    else if (type === 'larg')   { lockPrLavLarg         = !lockPrLavLarg;         isLocked = lockPrLavLarg;         }
-                    else if (type === 'tot')    { lockPrLavTotale       = !lockPrLavTotale;       isLocked = lockPrLavTotale;       }
-                    else if (type === 'comm')   { lockValoreCommissioni = !lockValoreCommissioni; isLocked = lockValoreCommissioni; }
-                    else if (type === 'diff')   { lockDifferenza        = !lockDifferenza;        isLocked = lockDifferenza;        }
-                    else if (type === 'agente') { lockProvAgente        = !lockProvAgente;        isLocked = lockProvAgente;        }
+                              $.each(listaSpessori, function (i, v) {
+                                  const sel = (normalize(v) === cleanSelSpess) ? "selected='selected'" : "";
+                                  $spess.append("<option value='" + v + "' " + sel + ">" + v + "</option>");
+                              });
 
-                    const $input = $(idInputDisplay);
+                              // Popola select Larghezza
+                              const $larg        = $("#Larghezza");
+                              const cleanSelLarg  = normalize(larghezzaSel);
+                              $larg.empty().append('<option value="">-- seleziona --</option>');
 
-                    if (isLocked) {
-                        // BLOCCATO: torna in sola lettura e sincronizza il valore nell'hidden
-                        $input.prop("readonly", true).addClass("input-readonly");
-                        $(this).removeClass("btn-danger").addClass("btn-success")
-                               .html('<i class="bi bi-lock-fill"></i>');
+                              $.each(listaLarghezze, function (i, v) {
+                                  const sel = (normalize(v) === cleanSelLarg) ? "selected='selected'" : "";
+                                  $larg.append("<option value='" + v + "' " + sel + ">" + v + "</option>");
+                              });
 
-                        // Propaga il valore manuale inserito nell'hidden corrispondente
-                        const hiddenId = idInputDisplay.replace("#", "").replace("Display", "");
-                        if ($("#" + hiddenId).length) {
-                            $("#" + hiddenId).val($input.val());
-                        }
-                    } else {
-                        // SBLOCCATO: campo editabile
-                        $input.prop("readonly", false).removeClass("input-readonly");
-                        $(this).removeClass("btn-success").addClass("btn-danger")
-                               .html('<i class="bi bi-unlock-fill"></i>');
-                    }
-                });
-            }
+                              /**
+                               * IMPORTANTE: rilevaDivergenze() viene chiamata QUI, dentro la
+                               * callback AJAX, e non fuori. Questo garantisce che i campi
+                               * "Altri Campi" (AlluminioSpessore, OttoneSpessore ecc.) siano
+                               * già presenti e valorizzati nel DOM prima del confronto.
+                               * Chiamarla fuori (in modo sincrono subito dopo caricaDimensioni)
+                               * potrebbe farla girare prima che l'AJAX sia completato.
+                               */
+                              rilevaDivergenze();
 
-            // Registrazione di tutti i lucchetti
-            setupToggle("#togglePrLavSpess",         "#PrLavSpessDisplay",         'spess');
-            setupToggle("#togglePrLavLarg",           "#PrLavLargDisplay",          'larg');
-            setupToggle("#togglePrLavTotale",         "#PrLavTotaleDisplay",        'tot');
-            setupToggle("#toggleValoreCommissioni",   "#ValoreCommissioniDisplay",  'comm');
-            setupToggle("#toggleDifferenza",          "#DifferenzaDisplay",         'diff');
-            setupToggle("#toggleProvAgente",          "#ProvvigioneAgente",         'agente');
+                              /**
+                               * Ricalcolo iniziale dopo che i lucchetti sono stati
+                               * impostati correttamente da rilevaDivergenze().
+                               * I campi con lucchetto aperto non verranno toccati.
+                               */
+                              ricalcolaTutto();
+                          }
+                      );
+                  }
 
-            /**
-             * ============================================================
-             * AJAX — CARICAMENTO DIMENSIONI MATERIALE
-             * Popola le select di Spessore e Larghezza in base al materiale scelto.
-             * Il confronto dei valori usa replace(',','.') per gestire
-             * i separatori decimali italiani salvati nel DB.
-             * La chiamata è protetta automaticamente dall'header CSRF (ajaxSetup).
-             *
-             * Parametri:
-             *   idMateriale  — ID del materiale selezionato
-             *   spessoreSel  — valore di spessore da pre-selezionare (dal DB)
-             *   larghezzaSel — valore di larghezza da pre-selezionare (dal DB)
-             * ============================================================
-             */
-            function caricaDimensioni(idMateriale, spessoreSel, larghezzaSel) {
-                if (!idMateriale) return;
+                  /**
+                   * ============================================================
+                   * INIZIALIZZAZIONE
+                   * ============================================================
+                   */
 
-                $.getJSON(
-                    '/Admin/ProspettiCobral/GetDimensioniMateriale',
-                    { idMateriale: idMateriale },
-                    function (data) {
-                        const listaSpessori  = data.spessori  || data.Spessori  || [];
-                        const listaLarghezze = data.larghezze || data.Larghezze || [];
+                  // Leggi i valori salvati nel DB dagli hidden di servizio
+                  const idMateriale  = safeField("#IdMateriale");
+                  const spessoreSel  = $("#SpessoreSelezionato").val();
+                  const larghezzaSel = $("#LarghezzaSelezionata").val();
 
-                        // Popola select Spessori
-                        const $spess = $("#Spessore");
-                        $spess.empty().append('<option value="">-- seleziona --</option>');
-                        $.each(listaSpessori, function (i, v) {
-                            const selected = (v.toString().replace(',', '.') === (spessoreSel || "").toString().replace(',', '.'))
-                                ? "selected='selected'" : "";
-                            $spess.append("<option value='" + v + "' " + selected + ">" + v + "</option>");
-                        });
+                  // Avvia il caricamento delle dimensioni (e dentro: rilevaDivergenze + ricalcolaTutto)
+                  caricaDimensioni(idMateriale, spessoreSel, larghezzaSel);
 
-                        // Popola select Larghezze
-                        const $larg = $("#Larghezza");
-                        $larg.empty().append('<option value="">-- seleziona --</option>');
-                        $.each(listaLarghezze, function (i, v) {
-                            const selected = (v.toString().replace(',', '.') === (larghezzaSel || "").toString().replace(',', '.'))
-                                ? "selected='selected'" : "";
-                            $larg.append("<option value='" + v + "' " + selected + ">" + v + "</option>");
-                        });
-                    }
-                );
-            }
+                  /**
+                   * Provvigione agente: carica via AJAX solo se il valore salvato
+                   * nel DB è zero (record nuovo o non ancora valorizzato).
+                   * Se c'è già un valore, viene rispettato senza sovrascrittura.
+                   */
+                  if ($("#IdAgente").val() && $("#IdCliente").val()) {
+                      const valAttuale = safeField("#ProvvigioneAgente");
+                      if (valAttuale === 0) ricalcolaProvvigioneAgente();
+                  }
 
-            /**
-             * Al cambio del materiale, resettiamo entrambe le select di dimensione
-             * e le ricarichiamo con i valori disponibili per il nuovo materiale.
-             */
-            $("#IdMateriale").on("change", function () {
-                caricaDimensioni($(this).val(), "", "");
-            });
-
-        }); // fine document.ready
+              }); // fine document.ready
     </script>
 }

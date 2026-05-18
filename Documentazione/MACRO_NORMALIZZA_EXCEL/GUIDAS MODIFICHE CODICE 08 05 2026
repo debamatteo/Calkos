@@ -1,0 +1,97 @@
+fatti cst,cobraL ; Elektrawire ;deangeli;trading ,Guerzoni
+
+Hitech
+SystemCore
+
+
+
+ IL MODELLO
+
+
+1) 
+ 
+"@FormatDecimal(Model.Quantita, 3)  CON  
+@FDisplay
+
+@FormatDecimal(NOMECAMPO, 6)
+@FTecnico
+
+
+2)
+                            string stepAttr = isDecimal ? "step=any" : "";
+                            var rawValue = prop.GetValue(Model);
+                            string formattedValue = isDecimal ? FormatDecimal(rawValue, 3) :
+                            (inputType == "date" && rawValue is DateTime dt) ? dt.ToString("yyyy-MM-dd") :
+                            rawValue?.ToString() ?? "";
+ con  
+                        string stepAttr = isDecimal ? "step=any" : "";
+
+                        var rawValue = prop.GetValue(Model);
+                        string formattedValue;
+
+                        if (isDecimal)
+                        {
+                            //formattedValue = FormatDecimal(rawValue, 3);
+                            formattedValue = FDisplay(rawValue); 
+                        }
+                        else if (inputType == "date" && rawValue is DateTime dt)
+                        {
+                            formattedValue = dt.ToString("yyyy-MM-dd");
+                        }
+                        else
+                        {
+                            formattedValue = rawValue?.ToString() ?? "";
+                        }
+						
+						
+				
+				
+3)
+ string provValue = Model.ProvvigioneAgente?.ToString("F3", System.Globalization.CultureInfo.InvariantCulture) ?? "0.000";
+ string provValue = FTecnico(Model.ProvvigioneAgente);
+ 
+ 
+ 
+ 
+ 4)
+ 
+
+value="@((Model.Perc_Delta_Provvigione)?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))"
+con
+value="@FDisplay(Model.Perc_Delta_Provvigione)"
+
+
+value="@Model.Perc_Delta_Provvigione?.ToString("0.000000", System.Globalization.CultureInfo.InvariantCulture)" />
+con 
+value="@FTecnico(Model.Perc_Delta_Provvigione)"				
+				
+				
+				
+5
+
+javascriopt 
+Sostituire [Round a 6 ] co roundTec  [Round a 3 ] con roundDisplay
+
+
+
+
+            // ============================================================
+            // CONFIGURAZIONE DECIMALI CENTRALIZZATA 
+            // ============================================================
+
+            // Precisione tecnica reale usata nei calcoli/salvataggio Cobral: 4 decimali per tutti i campi, anche quelli visualizzati con meno decimali.
+            //***Sostituire [Round a 6 ] co roundTec  [Round a 3 ] con roundDisplay
+            const DECIMALI_TECNICI = 4;
+
+            // Precisione visuale UI
+            const DECIMALI_DISPLAY = 4;
+
+            // Arrotondamento centralizzato
+            function roundTec(v) {
+                return Number(toNum(v).toFixed(DECIMALI_TECNICI));
+            }
+
+            function roundDisplay(v) {
+                return Number(toNum(v).toFixed(DECIMALI_DISPLAY));
+            }
+			

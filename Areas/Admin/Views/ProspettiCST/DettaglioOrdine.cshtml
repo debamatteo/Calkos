@@ -1,0 +1,1495 @@
+﻿@* FILE C:\Lavoro\Calkos\Calkos.web\Areas\Admin\Views\ProspettiCST\DettaglioOrdine.cshtml
+ *@
+
+
+
+
+@using Calkos.web.Models.DTO
+@model CalkosManager.Domain.Entities.ProspettoCST
+
+
+
+@* ============================================================
+   ANTIFORGERY TOKEN — Inserito UNA SOLA VOLTA qui in cima.
+   Il token Antiforgery è una "chiave segreta" che il server genera per assicurarsi che la richiesta arrivi effettivamente dalla tua pagina web
+   e non da un sito malevolo che tenta di eseguire azioni a nome dell'utente loggato.
+   ============================================================ *@
+@Html.AntiForgeryToken()
+
+@{
+    ViewData["Title"] = "Dettaglio Ordine Trading And Consulting";
+    bool isAdmin = User.IsInRole("Admin");
+
+    @* ============================================================
+       FIX cast ViewBag.Agenti → AgenteSelectItem
+       Il controller CaricaLookup popola ViewBag.Agenti con List<AgenteSelectItem>
+       (tipo custom che porta anche PercentualeDefault, non disponibile in SelectListItem).
+       Il cast deve corrispondere esattamente al tipo prodotto dal controller,
+       altrimenti "as" restituisce null silenziosamente e la select rimane vuota.
+       ============================================================ *@
+    var agenti = ViewBag.Agenti as IEnumerable<AgenteSelectItem>
+                 ?? Enumerable.Empty<AgenteSelectItem>();
+}
+
+@* ============================================================
+   HELPER LOCALE — FormatDecimal
+   Accetta object? per compatibilità con i valori restituiti
+   dalla Reflection nel blocco "Altri Campi".
+   Forza il punto decimale (InvariantCulture) per i campi
+   type="number" del browser, che non accetta la virgola.
+   ============================================================ *@
+@* @functions {
+    public string FormatDecimal(object? valore, int decimali = 3)
+    {
+        if (valore == null || valore == DBNull.Value) return string.Empty;
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+            return d.ToString("F" + decimali, System.Globalization.CultureInfo.InvariantCulture);
+        return valore.ToString() ?? string.Empty;
+    }
+} *@
+@functions {
+
+    // ============================================================
+    // CONFIGURAZIONE CENTRALIZZATA DECIMALI DELLA VIEW
+    // Cambi qui e aggiorni tutta la pagina
+    // ============================================================
+    public const int DECIMALI_DISPLAY = 4;
+    public const int DECIMALI_TECNICI = 4;
+
+    public string FormatDecimal(object? valore, int decimali = DECIMALI_DISPLAY)
+    {
+        if (valore == null || valore == DBNull.Value)
+            return string.Empty;
+
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+        {
+            return d.ToString(
+                "F" + decimali,
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+        }
+
+        return valore?.ToString() ?? string.Empty;
+    }
+
+    // ============================================================
+    // DISPLAY UI  SOSTITUIRE FDisplay a FormatDecimal per i campi visibili all'utente   @FormatDecimal(NOMECAMPO, 3)
+    // ============================================================
+    public string FDisplay(object? valore, int decimali = 0)
+    {
+        //int decimali = 0 introdotto  solo per non cambiare decine di chiamate a FDisplay, ma in realtà ora è ridondante perché FormatDecimal ha già un default
+        return FormatDecimal(valore, DECIMALI_DISPLAY);
+    }
+
+    // ============================================================
+    // VALORI TECNICI/HIDDEN  SOSTITUIRE FTecnico a FormatDecimal per i campi tecnici o hidden, che richiedono più decimali di precisione. @FormatDecimal(NOMECAMPO, 6)
+    // ============================================================
+    public string FTecnico(object? valore, int decimali = 0)
+    {
+        //int decimali = 0 introdotto  solo per non cambiare decine di chiamate a FDisplay, ma in realtà ora è ridondante perché FormatDecimal ha già un default.
+        return FormatDecimal(valore, DECIMALI_TECNICI);
+    }
+}
+<div class="d-flex align-items-center mb-4">
+    <h1 class="h3 fw-bold">Dettaglio Ordine CST</h1>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        <form asp-action="DettaglioOrdine" method="post">
+
+            @* ============================================================
+               RIEPILOGO ERRORI MODELSTATE
+               Cicla su tutti i campi invalidi e stampa il nome
+               della proprietà + il messaggio di validazione.
+               ============================================================ *@
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger mt-3">
+                    <h5 class="fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Attenzione: correggi i seguenti errori
+                    </h5>
+                    <ul>
+                        @foreach (var modelState in ViewData.ModelState.Where(x => x.Value.Errors.Any()))
+                        {
+                            foreach (var error in modelState.Value.Errors)
+                            {
+                                <li><strong>@modelState.Key</strong>: @error.ErrorMessage</li>
+                            }
+                        }
+                    </ul>
+                </div>
+            }
+
+            @* Campo hidden obbligatorio per identificare il record in POST *@
+            <input type="hidden" asp-for="IdProspettoCST" />
+
+            @* ============================================================
+               SEZIONE: DATI DOCUMENTO
+               ============================================================ *@
+            <h5 class="fw-bold mt-3">Dati Documento</h5>
+
+            <div class="row g-3">
+                @* NumeroOrdine *@
+                <div class="col-md-3">
+
+                    <label class="form-label fw-bold required-label">Numero Ordine</label>
+                    @if (Model.IdProspettoCST == 0)
+                    {
+                        <input asp-for="NumeroOrdine" type="text" class="form-control" placeholder="Inserisci numero ordine..." />
+                    }
+                    else
+                    {
+                        <input asp-for="NumeroOrdine" type="text" class="form-control input-readonly" readonly="readonly" />
+                    }
+                    <span asp-validation-for="NumeroOrdine" class="text-danger small"></span>
+                </div>
+
+                @* Numero DDT *@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Numero DDT</label>
+                    @if (isAdmin)
+                    {
+                        <input class="form-control" asp-for="NumeroDDT" type="text" />
+                    }
+                    else
+                    {
+                        <input asp-for="NumeroDDT" type="text" class="form-control input-readonly" readonly="readonly" />
+                    }
+                </div>
+
+                @*  Numero Fattura *@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Numero Fattura</label>
+                    @if (isAdmin)
+                    {
+                        <input class="form-control" asp-for="NumeroFattura" type="text" />
+                    }
+                    else
+                    {
+                        <input asp-for="NumeroFattura" type="text" class="form-control input-readonly" readonly="readonly" />
+                    }
+                </div>
+
+                @* Cliente (Colonna B	Cliente)*@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold required-label">Cliente</label>
+                    @if (isAdmin)
+                    {
+                        <select asp-for="IdCliente" asp-items="ViewBag.Clienti" class="form-select"></select>
+                    }
+                    else
+                    {
+                        <select asp-for="IdCliente" asp-items="ViewBag.Clienti" class="form-select input-readonly" disabled="disabled"></select>
+                        <input type="hidden" asp-for="IdCliente" />
+                    }
+                    <span asp-validation-for="IdCliente" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            @* ============================================================
+               SEZIONE: QUANTITÀ E PREZZI 1
+               ============================================================ *@
+
+            <h5 class="fw-bold mt-4">Quantità e Prezzi </h5>
+
+            <div class="row g-3">
+                @*  Tipologia Materiale Colonna (E) *@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold required-label">Materiale</label>
+                    @if (isAdmin)
+                    {
+                        <select asp-for="IdMateriale" id="IdMateriale" asp-items="ViewBag.Materiali" class="form-select"></select>
+                    }
+                    else
+                    {
+                        <select asp-for="IdMateriale" id="IdMateriale" asp-items="ViewBag.Materiali" class="form-select input-readonly" disabled="disabled"></select>
+                        <input type="hidden" asp-for="IdMateriale" />
+                    }
+                    <span asp-validation-for="IdMateriale" class="text-danger small"></span>
+                </div>
+
+
+                @* Unità di Misura Colonna (C)*@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold required-label">Unità di Misura</label>
+                    @if (isAdmin)
+                    {
+                        <select asp-for="IdUnitaMisura" asp-items="ViewBag.UnitaMisura" class="form-select"></select>
+                    }
+                    else
+                    {
+                        <select asp-for="IdUnitaMisura" asp-items="ViewBag.UnitaMisura" class="form-select input-readonly" disabled="disabled"></select>
+                        <input type="hidden" asp-for="IdUnitaMisura" />
+                    }
+                    <span asp-validation-for="IdUnitaMisura" class="text-danger small"></span>
+                </div>
+
+                @* Quantita Colonna (C)*@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold required-label">Quantità (Kg)</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="Quantita" id="Quantita" type="number" step="any" class="form-control" value="@FDisplay(Model.Quantita, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="Quantita" id="Quantita" type="number" step="any" class="form-control input-readonly" readonly="readonly" value="@FDisplay(Model.Quantita, 3)" />
+                    }
+                    <span asp-validation-for="Quantita" class="text-danger small"></span>
+                </div>
+
+                @*  D	Lav	—		CostoLavorazione	 *@
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Lavorazione</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="CostoLavorazione" id="CostoLavorazione" type="number" step="any" class="form-control" value="@FDisplay(Model.CostoLavorazione, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="CostoLavorazione" id="CostoLavorazione" type="number" step="any" class="form-control input-readonly"
+                               readonly="readonly" value="@FDisplay(Model.CostoLavorazione, 3)" />
+                    }
+                    <span asp-validation-for="CostoLavorazione" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            @* ============================================================
+               SEZIONE: QUANTITÀ E PREZZI 2
+               ============================================================ *@
+
+
+
+            <div class="row g-3">
+
+                @*   F	Materiale Euro di riferimento	—		PrezzoBase	 *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Materiale Euro di riferimento</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="PrezzoBase" id="PrezzoBase" type="number" step="any" class="form-control" value="@FDisplay(Model.PrezzoBase, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="PrezzoBase" id="PrezzoBase" type="number" step="any" class="form-control input-readonly" readonly="readonly" value="@FDisplay(Model.PrezzoBase, 3)" />
+                    }
+                    <span asp-validation-for="PrezzoBase" class="text-danger small"></span>
+                </div>
+
+
+                @*G	Materiale € di vendita	—		PrezzoEuroRiferimentoEuroRiferimento	 *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Materiale € di vendita</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="PrezzoEuroRiferimento" id="PrezzoEuroRiferimento" type="number" step="any" class="form-control" value="@FDisplay(Model.PrezzoEuroRiferimento, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="PrezzoEuroRiferimento" id="PrezzoEuroRiferimento" type="number" step="any" class="form-control input-readonly" readonly="readonly" value="@FDisplay(Model.PrezzoEuroRiferimento, 3)" />
+                    }
+                    <span asp-validation-for="PrezzoEuroRiferimento" class="text-danger small"></span>
+                </div>
+
+
+                @* H	Materiale+Lav con commissione	PrezzoBaseConLavorazione	 *@
+                @* 
+                Colonna(H)	Materiale+Lav con commissione
+                FORMULA= D+F
+                Lavorazione + Materiale rif.
+                FORMULA DB =  CostoLavorazione+ PrezzoBase
+                D	Lav 	 Campo DB = CostoLavorazione
+                F	Materiale Euro di riferimento	Campo DB = PrezzoBase
+                *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">[Materiale+Lav con commissione]</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="any"
+                               id="PrezzoBaseConLavorazioneDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.PrezzoBaseConLavorazione, 3)"
+                               title="[Materiale+Lav con commissione] =  Lavorazione + Materiale rif." />
+                        <button type="button" id="togglePrezzoBaseConLavorazione" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="PrezzoBaseConLavorazione" name="PrezzoBaseConLavorazione" value="@FTecnico(Model.PrezzoBaseConLavorazione, 6)" />
+                </div>
+
+
+                @*I	Vendita	—		PrezzoVendita *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Vendita</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="any" class="form-control" value="@FDisplay(Model.PrezzoVendita, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="PrezzoVendita" id="PrezzoVendita" type="number" step="any" class="form-control input-readonly" readonly="readonly" value="@FDisplay(Model.PrezzoVendita, 3)" />
+                    }
+                    <span asp-validation-for="PrezzoVendita" class="text-danger small"></span>
+                </div>
+
+                @*J	[1,5% fissa] -- ProvvigioneFissa01_05] *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">[1,5% fissa]</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="ProvvigioneFissa01_05" id="ProvvigioneFissa01_05" type="number" step="any" class="form-control" value="@FDisplay(Model.ProvvigioneFissa01_05, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="ProvvigioneFissa01_05" id="ProvvigioneFissa01_05" type="number" step="any" class="form-control input-readonly" readonly="readonly" value="@FDisplay(Model.ProvvigioneFissa01_05, 3)" />
+                    }
+                    <span asp-validation-for="ProvvigioneFissa01_05" class="text-danger small"></span>
+                </div>
+
+                @* K	[3,0% fissa]	ProvvigioneFissa03	11	3,0% fissa *@
+                @* Colonna(K)	[3,0% fissa]
+                Campo Db = ProvvigioneFissa03
+                FORMULA =IF(E="alluminio",(I)*3%,0)+IF(E="alluminio smaltato",(I)*3%,0)
+                FORMULA =IF([Tipologia Materiale]="alluminio",(Vendita)*3%,0)+IF([Tipologia Materiale]="alluminio smaltato",(Vendita)*3%,0)
+                FORMULA DB =IF(Materiale="alluminio",(Vendita)*3%,0)+IF(Materiale="alluminio smaltato",(Vendita)*3%,0)
+                E	[Tipologia Materiale]	—	 Campo DB = Materiale
+                I	Vendita	—	 Campo DB = PrezzoVendita
+                Sintesi:Se il materiale è alluminio (di qualsiasi tipo specificato),
+                la formula restituisce: (Prezzo *  0,03) ; Altrimenti, il valore restituito è 0. *@
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">[3% Fissa]</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="any"
+                               id="ProvvigioneFissa03Display"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.ProvvigioneFissa03, 3)"
+                               title="Provvigione Fissa 3 =Se l materiale è alluminio\smaltato ,valore= (Prezzo *  0,03) ; Altrimenti è 0.  %" />
+                        <button type="button" id="toggleProvvigioneFissa03" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+
+                    <input type="hidden"
+                           id="ProvvigioneFissa03"
+                           name="ProvvigioneFissa03"
+                           value="@FTecnico(Model.ProvvigioneFissa03, 6)" />
+                </div>
+
+            </div>
+
+
+
+            @* ============================================================
+               RIGA PROVVIGIONI
+               ============================================================ *@
+
+            <div class="row g-3 mt-2">
+
+                @* L	Totale Fisso	-- TotaleProvvigioneFissa *@
+                @* 
+                Colonna(L)	Totale Fisso	
+                Campo Db = TotaleProvvigioneFissa
+                FORMULA=(J*C)+(K*C)
+                FORMULA=([1,5% fissa]*[Kg])+([3,0% fissa]*[Kg])
+                FORMULA DB=(ProvvigioneFissa01_05*Quantita)+(ProvvigioneFissa03*Quantita)
+
+                J	[1,5% fissa]	—		Campo DB=ProvvigioneFissa01_05
+                C	[Kg]	—		Campo DB=Quantita
+                K	[3,0% fissa] 	Campo DB= ProvvigioneFissa03
+                *@
+
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Totale Fisso</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="any"
+                               id="TotaleProvvigioneFissaDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.TotaleProvvigioneFissa, 3)"
+                               title="Totale Fisso = [1,5% fissa] * [Kg]) + ([3,0% fissa] * [Kg] )" />
+                        <button type="button" id="toggleTotaleProvvigioneFissa" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="TotaleProvvigioneFissa" name="TotaleProvvigioneFissa" value="@FDisplay(Model.TotaleProvvigioneFissa, 6)" />
+                </div>
+
+                @*M	[CIT] -- Dedotte Spese di trasporto (CIT) *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Dedotte Spese di trasporto (CIT)</label>
+                    @if (isAdmin)
+                    {
+                        <input asp-for="CIT" id="CIT" type="number" step="any" class="form-control" value="@FDisplay(Model.CIT, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="CIT" id="CIT" type="number" step="any" class="form-control input-readonly" readonly="readonly" value="@FDisplay(Model.CIT, 3)" />
+                    }
+                    <span asp-validation-for="CIT" class="text-danger small"></span>
+                </div>
+
+
+                @*N Delta	-	Delta	 *@
+                @* Colonna(N)	Delta  Campo Db = Delta
+                FORMULA =I-H
+                FORMULA =Vendita-[Materiale+Lav con commissione]
+                FORMULA =PrezzoVendita-PrezzoBaseConLavorazione
+                H	[Materiale+Lav con commissione]   	 Campo Db = PrezzoBaseConLavorazione
+                I	Vendita   	 Campo Db = PrezzoVendita *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Delta</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="any"
+                               id="DeltaDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.Delta, 3)"
+                               title="Delta = Vendita-[Materiale+Lav con commissione] " />
+                        <button type="button" id="toggleDelta" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="Delta" name="Delta" value="@FTecnico(Model.Delta, 6)" />
+                </div>
+
+
+
+
+
+                <!-- Percentuale Delta Provvigione (estratta da Formula Excel) -->
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Perc. Delta Provv. (%)</label>
+                    <i class="bi bi-info-circle-fill text-danger ms-2" style="font-size: 1.2rem;"title="Inserire la percentuale in formato umano: 5 significa 5%, NON 0,05"></i>
+
+                    <div class="input-group">
+
+                        <!-- DISPLAY A 2 DECIMALI (FUNZIONANTE) -->
+                        @* // il Display mostra * 100 NON 0.4 MA 40%: *@
+                        <input type="number"
+                               step="any"
+                               id="Perc_Delta_ProvvigioneDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.Perc_Delta_Provvigione)"
+                               title="Percentuale su Delta (estratta da formula Excel)" />
+
+                        <!-- Lucchetto -->
+                        <button type="button" id="togglePerc_Delta_Provvigione" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+
+                    <!-- VALORE TECNICO A 6 DECIMALI (IDENTICO AL TUO) -->
+                    <input type="hidden"
+                           id="Perc_Delta_Provvigione"
+                           name="Perc_Delta_Provvigione"
+                           value="@FTecnico(Model.Perc_Delta_Provvigione)" />
+
+                    @*<div style="color:red; font-weight:bold;">
+                        DEBUG VIEW: @Model.Perc_Delta_Provvigione
+                    </div> *@
+                </div>
+
+
+
+
+
+                @* O	Totale provv variabile	----TotaleProvvigioneVariabile	 *@
+                @*                     
+                        Colonna(O)	Totale provv variabile
+                        Campo Db = TotaleProvvigioneVariabile
+                        FORMULA =N*C*50% 
+                        FORMULA =Delta*Kg*Perc_Delta_Provvigione 
+                        FORMULA DB =Delta*Quantita*Perc_Delta_Provvigione
+
+                        50%=Perc_Delta_Provvigione
+                        N	Delta 	 Campo Db = Delta
+                        C	Kg	Campo Db =Quantita
+
+                    // CONVENZIONE: Perc_Delta_Provvigione è sempre salvata in percentuale intera
+                    // Es: 50 = 50%  →  nel calcolo si divide sempre per 100
+                    // Questa convenzione vale per DB, hidden, display e controller.
+
+
+                    *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Totale Provv. Variabile</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="any"
+                               id="TotaleProvvigioneVariabileDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.TotaleProvvigioneVariabile, 3)"
+                               title="Totale Provvigione Variabile= [Delta] x [Kg]* Perc_Delta_Provvigione " />
+                        <button type="button" id="toggleTotaleProvvigioneVariabile" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="TotaleProvvigioneVariabile" name="TotaleProvvigioneVariabile" value="@FTecnico(Model.TotaleProvvigioneVariabile, 6)" />
+                </div>
+
+
+                @* P	Totale fattura	--TotaleProvvigioneFattura	 *@
+                @* 
+                    Colonna	P	Totale fattura
+                    Campo Db = TotaleProvvigioneFattura
+                    FORMULA =O+L
+                    FORMULA =[Totale provv variabile]+[Totale Fisso]
+                    FORMULA DB =TotaleProvvigioneVariabile+TotaleProvvigioneFissa
+                    O	[Totale provv variabile]	Campo Db = TotaleProvvigioneVariabile
+                    L	[Totale Fisso]	Campo Db =TotaleProvvigioneFissa
+                    *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Totale Fattura</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="any"
+                               id="TotaleProvvigioneFatturaDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.TotaleProvvigioneFattura, 3)"
+                               title="Totale Fattura= [Totale provv variabile] + [Totale Fisso] " />
+                        <button type="button" id="toggleTotaleProvvigioneFattura" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="TotaleProvvigioneFattura" name="TotaleProvvigioneFattura" value="@FTecnico(Model.TotaleProvvigioneFattura, 6)" />
+                </div>
+
+
+            </div>
+
+
+
+            @* ============================================================
+               SEZIONE: AGENTE E PAGAMENTO,DATE 
+               ============================================================ *@
+            <h5 class="fw-bold mt-4">Agente e Pagamento</h5>
+            <div class="row g-3">
+
+
+
+                @* Data Consegna Ipotetica *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Data Consegna Ipotetica</label>
+                    <input asp-for="DataConsegna" type="date" class="form-control" />
+                </div>
+
+                @* Data Scadenza  *@
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Scadenza</label>
+                    <input asp-for="Scadenza" type="date" class="form-control" />
+                </div>
+
+
+                <div class="col-md-2">
+                    @* Agente: select costruita manualmente (non con asp-items) per poter
+                       aggiungere l'attributo data-percentuale su ogni option,
+                       necessario per il calcolo client-side della provvigione.
+
+                       FIX: ViewBag.Agenti castato a IEnumerable<AgenteSelectItem> in cima alla view.
+                       Il controller popola ViewBag.Agenti con List<AgenteSelectItem>, tipo custom
+                       che espone Id, Nome e PercentualeDefault.
+                       Le proprietà usate nel foreach sono quindi:
+                         a.Id               → value dell'option
+                         a.Nome             → testo visibile dell'option
+                         a.PercentualeDefault → attributo data-percentuale per il calcolo JS
+                    *@
+                    <label class="form-label fw-bold">Agente</label>
+                    <select id="IdAgente" name="IdAgente" class="form-select">
+                        @foreach (var a in agenti)
+                        {
+                            bool isSelected = (Model?.IdAgente.ToString() == a.Id.ToString());
+                            <option value="@a.Id"
+                                    data-percentuale="@a.PercentualeDefault"
+                                    selected="@(isSelected ? "selected" : null)">
+                                @a.Nome
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    @* 28/04/2026 *@
+                    @* ProvvigioneAgente: recuperata via AJAX dal controller al cambio di Agente o Cliente.
+                    Campo readonly di default, sbloccabile da Admin tramite il lucchetto.
+                    Formattiamo con F2 + InvariantCulture per type="number". *@
+                    <label class="form-label fw-bold">Provvigione Agente (%)</label>
+                    <i class="bi bi-info-circle-fill text-danger ms-2" style="font-size: 1.2rem;" title="Inserire la percentuale in formato umano: 5 significa 5%, NON 0,05"></i>
+                    <div class="input-group">
+                        @{
+                            
+                            string provValue = FTecnico(Model.ProvvigioneAgente);
+                        }
+                        @* Campo visibile: solo id (niente name) per evitare doppio invio nel POST.
+                        Il name="ProvvigioneAgente" è sull'hidden qui sotto, che è l'unico
+                        che partecipa al binding del controller. *@
+                        <input id="ProvvigioneAgenteDisplay"
+                               type="number"
+                               step="any"
+                               class="form-control input-readonly"
+                               readonly="readonly"
+                               value="@provValue" />
+                        @if (isAdmin)
+                        {
+                            <button type="button" id="toggleProvAgente" class="btn btn-success">
+                                <i class="bi bi-lock-fill"></i>
+                            </button>
+                        }
+                    </div>
+                    @* Hidden: porta il valore al POST esattamente come tutti gli altri campi calcolati
+                        (es. TotaleProvvigioneFissa, Delta, ecc.).
+                        Il JS lo aggiorna in sincronia con il Display. *@
+                    <input type="hidden"
+                           id="ProvvigioneAgente"
+                           name="ProvvigioneAgente"
+                           value="@provValue" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Tipo Pagamento</label>
+                    <select asp-for="IdTipoPagamento" class="form-select"
+                            asp-items="@(ViewBag.TipiPagamento as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)">
+                    </select>
+                </div>
+
+            </div>
+
+
+
+
+
+            @* ============================================================
+            SEZIONE: ALTRI CAMPI (collapsible)
+            Generata via Reflection su tutte le proprietà del modello
+            non già presenti nelle sezioni precedenti.
+            Usa FormatDecimal per i campi decimal (3 decimali = precisione tecnica Cobral).
+            ============================================================ *@
+            <div class="row g-3">
+                <div class="col-md-2">
+
+                    <h5 class="fw-bold mt-4">Altri Campi</h5>
+                    <button class="btn btn-outline-primary mb-3" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#tecnici">
+                        Mostra / Nascondi Altri Campi
+                    </button>
+                </div>
+
+
+            </div>
+
+            <div class="collapse" id="tecnici">
+                <div class="card card-body bg-light">
+                    @* Aggiunta card per pulizia visiva *@
+                    <div class="row g-3">
+                        @foreach (var prop in typeof(CalkosManager.Domain.Entities.ProspettoCST).GetProperties())
+                        {
+                            var skip = new[] {
+                                                "IdProspettoCST","NumeroOrdine","NumeroDDT","NumeroFattura",
+                                                "IdCliente","IdMateriale","IdUnitaMisura","Quantita","CostoLavorazione","PrezzoBase",
+                                                "PrezzoEuroRiferimento","PrezzoBaseConLavorazione","PrezzoVendita",
+                                                "ProvvigioneFissa01_05","ProvvigioneFissa03",
+                                                "TotaleProvvigioneFissa","CIT","Delta","Perc_Delta_Provvigione",
+                                                "TotaleProvvigioneVariabile","TotaleProvvigioneFattura",
+                                                "DataConsegna","Scadenza","IdAgente","ProvvigioneAgente","IdTipoPagamento","Fatturare",
+                                                "IdMandatario", "IdFileImportato", "IdImportCST", "DataInserimento",
+                                                "DataModifica", "Utente", "Anno", "Mese", "Fatturata", "DataFatturazione",
+                                                "IsDeleted", "RagioneSociale", "DescrizioneMateriale", "UnitaMisura",
+                                                "AgenteDescrizione", "PercentualeDefaultAgente", "TipoPagamento"
+                                                };
+
+                            if (skip.Contains(prop.Name)) continue;
+
+                            bool isDecimal = prop.PropertyType == typeof(decimal) || prop.PropertyType == typeof(decimal?);
+                            string inputType = isDecimal ? "number" :
+                            (prop.PropertyType == typeof(int?) || prop.PropertyType == typeof(int)) ? "number" :
+                            (prop.PropertyType == typeof(DateTime?) || prop.PropertyType == typeof(DateTime)) ? "date" : "text";
+
+                            string stepAttr = isDecimal ? "step=any" : "";
+
+                            var rawValue = prop.GetValue(Model);
+                            string formattedValue;
+
+                            if (isDecimal)
+                            {
+                                //formattedValue = FormatDecimal(rawValue, 3);
+                                formattedValue = FDisplay(rawValue);
+                            }
+                            else if (inputType == "date" && rawValue is DateTime dt)
+                            {
+                                formattedValue = dt.ToString("yyyy-MM-dd");
+                            }
+                            else
+                            {
+                                formattedValue = rawValue?.ToString() ?? "";
+                            }
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">@prop.Name</label>
+                                <input class="form-control" name="@prop.Name" id="@prop.Name" type="@inputType" @stepAttr value="@formattedValue" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <hr />
+            <div class="d-flex justify-content-between mt-3">
+                <a href="/Admin/ProspettiCST/ListaOrdini" class="btn btn-secondary">Torna alla lista</a>
+                <button type="submit" class="btn btn-primary">Salva modifiche</button>
+            </div>
+
+        </form> @* Fine Form *@
+    </div> @* Fine Card Body *@
+</div> @* Fine Card *@
+
+
+@* FILE C:\Lavoro\Calkos\Calkos.web\Areas\Admin\Views\ProspettiCST\DettaglioOrdine.cshtml
+ *@
+
+@*LOGICA DI COBRAL 09/05/2026*@
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+
+            /**
+             * ============================================================
+             * CENTRALIZZAZIONE ANTIFORGERY
+             * Aggiunge automaticamente il token CSRF a tutte le chiamate
+             * AJAX jQuery, evitando di doverlo passare manualmente ogni volta.
+             * ============================================================
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            /**
+             * ============================================================
+             * CONFIGURAZIONE DECIMALI CENTRALIZZATA
+             * Deve essere allineata con le costanti C# in cima alla view:
+             *   DECIMALI_TECNICI  → usati nei campi hidden (inviati al server)
+             *   DECIMALI_DISPLAY  → usati nei campi visibili all'utente
+             * ============================================================
+             */
+            const DECIMALI_TECNICI = 4;
+            const DECIMALI_DISPLAY = 4;
+
+            // 13/05/2026 — MODIFICA: aggiunto Number.EPSILON prima di toFixed.                  
+            // Stessa modifica applicata su ElektraWire, Cobral, DeAngeli, SystemCore e SystemP.
+            function roundTec(v) {
+                    return Number((toNum(v) + Number.EPSILON).toFixed(DECIMALI_TECNICI));
+            }
+
+            function roundDisplay(v) {
+                    return Number((toNum(v) + Number.EPSILON).toFixed(DECIMALI_DISPLAY));
+            }
+
+            /**
+             * ============================================================
+             * HELPER NUMERICI
+             * ============================================================
+             */
+
+            /**
+             * toNum — conversione grezza stringa → numero.
+             * Gestisce: null, undefined, stringa vuota, virgola decimale.
+             * Restituisce sempre 0 in caso di fallimento (mai NaN).
+             */
+            function toNum(v) {
+                if (v === null || v === undefined) return 0;
+                if (typeof v === "string") {
+                    v = v.replace(',', '.').trim();
+                    if (v === "") return 0;
+                }
+                const n = parseFloat(v);
+                return isNaN(n) ? 0 : n;
+            }
+
+            /**
+             * safeNum — bonifica un valore già letto (variabile JS o $(this).val()).
+             * Uso: safeNum($(this).val())  oppure  safeNum(miaVariabile)
+             * Accetta un fallback opzionale (default: 0).
+             */
+            function safeNum(v, fallback) {
+                if (fallback === undefined) fallback = 0;
+                if (v === null || v === undefined) return fallback;
+                if (typeof v === "string") {
+                    v = v.replace(',', '.').trim();
+                    if (v === "") return fallback;
+                }
+                const n = parseFloat(v);
+                if (isNaN(n) || !isFinite(n)) return fallback;
+                return n;
+            }
+
+            /**
+             * safeField — legge un campo jQuery dal DOM e lo bonifica.
+             * Uso: safeField("#MioCampo")  invece di  toNum($("#MioCampo").val())
+             * Emette un warning in console se il selettore non trova nulla.
+             */
+            function safeField(selector, fallback) {
+                if (fallback === undefined) fallback = 0;
+                const el = $(selector);
+                if (el.length === 0) {
+                    console.warn("safeField: campo non trovato →", selector);
+                    return fallback;
+                }
+                return safeNum(el.val(), fallback);
+            }
+
+            /**
+             * ============================================================
+             * REGOLA DI SCELTA TRA safeNum e safeField
+             * ============================================================
+             *
+             *  safeField("#MioCampo")   → quando leggi direttamente dal DOM
+             *  safeNum($(this).val())   → quando hai già il valore in una variabile
+             *
+             *  Mnemonica: vedi il cancelletto "#"? → safeField.
+             *             Hai già il valore? → safeNum.
+             */
+
+            /**
+             * ============================================================
+             * VARIABILI DI STATO LUCCHETTI
+             * true  = calcolo automatico attivo (lucchetto chiuso, verde)
+             * false = valore forzato manualmente (lucchetto aperto, rosso)
+             *
+             * NOTA su Perc_Delta_Provvigione:
+             * NON ha un lock di calcolo perché NON è un campo calcolato.
+             * È un valore inserito manualmente dall'utente (estratto da
+             * formula Excel ma non ricalcolato automaticamente dalla view).
+             * Il suo lucchetto gestisce solo l'editabilità UI.
+             * Partecipa ai calcoli SOLO come input di TotaleProvvigioneVariabile.
+             *
+             * Tutti i lock partono true e vengono corretti da rilevaDivergenze()
+             * prima del primo ricalcolaTutto().
+             * ============================================================
+             */
+            let lockPrezzoBaseConLavorazione   = true;
+            let lockProvvigioneFissa03         = true;
+            let lockDelta                      = true;
+            let lockTotaleProvvigioneFissa      = true;
+            let lockTotaleProvvigioneVariabile = true;
+            let lockTotaleProvvigioneFattura   = true;
+            let lockProvAgente                 = true;
+
+            /**
+             * ============================================================
+             * FUNZIONI DI CALCOLO PURE (senza side-effect)
+             * Queste funzioni SOLO calcolano e restituiscono il valore.
+             * Non scrivono nulla nel DOM. Servono a due scopi:
+             *   1. Essere chiamate da rilevaDivergenze() al caricamento
+             *      per capire se un campo è stato forzato nel DB.
+             *   2. Essere richiamate dalle funzioni "ricalcola*" che
+             *      invece scrivono nel DOM.
+             *
+             * CONVENZIONI PERCENTUALI CST:
+             *   Perc_Delta_Provvigione → formato intero (es. 50 = 50%) → dividi per 100 nel calcolo.
+             *                            È un INPUT MANUALE, non viene mai ricalcolato dalla view.
+             *   ProvvigioneFissa03     → calcolata: 3% su PrezzoVendita se materiale contiene "alluminio".
+             * ============================================================
+             */
+
+            /**
+             * PrezzoBaseConLavorazione = CostoLavorazione + PrezzoBase
+             * Colonna H — "Materiale+Lav con commissione"
+             * FORMULA Excel: D + F
+             */
+            function calcola_PrezzoBaseConLavorazione() {
+                return roundTec(
+                    safeField("#CostoLavorazione") +
+                    safeField("#PrezzoBase")
+                );
+            }
+
+            /**
+             * ProvvigioneFissa03 — Colonna K — "[3,0% fissa]"
+             * FORMULA Excel: IF(E="alluminio",(I)*3%,0)+IF(E="alluminio smaltato",(I)*3%,0)
+             * Sintesi: se il materiale contiene "alluminio" (case-insensitive),
+             * restituisce PrezzoVendita * 0.03, altrimenti 0.
+             *
+             * Controllo sul testo della option selezionata (non sull'id),
+             * perché il testo rispecchia il nome del materiale nel DB.
+             */
+            function calcola_ProvvigioneFissa03() {
+                const materiale = ($("#IdMateriale option:selected").text() || "").toLowerCase();
+                const vend      = safeField("#PrezzoVendita");
+                return roundTec(materiale.includes("alluminio") ? vend * 0.03 : 0);
+            }
+
+            /**
+             * Delta — Colonna N
+             * FORMULA Excel: I - H
+             * FORMULA DB:    PrezzoVendita - PrezzoBaseConLavorazione
+             */
+            function calcola_Delta() {
+                return roundTec(
+                    safeField("#PrezzoVendita") -
+                    safeField("#PrezzoBaseConLavorazione")
+                );
+            }
+
+            /**
+             * TotaleProvvigioneFissa — Colonna L — "Totale Fisso"
+             * FORMULA Excel: (J * C) + (K * C)
+             * FORMULA DB:    (ProvvigioneFissa01_05 * Quantita) + (ProvvigioneFissa03 * Quantita)
+             */
+            function calcola_TotaleProvvigioneFissa() {
+                const qta  = safeField("#Quantita");
+                const pv15 = safeField("#ProvvigioneFissa01_05");
+                const pv03 = safeField("#ProvvigioneFissa03");
+                return roundTec((pv15 * qta) + (pv03 * qta));
+            }
+
+            /**
+             * TotaleProvvigioneVariabile — Colonna O — "Totale provv variabile"
+             * FORMULA Excel: N * C * 50%   (dove 50% = Perc_Delta_Provvigione)
+             * FORMULA DB:    Delta * Quantita * (Perc_Delta_Provvigione / 100)
+             *
+             * ATTENZIONE: Perc_Delta_Provvigione è in formato intero (50 = 50%),
+             * quindi si divide sempre per 100. Non modificare questa divisione.
+             * Perc_Delta_Provvigione è un INPUT MANUALE, non calcolato dalla view.
+             */
+            function calcola_TotaleProvvigioneVariabile() {
+                return roundTec(
+                    safeField("#Delta")                         *
+                    safeField("#Quantita")                      *
+                    (safeField("#Perc_Delta_Provvigione") / 100)
+                );
+            }
+
+            /**
+             * TotaleProvvigioneFattura — Colonna P — "Totale fattura"
+             * FORMULA Excel: O + L
+             * FORMULA DB:    TotaleProvvigioneVariabile + TotaleProvvigioneFissa
+             */
+            function calcola_TotaleProvvigioneFattura() {
+                return roundTec(
+                    safeField("#TotaleProvvigioneVariabile") +
+                    safeField("#TotaleProvvigioneFissa")
+                );
+            }
+
+            /**
+             * ============================================================
+             * FUNZIONI DI RICALCOLO (con side-effect: scrivono nel DOM)
+             * Ogni funzione:
+             *   1. Controlla se il lucchetto è chiuso (lock = true).
+             *      Se aperto, non fa nulla (il valore è stato forzato).
+             *   2. Usa la corrispondente funzione pura per calcolare.
+             *   3. Aggiorna Display (visibile) e Hidden (inviato al server).
+             *   4. Propaga a cascata verso i campi dipendenti.
+             * ============================================================
+             */
+
+            // Colonna H — PrezzoBaseConLavorazione = CostoLavorazione + PrezzoBase
+            function ricalcolaPrezzoBaseConLavorazione() {
+                if (!lockPrezzoBaseConLavorazione) return;
+                const tec = calcola_PrezzoBaseConLavorazione();
+                log("Calcolo PrezzoBaseConLavorazione: base=" + safeField("#PrezzoBase") +
+                    " + lav=" + safeField("#CostoLavorazione") + " → " + tec);
+                $("#PrezzoBaseConLavorazioneDisplay").val(roundDisplay(tec));
+                $("#PrezzoBaseConLavorazione").val(tec);
+                // PrezzoBaseConLavorazione è input di Delta → propaga
+                ricalcolaDelta();
+            }
+
+            // Colonna K — ProvvigioneFissa03: 3% su PrezzoVendita se materiale è alluminio
+            function ricalcolaProvvigioneFissa03() {
+                if (!lockProvvigioneFissa03) return;
+                const tec = calcola_ProvvigioneFissa03();
+                log("Calcolo ProvvigioneFissa03: materiale=" +
+                    ($("#IdMateriale option:selected").text() || "") +
+                    " vendita=" + safeField("#PrezzoVendita") + " → " + tec);
+                $("#ProvvigioneFissa03Display").val(roundDisplay(tec));
+                $("#ProvvigioneFissa03").val(tec);
+                // ProvvigioneFissa03 è input di TotaleProvvigioneFissa → propaga
+                ricalcolaTotaleProvvigioneFissa();
+            }
+
+            // Colonna N — Delta = PrezzoVendita - PrezzoBaseConLavorazione
+            function ricalcolaDelta() {
+                if (!lockDelta) return;
+                const tec = calcola_Delta();
+                log("Calcolo Delta: vendita=" + safeField("#PrezzoVendita") +
+                    " - baseCon=" + safeField("#PrezzoBaseConLavorazione") + " → " + tec);
+                $("#DeltaDisplay").val(roundDisplay(tec));
+                $("#Delta").val(tec);
+                // Delta è input di TotaleProvvigioneVariabile → propaga
+                ricalcolaTotaleProvvigioneVariabile();
+            }
+
+            // Colonna L — TotaleProvvigioneFissa = (ProvvigioneFissa01_05 * Kg) + (ProvvigioneFissa03 * Kg)
+            function ricalcolaTotaleProvvigioneFissa() {
+                if (!lockTotaleProvvigioneFissa) return;
+                const tec = calcola_TotaleProvvigioneFissa();
+                log("Calcolo TotaleProvvigioneFissa: pv15=" + safeField("#ProvvigioneFissa01_05") +
+                    " pv03=" + safeField("#ProvvigioneFissa03") +
+                    " qta=" + safeField("#Quantita") + " → " + tec);
+                $("#TotaleProvvigioneFissaDisplay").val(roundDisplay(tec));
+                $("#TotaleProvvigioneFissa").val(tec);
+                // TotaleProvvigioneFissa è input di TotaleProvvigioneFattura → propaga
+                ricalcolaTotaleProvvigioneFattura();
+            }
+
+            // Colonna O — TotaleProvvigioneVariabile = Delta * Quantita * (Perc_Delta_Provvigione / 100)
+            function ricalcolaTotaleProvvigioneVariabile() {
+                if (!lockTotaleProvvigioneVariabile) return;
+                const tec = calcola_TotaleProvvigioneVariabile();
+                log("Calcolo TotaleProvvigioneVariabile: delta=" + safeField("#Delta") +
+                    " * qta=" + safeField("#Quantita") +
+                    " * perc%=" + safeField("#Perc_Delta_Provvigione") + " → " + tec);
+                $("#TotaleProvvigioneVariabileDisplay").val(roundDisplay(tec));
+                $("#TotaleProvvigioneVariabile").val(tec);
+                // TotaleProvvigioneVariabile è input di TotaleProvvigioneFattura → propaga
+                ricalcolaTotaleProvvigioneFattura();
+            }
+
+            // Colonna P — TotaleProvvigioneFattura = TotaleProvvigioneVariabile + TotaleProvvigioneFissa
+            function ricalcolaTotaleProvvigioneFattura() {
+                if (!lockTotaleProvvigioneFattura) return;
+                const tec = calcola_TotaleProvvigioneFattura();
+                log("Calcolo TotaleProvvigioneFattura: var=" + safeField("#TotaleProvvigioneVariabile") +
+                    " + fisso=" + safeField("#TotaleProvvigioneFissa") + " → " + tec);
+                $("#TotaleProvvigioneFatturaDisplay").val(roundDisplay(tec));
+                $("#TotaleProvvigioneFattura").val(tec);
+            }
+
+            /**
+             * ============================================================
+             * ricalcolaTutto — punto di ingresso principale
+             * Chiamato da tutti gli event listener sui campi di input.
+             * Esegue i calcoli nell'ordine corretto di dipendenze:
+             *
+             *   PrezzoBase ──┐
+             *                ├── PrezzoBaseConLavorazione ── Delta ── TotaleProvvigioneVariabile ──┐
+             *   CostoLav  ──┘                                    ↑                                 ├── TotaleProvvigioneFattura
+             *                                        Perc_Delta_Provvigione (input manuale)         │
+             *   PrezzoVendita ── ProvvigioneFissa03 ── TotaleProvvigioneFissa ─────────────────────┘
+             *   ProvvigioneFissa01_05 ─────────────────────────────────────────────────────────────┘
+             *
+             * NOTA: i campi con lucchetto aperto (lock = false) vengono
+             * ignorati automaticamente dalla loro funzione ricalcola*.
+             * ============================================================
+             */
+            function ricalcolaTutto() {
+                log("--- ricalcolaTutto START ---");
+                log("PrezzoBase:", safeField("#PrezzoBase"));
+                log("CostoLavorazione:", safeField("#CostoLavorazione"));
+                log("PrezzoVendita:", safeField("#PrezzoVendita"));
+                log("Quantita:", safeField("#Quantita"));
+                log("ProvvigioneFissa01_05:", safeField("#ProvvigioneFissa01_05"));
+                log("Perc_Delta_Provvigione (input manuale):", safeField("#Perc_Delta_Provvigione"));
+
+                // 1. PrezzoBaseConLavorazione → in cascata: Delta → TotaleProvvigioneVariabile → TotaleProvvigioneFattura
+                ricalcolaPrezzoBaseConLavorazione();
+                log("PrezzoBaseConLavorazione dopo:", $("#PrezzoBaseConLavorazione").val());
+
+                // 2. ProvvigioneFissa03 → in cascata: TotaleProvvigioneFissa → TotaleProvvigioneFattura
+                //    Dipende da PrezzoVendita e materiale selezionato.
+                ricalcolaProvvigioneFissa03();
+                log("ProvvigioneFissa03 dopo:", $("#ProvvigioneFissa03").val());
+
+                // 3. TotaleProvvigioneFissa dipende anche da ProvvigioneFissa01_05 e Quantita,
+                //    che possono cambiare indipendentemente da ProvvigioneFissa03.
+                //    La cascata del punto 2 la chiama già, ma con i valori aggiornati di questo giro.
+                ricalcolaTotaleProvvigioneFissa();
+                log("TotaleProvvigioneFissa dopo:", $("#TotaleProvvigioneFissa").val());
+
+                // 4. Delta: ricalcolato esplicitamente perché PrezzoBaseConLavorazione (punto 1)
+                //    potrebbe essere cambiato. La cascata interna propaga a TotaleProvvigioneVariabile.
+                ricalcolaDelta();
+                log("Delta dopo:", $("#Delta").val());
+                log("TotaleProvvigioneVariabile dopo:", $("#TotaleProvvigioneVariabile").val());
+                log("TotaleProvvigioneFattura dopo:", $("#TotaleProvvigioneFattura").val());
+
+                log("--- ricalcolaTutto END ---");
+            }
+
+            /**
+             * ============================================================
+             * PROVVIGIONE AGENTE (AJAX)
+             * Recupera la percentuale di provvigione dell'agente per il
+             * cliente selezionato. Non fa nulla se il lucchetto è aperto.
+             * ============================================================
+             */
+            function ricalcolaProvvigioneAgente() {
+                if (!lockProvAgente) return;
+                const idAgente  = $("#IdAgente").val();
+                const idCliente = $("#IdCliente").val();
+                if (!idAgente || !idCliente) {
+                    log("Salto ricalcolaProvvigioneAgente: IdAgente o IdCliente mancante.");
+                    return;
+                }
+                log("Chiamata AJAX ProvvigioneAgente: idAgente=" + idAgente + ", idCliente=" + idCliente);
+                $.getJSON(
+                    '/Admin/ProspettiCobral/GetPercentualeProvvigione',
+                    { idAgente: idAgente, idCliente: idCliente },
+                    function (percentuale) {
+                        const valTec = roundTec(safeNum(percentuale));
+                        const valVis = roundDisplay(valTec);
+                        log("Risultato AJAX ProvvigioneAgente: " + percentuale + " → " + valTec);
+                        $("#ProvvigioneAgenteDisplay").val(valVis);
+                        $("#ProvvigioneAgente").val(valTec);
+                    }
+                ).fail(function (jqXHR, textStatus, error) {
+                    log("ERRORE AJAX ricalcolaProvvigioneAgente:", textStatus, error);
+                });
+            }
+
+            /**
+             * ============================================================
+             * GESTIONE LUCCHETTI — aggiornaUILucchetto
+             * Funzione condivisa che aggiorna l'aspetto visivo del pulsante
+             * e lo stato readonly del campo Display associato.
+             *
+             * isLocked = true  → campo readonly, pulsante verde con lucchetto chiuso
+             * isLocked = false → campo editabile, pulsante rosso con lucchetto aperto
+             *
+             * Usata sia da setupToggle (click utente) sia da rilevaDivergenze
+             * (inizializzazione automatica al caricamento pagina).
+             * ============================================================
+             */
+            function aggiornaUILucchetto(idBtn, idInputDisplay, isLocked) {
+                const $input = $(idInputDisplay);
+                const $btn   = $(idBtn);
+                if (isLocked) {
+                    $input.prop("readonly", true).addClass("input-readonly");
+                    $btn.removeClass("btn-danger").addClass("btn-success")
+                        .html('<i class="bi bi-lock-fill"></i>');
+                } else {
+                    $input.prop("readonly", false).removeClass("input-readonly");
+                    $btn.removeClass("btn-success").addClass("btn-danger")
+                        .html('<i class="bi bi-unlock-fill"></i>');
+                }
+            }
+
+            /**
+             * ============================================================
+             * GESTIONE LUCCHETTI — setupToggle
+             * Al click:
+             *   - chiude il lucchetto (lock → true): sincronizza l'hidden
+             *     col valore attuale del Display, poi aggiorna UI.
+             *   - apre il lucchetto (lock → false): campo diventa editabile,
+             *     il valore NON viene resettato a quello originale.
+             *
+             * NOTA: Perc_Delta_Provvigione ha un pulsante lucchetto ma
+             * NON ha una variabile lock di calcolo (non è un campo calcolato).
+             * Il suo toggle gestisce solo readonly/editabile via case 'percDelta'.
+             * ============================================================
+             */
+            function setupToggle(idBtn, idInputDisplay, type) {
+                $(idBtn).on("click", function () {
+
+                    let isLocked;
+                    switch (type) {
+                        case 'baseLav':  lockPrezzoBaseConLavorazione   = !lockPrezzoBaseConLavorazione;   isLocked = lockPrezzoBaseConLavorazione;   break;
+                        case 'fissa3':   lockProvvigioneFissa03         = !lockProvvigioneFissa03;         isLocked = lockProvvigioneFissa03;         break;
+                        case 'diff':     lockDelta                      = !lockDelta;                      isLocked = lockDelta;                      break;
+                        case 'totFis':   lockTotaleProvvigioneFissa      = !lockTotaleProvvigioneFissa;      isLocked = lockTotaleProvvigioneFissa;      break;
+                        case 'totVar':   lockTotaleProvvigioneVariabile = !lockTotaleProvvigioneVariabile; isLocked = lockTotaleProvvigioneVariabile; break;
+                        case 'totFatt':  lockTotaleProvvigioneFattura   = !lockTotaleProvvigioneFattura;   isLocked = lockTotaleProvvigioneFattura;   break;
+                        case 'agente':   lockProvAgente                 = !lockProvAgente;                 isLocked = lockProvAgente;                 break;
+
+                        // Perc_Delta_Provvigione: input manuale, nessuna variabile lock di calcolo.
+                        // Il toggle gestisce solo readonly/editabile sull'UI.
+                        case 'percDelta':
+                            const attualmenteReadonly = $(idInputDisplay).prop("readonly");
+                            isLocked = !attualmenteReadonly;
+                            aggiornaUILucchetto(idBtn, idInputDisplay, isLocked);
+                            return; // esce subito, senza toccare hidden
+                    }
+
+                    // Se si chiude il lucchetto, sincronizza l'hidden col valore
+                    // attuale del Display (preserva eventuali modifiche manuali).
+                    if (isLocked) {
+                        const hiddenId = idInputDisplay.replace("#", "").replace("Display", "");
+                        $("#" + hiddenId).val(roundTec(safeNum($(idInputDisplay).val())));
+                    }
+
+                    aggiornaUILucchetto(idBtn, idInputDisplay, isLocked);
+                });
+            }
+
+            setupToggle("#togglePrezzoBaseConLavorazione",   "#PrezzoBaseConLavorazioneDisplay",   "baseLav");
+            setupToggle("#toggleProvvigioneFissa03",         "#ProvvigioneFissa03Display",         "fissa3");
+            setupToggle("#toggleDelta",                      "#DeltaDisplay",                      "diff");
+            setupToggle("#toggleTotaleProvvigioneFissa",      "#TotaleProvvigioneFissaDisplay",      "totFis");
+            setupToggle("#togglePerc_Delta_Provvigione",     "#Perc_Delta_ProvvigioneDisplay",     "percDelta");
+            setupToggle("#toggleTotaleProvvigioneVariabile", "#TotaleProvvigioneVariabileDisplay", "totVar");
+            setupToggle("#toggleTotaleProvvigioneFattura",   "#TotaleProvvigioneFatturaDisplay",   "totFatt");
+            setupToggle("#toggleProvAgente",                 "#ProvvigioneAgenteDisplay",          "agente");
+
+            /**
+             * ============================================================
+             * rilevaDivergenze — inizializzazione automatica lucchetti
+             * ============================================================
+             * Confronta ogni valore salvato nel DB (campo Hidden) con il
+             * risultato della funzione pura corrispondente. Se differiscono
+             * oltre la soglia 0.0001, apre il lucchetto automaticamente
+             * per proteggere il valore forzato dal primo ricalcolaTutto().
+             *
+             * Perc_Delta_Provvigione NON viene controllata: è un input manuale,
+             * non ha una funzione pura di calcolo e non ha un lock di calcolo.
+             *
+             * ORDINE: dal livello più basso della catena verso il più alto,
+             * così le funzioni pure leggono sempre i valori DB originali
+             * dagli hidden (non ancora sovrascritti da ricalcoli parziali).
+             *
+             * Catena di dipendenze CST:
+             *   PrezzoBase ──┐
+             *                ├── PrezzoBaseConLavorazione ── Delta ── TotaleProvvigioneVariabile ──┐
+             *   CostoLav  ──┘                                    ↑                                 ├── TotaleProvvigioneFattura
+             *                                   Perc_Delta_Provvigione (input manuale)              │
+             *   PrezzoVendita ── ProvvigioneFissa03 ── TotaleProvvigioneFissa ─────────────────────┘
+             * ============================================================
+             */
+
+
+
+        function rilevaDivergenze() {
+                        const SOGLIA = 0.001;
+
+                        // * MODIFICA 11/05/2026
+                        // * Valuta se il valore nel database diverge dal calcolo teorico della formula.
+                        // * Viene utilizzata nei moduli (Cobral, SystemCore, ecc.) per inizializzare lo stato dei lucchetti.
+                        
+                        // 13/05/2026 — MODIFICA: rimossa la logica con toFixed(3) sugli operandi
+                        // che arrotondava PRIMA della sottrazione generando falsi negativi.
+                        // Esempio del problema:
+                        //   0.2228 → toFixed(3) → 0.223
+                        //   0.2227 → toFixed(3) → 0.223
+                        //   diff = 0.000 → lucchetto mai aperto anche per divergenze reali.
+                        // Soluzione: confronto sulla differenza GREZZA tra valoreDB e valoreCalc.
+                        // La soglia 0.001 assorbe solo floating-point noise (< 0.0001),
+                        // non divergenze reali del dominio (≥ 0.01).
+                        // 13/05/2026 — VERIFICA CAMPI MANCANTI:
+                        // Tutti i campi calcolati con lucchetto sono già presenti:
+                        //   PrezzoBaseConLavorazione, ProvvigioneFissa03, Delta,
+                        //   TotaleProvvigioneFissa, TotaleProvvigioneVariabile, TotaleProvvigioneFattura.
+                        // Perc_Delta_Provvigione NON viene controllata: è un input manuale,
+                        // non ha una funzione pura di calcolo e non ha un lock di calcolo.
+                        // Nessun campo mancante rilevato in questo modulo.
+                        function controlla(idHidden, idBtn, idDisplay, fnCalcola, setLock) {
+                            const valoreDB   = safeField(idHidden);
+                            const valoreCalc = fnCalcola();
+                            const diff       = Math.abs(valoreDB - valoreCalc);
+
+                            if (diff > SOGLIA) {
+                                log("Valore forzato rilevato per", idHidden,
+                                    "| DB =", valoreDB,
+                                    "| Calcolato =", valoreCalc,
+                                    "| Diff =", diff,
+                                    "→ lucchetto aperto automaticamente");
+
+                                // Sblocca la logica (setLock false = non più vincolato alla formula)
+                                setLock(false);
+
+                                // Aggiorna visivamente il lucchetto e rende il campo editabile
+                                aggiornaUILucchetto(idBtn, idDisplay, false);
+                            }
+                        }
+
+                        // Livello 1 — input diretti (non dipendono da altri calcolati)
+                        controlla(
+                            "#PrezzoBaseConLavorazione", "#togglePrezzoBaseConLavorazione", "#PrezzoBaseConLavorazioneDisplay",
+                            calcola_PrezzoBaseConLavorazione,
+                            (v) => { lockPrezzoBaseConLavorazione = v; }
+                        );
+
+                        // ProvvigioneFissa03 dipende da PrezzoVendita e materiale,
+                        // entrambi input diretti dell'utente (non calcolati).
+                        controlla(
+                            "#ProvvigioneFissa03", "#toggleProvvigioneFissa03", "#ProvvigioneFissa03Display",
+                            calcola_ProvvigioneFissa03,
+                            (v) => { lockProvvigioneFissa03 = v; }
+                        );
+
+                        // Livello 2 — dipende da PrezzoBaseConLavorazione (letto dall'hidden DB)
+                        controlla(
+                            "#Delta", "#toggleDelta", "#DeltaDisplay",
+                            calcola_Delta,
+                            (v) => { lockDelta = v; }
+                        );
+
+                        // Livello 2 — dipende da ProvvigioneFissa03 e ProvvigioneFissa01_05 e Quantita
+                        controlla(
+                            "#TotaleProvvigioneFissa", "#toggleTotaleProvvigioneFissa", "#TotaleProvvigioneFissaDisplay",
+                            calcola_TotaleProvvigioneFissa,
+                            (v) => { lockTotaleProvvigioneFissa = v; }
+                        );
+
+                        // Livello 3 — dipende da Delta e Perc_Delta_Provvigione (input manuale) e Quantita
+                        controlla(
+                            "#TotaleProvvigioneVariabile", "#toggleTotaleProvvigioneVariabile", "#TotaleProvvigioneVariabileDisplay",
+                            calcola_TotaleProvvigioneVariabile,
+                            (v) => { lockTotaleProvvigioneVariabile = v; }
+                        );
+
+                        // Livello 4 — foglia della catena
+                        controlla(
+                            "#TotaleProvvigioneFattura", "#toggleTotaleProvvigioneFattura", "#TotaleProvvigioneFatturaDisplay",
+                            calcola_TotaleProvvigioneFattura,
+                            (v) => { lockTotaleProvvigioneFattura = v; }
+                        );
+                    }
+
+
+
+
+            /**
+             * ============================================================
+             * EVENT LISTENERS — campi principali
+             * ============================================================
+             * PrezzoBaseConLavorazione NON è incluso: è un campo calcolato,
+             * ascoltarlo direttamente creerebbe loop.
+             *
+             * Perc_Delta_Provvigione è incluso come input manuale:
+             * quando l'utente lo modifica, TotaleProvvigioneVariabile
+             * deve essere ricalcolato.
+             *
+             * ProvvigioneFissa03 è incluso perché quando l'utente forza
+             * manualmente il valore (lucchetto aperto), la modifica deve
+             * propagare a TotaleProvvigioneFissa → TotaleProvvigioneFattura.
+             * ============================================================
+             */
+            $("#PrezzoVendita, #PrezzoBase, #CostoLavorazione, #Quantita, " +
+              "#IdMateriale, #ProvvigioneFissa01_05")
+                .on("input change", ricalcolaTutto);
+
+            // Perc_Delta_Provvigione è input manuale: la modifica diretta
+            // del campo (non tramite lucchetto) deve propagare.
+            $("#Perc_Delta_Provvigione").on("input change", function () {
+                ricalcolaTotaleProvvigioneVariabile();
+            });
+
+            // Agente / Cliente → provvigione agente via AJAX
+            $("#IdAgente, #IdCliente").on("change", ricalcolaProvvigioneAgente);
+
+            /**
+             * ============================================================
+             * EVENT LISTENERS — modifica manuale Display (lucchetto aperto)
+             * Sincronizzano l'Hidden e propagano a cascata verso i dipendenti.
+             * Le funzioni ricalcola* verificano il proprio lock: se un campo
+             * intermedio è anch'esso forzato, la cascata si ferma lì.
+             * ============================================================
+             */
+
+            // PrezzoBaseConLavorazione → Delta → TotaleProvvigioneVariabile → TotaleProvvigioneFattura
+            $("#PrezzoBaseConLavorazioneDisplay").on("input", function () {
+                $("#PrezzoBaseConLavorazione").val(roundTec(safeNum($(this).val())));
+                ricalcolaDelta();
+                ricalcolaTotaleProvvigioneVariabile();
+                ricalcolaTotaleProvvigioneFattura();
+            });
+
+            // ProvvigioneFissa03 → TotaleProvvigioneFissa → TotaleProvvigioneFattura
+            $("#ProvvigioneFissa03Display").on("input", function () {
+                $("#ProvvigioneFissa03").val(roundTec(safeNum($(this).val())));
+                ricalcolaTotaleProvvigioneFissa();
+                ricalcolaTotaleProvvigioneFattura();
+            });
+
+            // Delta → TotaleProvvigioneVariabile → TotaleProvvigioneFattura
+            $("#DeltaDisplay").on("input", function () {
+                $("#Delta").val(roundTec(safeNum($(this).val())));
+                ricalcolaTotaleProvvigioneVariabile();
+                ricalcolaTotaleProvvigioneFattura();
+            });
+
+            // TotaleProvvigioneFissa → TotaleProvvigioneFattura
+            $("#TotaleProvvigioneFissaDisplay").on("input", function () {
+                $("#TotaleProvvigioneFissa").val(roundTec(safeNum($(this).val())));
+                ricalcolaTotaleProvvigioneFattura();
+            });
+
+            // Perc_Delta_Provvigione Display: aggiorna hidden e propaga.
+            // CONVENZIONE: il valore è già in formato intero percentuale (es. 50 = 50%).
+            // NON dividere qui — la divisione per 100 avviene solo in calcola_TotaleProvvigioneVariabile.
+            $("#Perc_Delta_ProvvigioneDisplay").on("input", function () {
+                $("#Perc_Delta_Provvigione").val(roundTec(safeNum($(this).val())));
+                ricalcolaTotaleProvvigioneVariabile();
+                ricalcolaTotaleProvvigioneFattura();
+            });
+
+            // TotaleProvvigioneVariabile → TotaleProvvigioneFattura
+            $("#TotaleProvvigioneVariabileDisplay").on("input", function () {
+                $("#TotaleProvvigioneVariabile").val(roundTec(safeNum($(this).val())));
+                ricalcolaTotaleProvvigioneFattura();
+            });
+
+            // TotaleProvvigioneFattura — foglia della catena, nessuna cascata
+            $("#TotaleProvvigioneFatturaDisplay").on("input", function () {
+                $("#TotaleProvvigioneFattura").val(roundTec(safeNum($(this).val())));
+            });
+
+            // ProvvigioneAgente — campo indipendente
+            $("#ProvvigioneAgenteDisplay").on("input", function () {
+                $("#ProvvigioneAgente").val(roundTec(safeNum($(this).val())));
+            });
+
+            /**
+             * ============================================================
+             * SINCRONIZZAZIONE DISPLAY → HIDDEN (generica — tutti gli altri)
+             * Cattura tutti i campi Display non già gestiti sopra.
+             * ============================================================
+             */
+            $("input[id$='Display']")
+                .not("#PrezzoBaseConLavorazioneDisplay, " +
+                     "#ProvvigioneFissa03Display, "       +
+                     "#DeltaDisplay, "                    +
+                     "#TotaleProvvigioneFissaDisplay, "   +
+                     "#Perc_Delta_ProvvigioneDisplay, "   +
+                     "#TotaleProvvigioneVariabileDisplay, "+
+                     "#TotaleProvvigioneFatturaDisplay, " +
+                     "#ProvvigioneAgenteDisplay")
+                .on("input", function () {
+                    const hiddenId = $(this).attr("id").replace("Display", "");
+                    $("#" + hiddenId).val(roundTec(safeNum($(this).val())));
+                });
+
+            /**
+             * ============================================================
+             * INIZIALIZZAZIONE
+             * ============================================================
+             * Ordine obbligatorio:
+             *   1. rilevaDivergenze() — imposta i lock corretti leggendo
+             *      gli hidden con i valori DB originali, PRIMA di qualsiasi
+             *      ricalcolo che potrebbe sovrascriverli.
+             *   2. ricalcolaTutto()  — esegue i calcoli rispettando i lock
+             *      appena impostati (i campi forzati vengono saltati).
+             *   3. Provvigione agente — carica via AJAX solo se il valore
+             *      DB è zero (record nuovo o non ancora valorizzato).
+             * ============================================================
+             */
+            rilevaDivergenze();
+            ricalcolaTutto();
+
+            if ($("#IdAgente").val() && $("#IdCliente").val()) {
+                const valAttuale = safeField("#ProvvigioneAgente");
+                if (valAttuale === 0) ricalcolaProvvigioneAgente();
+            }
+
+        }); // fine document.ready
+    </script>
+}

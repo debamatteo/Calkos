@@ -100,8 +100,119 @@ namespace Calkos.web.Services
             return risultati;
         }
 
+
+        public List<DashboardRigaDTO> GetDatiDashBoard(string CodiceMandatario,int anno, int mese, int? fatturata = null, int? IdAgente = null)
+        {
+            var risultati = new List<DashboardRigaDTO>();
+            string sql = "";
+            switch (CodiceMandatario?.ToLower())
+            {
+                case "deangeli":
+                    sql = "spDashboardProvvigioni_DeAngeli";
+                    break;
+
+                case "cobral":
+                    sql = "spDashboardProvvigioni_Cobral";
+                    break;
+
+                case "elektrawire":
+                    sql = "spDashboardProvvigioni_ElektraWire";
+                    break;
+
+                case "cst":
+                    sql = "spDashboardProvvigioni_CST";
+                    break;
+
+                case "systemcore":
+                    sql = "spDashboardProvvigioni_SystemCore";
+                    break;
+
+                case "systemp":
+                    sql = "spDashboardProvvigioni_SystemP";
+                    break;
+
+                case "guerzoni":
+                    sql = "spDashboardProvvigioni_Guerzoni";
+                    break;
+
+                case "tradingandconsulting":
+                    sql = "spDashboardProvvigioni_TradingAndConsulting";
+                    break;
+
+                case "hitech":
+                    sql = "spDashboardProvvigioni_Hitech";
+                    break;
+
+                default:
+                    throw new ArgumentException("CodiceMandatario non riconosciuto: " + CodiceMandatario);
+            }
+
+
+
+
+            try
+            {
+                using (var conn = new SqlConnection(_connectionString))
+                //using (var cmd = new SqlCommand("spDashboardProvvigioni_Cobral", conn))
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Parametri tipizzati
+                    cmd.Parameters.Add("@Anno", SqlDbType.Int).Value = anno;
+                    cmd.Parameters.Add("@Mese", SqlDbType.Int).Value = mese;
+
+                    // -------------------------------------------------------------
+                    // Nuovo Parametro: Stato Fatturazione
+                    // -------------------------------------------------------------
+                    cmd.Parameters.Add("@Fatturata", SqlDbType.Int).Value = (object)fatturata ?? DBNull.Value;
+                    cmd.Parameters.Add("@IdAgente", SqlDbType.Int).Value = (object)IdAgente ?? DBNull.Value;
+
+                    conn.Open();
+
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            var riga = new DashboardRigaDTO();
+
+                            // 1. Quantità (KG o pezzi)
+                            riga.Quantita = rdr.GetDecimalSafe("Quantita");
+
+                            // 2. Importo totale delle commissioni
+                            riga.CommissioniTotali = rdr.GetDecimalSafe("CommissioniTotali");
+
+                            // 3. Info Pagamento
+                            riga.IdTipoPagamento = rdr.GetIntSafe("IdTipoPagamento");
+                            riga.TipoPagamento = rdr.GetStringSafe("TipoPagamento");
+
+                            // 4. Info Agente
+                            riga.IdAgente = rdr.GetIntSafe("IdAgente");
+                            riga.AgenteDescrizione = rdr.GetStringSafe("AgenteDescrizione");
+
+                            // 5. Periodo
+                            riga.Anno = rdr.GetIntSafe("Anno");
+                            riga.Mese = rdr.GetIntSafe("Mese");
+
+                            risultati.Add(riga);
+                        }
+                    }
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception("Errore durante la lettura dal database (GetDatiCobral).", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Errore imprevisto nel recupero dati dashboard (GetDatiCobral).", ex);
+            }
+
+            return risultati;
+        }
+
         // =====================================================================
-        //  LETTURA CLIENTI (30/60/90) PER DASHBOARD - AGGIORNATO CON FILTRO FATTURA
+        //  LETTURA CLIENTI (30/60/90) PER DASHBOARD - AGGIORNATO CON FILTRO FATTURA 12/04/2026
         // 1- GetClienti → popola la tabella Riepilogo Totali Clienti->Foreach (var gruppo in Model.ClientiPerPagamento)
         // 2- GetClienti → popola la tabella Dettaglio Provvigioni Agenti ->var gruppiPerAgente = Model.ProvvigioniPerPagamento
         // GetRigheAgentiPerStampa GetClienti restituisce righe tipo: Cliente | TipoPagamento | Agente | Quantità | Importo | Provvigione
@@ -110,18 +221,23 @@ namespace Calkos.web.Services
         /// Legge i dati cliente (30/60/90) per anno/mese, agente e stato fatturazione.
         /// Restituisce una lista di RigaCliente, già pronta per essere raggruppata.
         /// </summary>
+        /// <param name="nomeSp">Nome della Stored Procedure specifica del mandatario</param>
         /// <param name="anno">Anno di riferimento</param>
         /// <param name="mese">Mese di riferimento</param>
         /// <param name="idAgente">ID Agente opzionale</param>
         /// <param name="fatturata">Filtro stato: 0=Non Fatturate, 1=Fatturate, null=Tutte</param>
-        public List<RigaCliente> GetClienti(int anno, int mese, int? idAgente = null, int? fatturata = null)
+        public List<RigaCliente> GetClienti(string nomeSp, int anno, int mese, int? idAgente = null, int? fatturata = null)
         {
             var risultati = new List<RigaCliente>();
+
+            // Validazione: se non viene passata una SP, non possiamo interrogare il DB
+            if (string.IsNullOrWhiteSpace(nomeSp))
+                return risultati;
 
             try
             {
                 using (var conn = new SqlConnection(_connectionString))
-                using (var cmd = new SqlCommand("spDashboardProvvigioni_Cobral", conn))
+                using (var cmd = new SqlCommand(nomeSp, conn)) // Utilizza il parametro dinamico invece della stringa fissa "Cobral"
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
@@ -182,7 +298,7 @@ namespace Calkos.web.Services
                 // -------------------------------------------------------------
                 // Errori SQL (timeout, SP mancante, problemi di connessione)
                 // -------------------------------------------------------------
-                throw new Exception("Errore SQL durante la lettura dei clienti per la dashboard.", ex);
+                throw new Exception($"Errore SQL durante la lettura dei clienti per la dashboard (SP: {nomeSp}).", ex);
             }
             catch (Exception ex)
             {
@@ -196,29 +312,28 @@ namespace Calkos.web.Services
         }
 
 
-
         // ============================================================================
-        //  CLIENTI → Restituisce SOLO le righe selezionate per la stampa Excel/PDF
+        //  CLIENTI → Restituisce SOLO le righe selezionate per la stampa Excel/PDF 12/04/2026
         // ============================================================================
+        //  - nomeSp    : Nome della Stored Procedure specifica (DINAMICO)
         //  - anno/mese  : periodo filtrato nella dashboard
         //  - tableId    : tipo pagamento (30 / 60 / 90)
         //  - ids        : lista di IdCliente selezionati nella dashboard
         //  - fatturata  : NUOVO - stato fatturazione (0=Non Fatturate, 1=Fatturate, null=Tutte)
         //
         //  Flusso:
-        //  1. Legge TUTTE le righe clienti del mese/anno tramite GetClienti()
+        //  1. Legge TUTTE le righe clienti del mese/anno tramite GetClienti() con SP dinamica
         //  2. Filtra SOLO quelle del tipo pagamento richiesto (tableId)
         //  3. Filtra SOLO gli ID selezionati (ids)
         //  4. Restituisce la lista pronta per Excel/PDF
         // ============================================================================
-        public List<RigaCliente> GetRigheClientiPerStampa(int anno, int mese, string tableId, List<int> ids, int? fatturata = null)
+        public List<RigaCliente> GetRigheClientiPerStampa(string nomeSp, int anno, int mese, string tableId, List<int> ids, int? fatturata = null)
         {
             // ---------------------------------------------------------
             // 1. Recupera TUTTE le righe clienti del periodo
-            //    Usa il tuo metodo GetClienti(anno, mese, null, fatturata)
-            //    Passiamo il parametro fatturata per coerenza con i filtri a video
+            // Passiamo nomeSp come primo parametro per allinearci alla nuova firma di GetClienti
             // ---------------------------------------------------------
-            var tutti = GetClienti(anno, mese, null, fatturata);
+            var tutti = GetClienti(nomeSp, anno, mese, null, fatturata);
 
             // ---------------------------------------------------------
             // 2. Filtra SOLO le righe del tipo pagamento richiesto
@@ -242,34 +357,40 @@ namespace Calkos.web.Services
         }
 
         // ============================================================================
-        //  AGENTI → Restituisce TUTTE le righe dell'agente per la stampa Excel/PDF
+        //  AGENTI → Restituisce TUTTE le righe dell'agente per la stampa Excel/PDF 12/04/2026
         // ============================================================================
+        //  - nomeSp    : Nome della Stored Procedure specifica (DINAMICO)
         //  - anno/mese  : periodo filtrato nella dashboard
         //  - tableId    : tipo pagamento (30 / 60 / 90)
         //  - fatturata  : NUOVO - stato fatturazione (0=Non Fatturate, 1=Fatturate, null=Tutte)
         //
         //  Flusso:
-        //  1. Legge TUTTE le righe clienti del mese/anno tramite GetClienti()
+        //  1. Legge TUTTE le righe clienti del mese/anno tramite GetClienti() con SP dinamica
         //  2. Filtra SOLO quelle del tipo pagamento richiesto (tableId)
-        //  3. Raggruppa per agente (IdAgente)
+        //  3. Filtra SOLO le righe dell'agente selezionato (idAgente)
         //  4. Restituisce tutte le righe dell'agente
         // ============================================================================
-        public List<RigaCliente> GetRigheAgentiPerStampa(int anno, int mese, string tableId, int? fatturata = null)
+        public List<RigaCliente> GetRigheAgentiPerStampa(string nomeSp, int anno, int mese, string tableId, int? fatturata = null, int? idAgente= null)
         {
             // ---------------------------------------------------------
             // 1. Recupera TUTTE le righe clienti del periodo
-            //    Includiamo il filtro fatturazione passato dal controller
+            // Passiamo nomeSp come primo parametro per risolvere l'errore di conversione CS1503
             // ---------------------------------------------------------
-            var tutti = GetClienti(anno, mese, null, fatturata);
+            var tutti = GetClienti(nomeSp, anno, mese, idAgente, fatturata);//aggiunto idagente 01/04/2026
 
+            // ---------------------------------------------------------
             // 2. Filtra per tipo pagamento (30/60/90)
+            // ---------------------------------------------------------
             var filtratiPerPagamento = tutti
                 .Where(r => r.TipoPagamento == tableId)
                 .ToList();
 
-            // 3. Restituisce tutte le righe dell'agente
+            // ---------------------------------------------------------
+            // 3. Restituisce tutte le righe filtrate (gia pronte per la logica agente)
+            // ---------------------------------------------------------
             return filtratiPerPagamento;
         }
+
 
 
     }

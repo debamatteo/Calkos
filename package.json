@@ -1,0 +1,21 @@
+{
+  "name": "calkos.web",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debamatteo/Calkos.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/debamatteo/Calkos/issues"
+  },
+  "homepage": "https://github.com/debamatteo/Calkos#readme",
+  "description": ""
+}

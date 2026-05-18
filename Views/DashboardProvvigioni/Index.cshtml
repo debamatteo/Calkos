@@ -68,7 +68,7 @@
                 <div class="card-header bg-primary text-white">Filtri</div>
                 <div class="card-body">
                     <form id="filtro-form" method="get" asp-action="Index">
-
+                        <input type="hidden" name="idMandatario" value="@Model.IdMandatario" />
                         @* --- Filtro Anno: input numerico libero --- *@
                         <div class="mb-3">
                             <label class="form-label">Anno</label>
@@ -128,7 +128,7 @@
         =============================================================== *@
         <div class="col-12 col-md-9 col-lg-10">
             <h2 class="mb-4 text-primary">
-                <i class="bi bi-speedometer2"></i> Dashboard Provvigioni
+                <i class="bi bi-speedometer2"></i> Dashboard Provvigioni  <span id="titolo-mandatario"></span>
             </h2>
 
             @* Container target per il refresh AJAX della tabella.
@@ -254,41 +254,74 @@
             // Le righe selezionate vengono passate come stringa CSV di ID.
             // Per le esportazioni "clienti" è obbligatoria almeno una riga.
             // ------------------------------------------------------------
-            document.querySelectorAll(".btn-stampa-pdf, .btn-stampa-excel").forEach(btn => {
-                btn.onclick = function () {
-                    const dashData  = document.getElementById("dashboard-data");
-                    const anno      = dashData.dataset.anno;
-                    const mese      = dashData.dataset.mese;
-                    const fatturata = dashData.dataset.fatturata;
-                    const tableId   = this.dataset.table;
-                    const tipo      = this.dataset.type;
-                    const formato   = this.classList.contains("btn-stampa-pdf") ? "pdf" : "excel";
+        document.querySelectorAll(".btn-stampa-pdf, .btn-stampa-excel").forEach(btn => {
+            btn.onclick = function () {
+                const dashData  = document.getElementById("dashboard-data");
+                const idMandatario = dashData.dataset.idmandatario; // Recuperato dai metadati
+                const anno      = dashData.dataset.anno;
+                const mese      = dashData.dataset.mese;
+                const fatturata = dashData.dataset.fatturata;
+                const tableId   = this.dataset.table;
+                const tipo      = this.dataset.type;
+                const formato   = this.classList.contains("btn-stampa-pdf") ? "pdf" : "excel";
 
-                    // Raccoglie gli ID delle righe selezionate nella tabella corrente
-                    const selected = Array.from(
-                        document.querySelectorAll(`.row-check[data-table='${tableId}']:checked`)
-                    ).map(chk => chk.dataset.id);
+            
 
-                    // Validazione: i clienti richiedono selezione esplicita
-                    if (tipo === "clienti" && selected.length === 0) {
-                        alert("Seleziona almeno una riga.");
-                        return;
-                    }
+            let idAgente = null;
+            // Recupero dell'IdAgente dal contenitore del blocco agente:
+            if (tipo === "agenti") {
+            // - Il bottone PDF/Excel si trova nel card-header - La tabella è nel card-body
+            // - Il card-body contiene data-idagente
+            // - this.closest(".card") risale al contenitore comune tra bottoni e tabella è  che è <div class="card">
+            // - querySelector("[data-idagente]") trova il card-body con l'attributo con l’attributo data-idagente.
+                const blocco = this.closest(".card").querySelector("[data-idagente]");//( cerca "[data-idagente]" direttamente nel card-body grazie a this.closest(".card") che prende solo la card dell’agente cliccato)
+                idAgente = blocco ? blocco.dataset.idagente : null;
+            }
 
-                    // Risoluzione dell'action in base a tipo e formato
-                    const action = tipo === "clienti"
-                        ? (formato === "pdf" ? "EsportaClientiPdf"  : "EsportaClientiExcel")
-                        : (formato === "pdf" ? "EsportaAgentiPdf"   : "EsportaAgentiExcel");
 
-                    // Costruzione URL e apertura in nuova scheda (download diretto)
-                    const url = `/DashboardProvvigioni/${action}`
-                        + `?tableId=${tableId}`
-                        + `&righe=${selected.join(",")}`
-                        + `&anno=${anno}&mese=${mese}&fatturata=${fatturata}`;
 
-                    window.open(url, "_blank");
-                };
-            });
+
+
+                // Raccoglie gli ID delle righe selezionate
+                const selected = Array.from(
+                    document.querySelectorAll(`.row-check[data-table='${tableId}']:checked`)
+                ).map(chk => chk.dataset.id);
+
+                if (tipo === "clienti" && selected.length === 0) {
+                    alert("Seleziona almeno una riga.");
+                    return;
+                }
+
+                const action = tipo === "clienti"
+                    ? (formato === "pdf" ? "EsportaClientiPdf"  : "EsportaClientiExcel")
+                    : (formato === "pdf" ? "EsportaAgentiPdf"   : "EsportaAgentiExcel");
+
+                // Definiamo un nomeSoggetto di default basato sulla tabella
+                const nomeSoggetto = tableId;
+
+                // Costruzione URL con i nuovi parametri richiesti dal Controller
+                let url = `/DashboardProvvigioni/${action}`
+                    + `?idMandatario=${idMandatario}`
+                    + `&tableId=${tableId}`
+                    + `&anno=${anno}`
+                    + `&mese=${mese}`
+                    + `&fatturata=${fatturata}`
+                    + `&nomeSoggetto=${encodeURIComponent(nomeSoggetto)}`;
+
+                // Aggiunge le righe solo se siamo nel caso clienti
+                if (tipo === "clienti") {
+                    url += `&righe=${selected.join(",")}`;
+                }
+                // Aggiunta dell'IdAgente all'URL SOLO per le esportazioni "agenti":
+                //  - Le esportazioni agenti (PDF/Excel) devono sapere quale agente è stato selezionato nella tabella, altrimenti il controller non può filtrare i dati.
+                // - L'IdAgente non è visibile nella tabella, ma è salvato come attributo nascosto <tr data-idagente="..."> nel blocco dell'agente.
+                if (tipo === "agenti") {
+                 url += `&idAgente=${idAgente}`;
+                }
+
+                window.open(url, "_blank");
+            };
+        });
 
             // ------------------------------------------------------------
             // 3. BOTTONE EMETTI FATTURA
@@ -339,6 +372,7 @@
                         const row = chk.closest("tr");
                         return {
                             IdCliente:           parseInt(chk.dataset.id),
+                            NomeCliente:         row.cells[1].innerText.trim(),   //  NomeCliente 12/05/2026
                             Quantita:            parseNumberIT(row.cells[2]),
                             CommissioniTotali:   parseNumberIT(row.cells[3]),
                             IdTipoPagamento:     parseInt(row.dataset.idtipopagamento || 0)
@@ -477,7 +511,9 @@
         document.addEventListener("DOMContentLoaded", function () {
             // Binding iniziale (la tabella è già nel DOM dal render server)
             initEvents();
-
+        // Mostra il nome del mandatario nel titolo, letto dai metadati del div #dashboard-data
+        document.getElementById("titolo-mandatario").innerText =
+            "— " + document.getElementById("dashboard-data").dataset.nomemandatario;
             // Intercetta il submit del form filtri: invece di ricaricare la pagina,
             // esegue caricaTabellaAjax() che aggiorna solo il container tabella
             document.querySelector("#filtro-form").onsubmit = function (e) {

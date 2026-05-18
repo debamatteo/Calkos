@@ -266,6 +266,16 @@ namespace Calkos.web.Services.Export
                         {
                             cell.Style.NumberFormat.Format = "€ #,##0.00";
                         }
+                        else if (f.Contains("percent"))
+                        {
+                            // Excel vuole il valore matematico (0,05), ma tu salvi 5.
+                            // Quindi lo convertiamo automaticamente.
+                            if (decimal.TryParse(value?.ToString(), out decimal perc))
+                                cell.Value = perc / 100m;
+
+                            cell.Style.NumberFormat.Format = "0.00%";
+                        }
+
                         else if (f.Contains("date"))
                         {
                             // Recupero formato data specifico se presente, altrimenti default
@@ -419,67 +429,6 @@ namespace Calkos.web.Services.Export
             // Restituzione del file tramite finalizzazione dello stream (metodo helper)
             return Finalizza(wb);
         }
-
-
-
-
-        //public byte[] GeneraExcelRiepilogoFatture(int anno, string mandatario, string connectionString, int idMandatario)
-        //{
-        //    using var wb = new XLWorkbook();
-        //    var ws = wb.Worksheets.Add("Prospetto Annuale Fatture");
-        //    string[] prefissi = { "Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic" };
-
-        //    // Header
-        //    for (int i = 0; i < 12; i++)
-        //    {
-        //        int c = (i * 4) + 1;
-        //        ws.Cell(1, c).Value = prefissi[i];
-        //        ws.Cell(2, c).Value = "Nr.Fatt";
-        //        ws.Cell(2, c + 1).Value = "Cliente";
-        //        ws.Cell(2, c + 2).Value = "Kg";
-        //        ws.Cell(2, c + 3).Value = "Importo";
-        //        ws.Range(1, c, 1, c + 3).Merge().Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        //    }
-
-        //    using (SqlConnection conn = new SqlConnection(connectionString))
-        //    {
-        //        SqlCommand cmd = new SqlCommand("spGeneraProspettoAnnualeExcel_Fatture", conn);
-        //        cmd.CommandType = CommandType.StoredProcedure;
-        //        cmd.Parameters.Add("@Anno", SqlDbType.Int).Value = anno;
-        //        cmd.Parameters.Add("@IdMandatario", SqlDbType.Int).Value = idMandatario;
-
-        //        conn.Open();
-        //        using (SqlDataReader rdr = cmd.ExecuteReader())
-        //        {
-        //            int riga = 3;
-        //            while (rdr.Read())
-        //            {
-        //                for (int i = 0; i < 12; i++)
-        //                {
-        //                    int col = (i * 4) + 1;
-        //                    string p = prefissi[i];
-
-        //                    ws.Cell(riga, col).Value = rdr[$"{p}_NrFatt"]?.ToString();
-        //                    ws.Cell(riga, col + 1).Value = rdr[$"{p}_Cliente"]?.ToString();
-
-        //                    // --- CORREZIONE FORMATI ---
-
-        //                    // KG: Quantità intera (usiamo double o int per sicurezza calcoli)
-        //                    var cellKg = ws.Cell(riga, col + 2);
-        //                    cellKg.Value = Convert.ToDouble(rdr[$"{p}_Kg"] == DBNull.Value ? 0 : rdr[$"{p}_Kg"]);
-        //                    cellKg.Style.NumberFormat.Format = "#,##0.00"; // Quantità con decimali// "#,##0"; // Formato numero intero
-
-        //                    // EURO: Decimale con valuta
-        //                    var cellEuro = ws.Cell(riga, col + 3);
-        //                    cellEuro.Value = Convert.ToDouble(rdr[$"{p}_Importo"] == DBNull.Value ? 0 : rdr[$"{p}_Importo"]);
-        //                    cellEuro.Style.NumberFormat.Format = "#,##0.00 €"; // Formato valuta
-        //                }
-        //                riga++;
-        //            }
-        //        }
-        //    }
-        //    return Finalizza(wb);
-        //}
 
 
         // --- REPORT 2: DETTAGLIO ANNUALE PER CLIENTE ---
@@ -693,117 +642,6 @@ namespace Calkos.web.Services.Export
             return Finalizza(wb);
         }
 
-
-        //public byte[] GeneraExcelRiepilogoClienti(int anno, string mandatario, string connectionString, int idMandatario)
-        //{
-        //    using var wb = new XLWorkbook();
-        //    var ws = wb.Worksheets.Add("Prospetto Annuale Clienti");
-        //    string[] mesiEstesi = { "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre" };
-
-        //    // --- 1. COSTRUZIONE INTESTAZIONI (Righe 1 e 2) ---
-
-        //    // Cella Cliente (Unita verticalmente su 2 righe)
-        //    ws.Cell(1, 1).Value = "CLIENTE";
-        //    ws.Range(1, 1, 2, 1).Merge().Style
-        //        .Font.SetBold()
-        //        .Alignment.SetVertical(XLAlignmentVerticalValues.Center)
-        //        .Fill.SetBackgroundColor(XLColor.LightGray);
-
-        //    // Ciclo per creare le intestazioni dei 12 mesi
-        //    for (int i = 0; i < 12; i++)
-        //    {
-        //        int col = 2 + (i * 3); // Colonna di partenza per il mese (2, 5, 8...)
-
-        //        // Riga 1: Nome Mese (Unito su 3 colonne: Kg, Euro, Diff)
-        //        var meseRange = ws.Range(1, col, 1, col + 2);
-        //        meseRange.Merge().Value = mesiEstesi[i].ToUpper();
-        //        meseRange.Style
-        //            .Font.SetBold()
-        //            .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
-        //            .Fill.SetBackgroundColor(XLColor.LightGray)
-        //            .Border.SetOutsideBorder(XLBorderStyleValues.Thin);
-
-        //        // Riga 2: Sottotitoli
-        //        ws.Cell(2, col).Value = "Kg";
-        //        ws.Cell(2, col + 1).Value = "Euro";
-        //        ws.Cell(2, col + 2).Value = "Diff";
-
-        //        ws.Range(2, col, 2, col + 2).Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-        //    }
-
-        //    // Header Totali Annuali (alla fine delle 36 colonne dei mesi)
-        //    int colTot = 2 + (12 * 3);
-        //    var totRange = ws.Range(1, colTot, 1, colTot + 2);
-        //    totRange.Merge().Value = "TOTALI ANNUALI";
-        //    totRange.Style
-        //        .Font.SetBold()
-        //        .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
-        //        .Fill.SetBackgroundColor(XLColor.LightSteelBlue);
-
-        //    ws.Cell(2, colTot).Value = "Tot Kg";
-        //    ws.Cell(2, colTot + 1).Value = "Tot Euro";
-        //    ws.Cell(2, colTot + 2).Value = "Tot Diff";
-        //    ws.Range(2, colTot, 2, colTot + 2).Style.Font.SetBold();
-
-        //    // --- 2. POPOLAMENTO DATI ---
-
-        //    using (SqlConnection conn = new SqlConnection(connectionString))
-        //    {
-        //        SqlCommand cmd = new SqlCommand("spGeneraProspettoAnnualeExcel_Cliente", conn);
-        //        cmd.CommandType = CommandType.StoredProcedure;
-        //        cmd.Parameters.Add("@Anno", SqlDbType.Int).Value = anno;
-        //        cmd.Parameters.Add("@IdMandatario", SqlDbType.Int).Value = idMandatario;
-
-        //        conn.Open();
-        //        using (SqlDataReader rdr = cmd.ExecuteReader())
-        //        {
-        //            int riga = 3; // I dati partono dalla riga 3
-        //            while (rdr.Read())
-        //            {
-        //                // Nome Cliente
-        //                ws.Cell(riga, 1).Value = rdr["Cliente"]?.ToString();
-
-        //                for (int i = 0; i < 12; i++)
-        //                {
-        //                    int col = 2 + (i * 3);
-        //                    string m = mesiEstesi[i];
-
-        //                    // KG (Mese) -> Numero Intero
-        //                    var cKg = ws.Cell(riga, col);
-        //                    cKg.Value = Convert.ToDouble(rdr[$"{m}_Kg"] == DBNull.Value ? 0 : rdr[$"{m}_Kg"]);
-        //                    cKg.Style.NumberFormat.Format = "#,##0.00"; // Quantità con decimali//"#,##0";
-
-        //                    // EURO (Mese) -> Decimale con simbolo
-        //                    var cEu = ws.Cell(riga, col + 1);
-        //                    cEu.Value = Convert.ToDouble(rdr[$"{m}_Euro"] == DBNull.Value ? 0 : rdr[$"{m}_Euro"]);
-        //                    cEu.Style.NumberFormat.Format = "#,##0.00 €";
-
-        //                    // DIFF (Mese) -> Decimale con simbolo
-        //                    var cDi = ws.Cell(riga, col + 2);
-        //                    cDi.Value = Convert.ToDouble(rdr[$"{m}_Diff"] == DBNull.Value ? 0 : rdr[$"{m}_Diff"]);
-        //                    cDi.Style.NumberFormat.Format = "#,##0.00 €";
-        //                }
-
-        //                // TOTALI ANNUALI (Fine riga)
-        //                var tcKg = ws.Cell(riga, colTot);
-        //                tcKg.Value = Convert.ToDouble(rdr["Totale_Annuale_Kg"] == DBNull.Value ? 0 : rdr["Totale_Annuale_Kg"]);
-        //                tcKg.Style.NumberFormat.Format = "#,##0.00"; // Quantità con decimali//"#,##0";
-
-        //                var tcEu = ws.Cell(riga, colTot + 1);
-        //                tcEu.Value = Convert.ToDouble(rdr["Totale_Annuale_Euro"] == DBNull.Value ? 0 : rdr["Totale_Annuale_Euro"]);
-        //                tcEu.Style.NumberFormat.Format = "#,##0.00 €";
-
-        //                var tcDi = ws.Cell(riga, colTot + 2);
-        //                tcDi.Value = Convert.ToDouble(rdr["Totale_Annuale_Diff"] == DBNull.Value ? 0 : rdr["Totale_Annuale_Diff"]);
-        //                tcDi.Style.NumberFormat.Format = "#,##0.00 €";
-
-        //                riga++;
-        //            }
-        //        }
-        //    }
-
-        //    return Finalizza(wb);
-        //}
 
         private byte[] Finalizza(XLWorkbook wb)
         {

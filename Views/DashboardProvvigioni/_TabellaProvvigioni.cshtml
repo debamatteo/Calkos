@@ -8,6 +8,8 @@
 </h3>
 
 <div class="row g-3">
+
+
     @foreach (var gruppo in Model.ClientiPerPagamento)
     {
         var tipoPagamento = gruppo.Key;
@@ -101,11 +103,25 @@
 </h3>
 
 @{
-    var gruppiPerAgente = Model.ProvvigioniPerPagamento
-        .SelectMany(g => g.Value)
+    // var gruppiPerAgente = Model.ProvvigioniPerPagamento
+    //     .SelectMany(g => g.Value)
+    //     .GroupBy(r => r.AgenteDescrizione)
+    //     .OrderBy(g => g.Key);
+    //Se NON è selezionato un agente La sezione AGENTI non appare
+    // var gruppiPerAgente = Model.DatiProvvigioniAgente
+    //     .Where(r => r.IdAgente != null)        // <--- FILTRO OBBLIGATORIO
+    //     .Where(r => !string.IsNullOrWhiteSpace(r.AgenteDescrizione)) // <--- FILTRO OBBLIGATORIO
+    //     .GroupBy(r => r.AgenteDescrizione)
+    //     .OrderBy(g => g.Key);
+    var gruppiPerAgente = Model.DatiProvvigioniAgente
+        .Where(r => r.IdAgente > 0)   // <--- FILTRO VERO
+        .Where(r => !string.IsNullOrWhiteSpace(r.AgenteDescrizione))
         .GroupBy(r => r.AgenteDescrizione)
         .OrderBy(g => g.Key);
+
+
 }
+
 
 @foreach (var agenteGroup in gruppiPerAgente)
 {
@@ -152,7 +168,7 @@
                         </div>
                     </div>
 
-                    <div class="card-body p-0">
+                    <div class="card-body p-0" data-idagente="@righeAgente.First().IdAgente">
                         <table class="table table-striped table-bordered mb-0">
                             <thead class="table-light">
                                 <tr>
@@ -171,6 +187,7 @@
                                         <td class="text-end">@Model.FormatEuro(r.CommissioniTotali)</td>
                                         @* MODIFICATO: Utilizzo ValoreProvvigioneAgente per la singola riga *@
                                         <td class="text-end">@Model.FormatEuro(r.ValoreProvvigioneAgente)</td>
+                               
                                     </tr>
                                 }
                             </tbody>
