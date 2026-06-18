@@ -57,6 +57,32 @@
         </select>
     </div>
 
+    @* ============================================================
+        22/05/2026 NUOVO FILTRO: TIPO PAGAMENTO filtroTipoPagamento
+       - ViewBag.TipiPagamento viene popolato dal controller (vedi sotto)
+       - Il valore 0 = "Tutti" (nessun filtro applicato)
+       - ViewBag.IdTipoPagamento mantiene la selezione dopo reload/redirect
+       ============================================================ *@
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Tipo Pagamento</label>
+        <select name="idTipoPagamento" id="filtroTipoPagamento" class="form-select border-primary">
+            @* Opzione "Tutti" → valore 0 = nessun filtro *@
+            <option value="0" selected="@(ViewBag.IdTipoPagamento == null || ViewBag.IdTipoPagamento == 0)">
+                Tutti
+            </option>
+            @* Ciclo sui tipi pagamento popolati dal controller *@
+            @foreach (var item in ViewBag.TipiPagamento as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>())
+            {
+                <option value="@item.Value"
+                        selected="@(ViewBag.IdTipoPagamento?.ToString() == item.Value)">
+                    @item.Text
+                </option>
+            }
+        </select>
+    </div>
+
+
+
     <div class="col-md-2">
         <label class="form-label fw-bold text-danger">Visualizzazione</label>
         <select name="mostraEliminati" id="filtroEliminati" class="form-select border-danger">
@@ -87,19 +113,19 @@
             }
         </style>
 
-        <div class="d-flex gap-2 mb-3">
-            <a href="/Admin/ProspettiGuerzoni/Nuovo" class="btn btn-primary mb-3">
-                <i class="bi bi-plus-circle"></i> Nuova riga
-            </a>
-            <a href="/Admin/ProspettiGuerzoni/ExportExcelProspettoListaOrdini?idMandatario=@ViewBag.IdMandatario&idFileImportato=@ViewBag.IdFileImportato&anno=@ViewBag.Anno&mese=@ViewBag.Mese&fatturata=@ViewBag.Fatturata"
-               class="btn btn-primary mb-3">
-                <i class="bi bi-file-earmark-excel"></i> Esporta Excel
-            </a>
-            <a href="/Admin/ProspettiGuerzoni/ExportPdfProspettoListaOrdini?idMandatario=@ViewBag.IdMandatario&idFileImportato=@ViewBag.IdFileImportato&anno=@ViewBag.Anno&mese=@ViewBag.Mese&fatturata=@ViewBag.Fatturata"
-               class="btn btn-primary mb-3">
-                <i class="bi bi-file-earmark-pdf"></i> Esporta PDF
-            </a>
-        </div>
+        @*  22/05/2026 *@
+        <a href="/Admin/ProspettiGuerzoni/Nuovo" class="btn btn-primary mb-3">
+            <i class="bi bi-plus-circle"></i> Nuova riga
+        </a>
+
+        <a id="btnExportExcel" class="btn btn-primary mb-3">
+            <i class="bi bi-file-earmark-excel"></i> Esporta Excel
+        </a>
+
+        <a id="btnExportPdf" class="btn btn-primary mb-3">
+            <i class="bi bi-file-earmark-pdf"></i> Esporta PDF
+        </a>
+
         <div class="table-responsive" style="overflow-x: auto;">
 
             <table id="ordiniTable" class="table table-striped table-hover align-middle table-custom-header">
@@ -197,6 +223,29 @@
                 }
             });
 
+
+        //22/05/2026 aggiornaLinkExport  aggiornaLinkExport() i link vengono ricostruiti dinamicamente ad ogni cambio filtro,per allineare le estrazioni
+        function aggiornaLinkExport() {
+
+            let qs =
+                "idMandatario=" + $('#filtroidMandatario').val() +
+                "&idFileImportato=" + $('#filtroidFileImportato').val() +
+                "&anno=" + $('#filtroAnno').val() +
+                "&mese=" + $('#filtroMese').val() +
+                "&fatturata=" + $('#filtroFatturata').val() +
+                "&idTipoPagamento=" + $('#filtroTipoPagamento').val();
+
+            $('#btnExportExcel').attr('href',
+                "/Admin/ProspettiGuerzoni/ExportExcelProspettoListaOrdini?" + qs);
+
+            $('#btnExportPdf').attr('href',
+                "/Admin/ProspettiGuerzoni/ExportPdfProspettoListaOrdini?" + qs);
+        }
+
+
+                // 24/05/2026 Aggiorna i link export con i filtri iniziali (anno/mese corrente di default)
+                aggiornaLinkExport();
+
             // ----------------------------------------------------------
             // 1. COSTRUZIONE DINAMICA DELLA CONFIGURAZIONE COLONNE
             // ----------------------------------------------------------
@@ -276,6 +325,7 @@
                         d.mostraEliminati = $('#filtroEliminati').val();
                         d.idMandatario = $('#filtroidMandatario').val();
                         d.idFileImportato = $('#filtroidFileImportato').val();
+                        d.idTipoPagamento  = $('#filtroTipoPagamento').val(); // <-- NUOVO 22/05/2026
                     }
                 },
                 columns: colConfig,
@@ -289,22 +339,24 @@
             });
 
             // ----------------------------------------------------------
-            // 3. FILTRI IN CIMA ALLA PAGINA
+            // 3. FILTRI IN CIMA ALLA PAGINA 22/05/2026
             // ----------------------------------------------------------
-            $('#filtroAnno, #filtroMese, #filtroFatturata, #filtroEliminati').on('change', function () {
+            $('#filtroAnno, #filtroMese, #filtroFatturata, #filtroEliminati,#filtroTipoPagamento').on('change', function () {
 
-                // Reset filtro file importato
-                $('#filtroidFileImportato').val('');
+                    // Reset filtro file importato
+                    $('#filtroidFileImportato').val('');
 
-                // Pulisce eventuale querystring residua
-                window.history.replaceState(
-                    {},
-                    '',
-                    '/Admin/ProspettiHitech/ListaOrdini'
-                );
+                    // Pulisce eventuale querystring residua
+                    window.history.replaceState(
+                        {},
+                        '',
+                        '/Admin/ProspettiGuerzoni/ListaOrdini'
+                    );
 
-                // Reload DataTable AJAX
-                table.ajax.reload(null, false);
+                    aggiornaLinkExport();//22/05/2026
+
+                    // Reload DataTable AJAX
+            table.ajax.reload(null, false);
             });
 
             // ----------------------------------------------------------
@@ -321,7 +373,7 @@
                 $('#filtroMese').val('');
                 $('#filtroFatturata').val('-1');
                 $('#filtroEliminati').val('false');
-
+                $('#filtroTipoPagamento').val('0');  // <-- NUOVO: reset a "Tutti" 22/05/2026
                 // Reset filtro hidden usato dall'AJAX
                 $('#filtroidFileImportato').val('');
 
@@ -329,7 +381,7 @@
                 window.history.replaceState(
                     {},
                     '',
-                    '/Admin/ProspettiHitech/ListaOrdini'
+                    '/Admin/ProspettiGuerzoni/ListaOrdini'
             );
 
                 // Ricarica dati tabella via AJAX mantenendo la pagina corrente

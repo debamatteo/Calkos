@@ -129,7 +129,7 @@ namespace Calkos.web.Services.Export
         /// Formatta i valori grezzi in stringhe leggibili basandosi sulla configurazione delle colonne.
         /// Garantisce la coerenza visiva (2 decimali, date italiane, simboli valuta).
         /// </summary>
-        private string FormatValue(object value, string format)
+        private string FormatValue(object value, string format)//24/05/2026
         {
             if (value == null)
                 return "";
@@ -139,28 +139,67 @@ namespace Calkos.web.Services.Export
 
             format = format.ToLower();
 
-            // Formattazione Numeri Interi: Separatore migliaia senza decimali (es. 1.250)
+            // ============================
+            // 1) INTERI
+            // ============================
             if (format == "int")
-                return Convert.ToInt32(value).ToString("N0");
-
-            // Formattazione Decimali e Valuta: Forza sempre i 2 decimali come richiesto
-            if (format.Contains("decimal") || format == "currency")
             {
-                decimal val = Convert.ToDecimal(value);
-                // Se 'currency', applica il formato monetario locale (it-IT) con simbolo €
-                return format == "currency"
-                    ? val.ToString("C2", CultureInfo.GetCultureInfo("it-IT"))
-                    : val.ToString("N2", CultureInfo.GetCultureInfo("it-IT")); // Aggiungi la cultura qui!
+                if (decimal.TryParse(value.ToString(), out decimal d))
+                    return d.ToString("#,##0", CultureInfo.GetCultureInfo("it-IT"));
+                return value.ToString();
             }
 
-            // Formattazione Date: Converte in formato standard italiano dd/MM/yyyy
+            // ============================
+            // 2) DECIMALI (2 decimali fissi)
+            // ============================
+            if (format.Contains("decimal"))
+            {
+                if (decimal.TryParse(value.ToString(), out decimal d))
+                    return d.ToString("#,##0.00", CultureInfo.GetCultureInfo("it-IT"));
+                return value.ToString();
+            }
+
+            // ============================
+            // 3) VALUTA (€ + 2 decimali)
+            // ============================
+            if (format.Contains("currency"))
+            {
+                if (decimal.TryParse(value.ToString(), out decimal d))
+                    return d.ToString("€ #,##0.00", CultureInfo.GetCultureInfo("it-IT"));
+                return value.ToString();
+            }
+
+            // ============================
+            // 4) PERCENTUALI (5 → 5%)
+            // ============================
+            if (format.Contains("percent"))
+            {
+                if (decimal.TryParse(value.ToString(), out decimal perc))
+                {
+                    // Conversione come Excel: 5 → 0,05
+                    decimal matematico = perc / 100m;
+                    return matematico.ToString("0.00%", CultureInfo.GetCultureInfo("it-IT"));
+                }
+                return value.ToString();
+            }
+
+            // ============================
+            // 5) DATE (dd/MM/yyyy)
+            // ============================
             if (format.Contains("date"))
             {
-                return Convert.ToDateTime(value).ToString("dd/MM/yyyy");
+                if (DateTime.TryParse(value.ToString(), out DateTime dt))
+                    return dt.ToString("dd/MM/yyyy");
+                return value.ToString();
             }
 
+            // Default
             return value.ToString();
         }
+
+
+
+
 
         /// <summary>
         /// Genera un documento PDF in formato Landscape (Orizzontale) con layout dinamico.
@@ -217,8 +256,76 @@ namespace Calkos.web.Services.Export
                             }
                         });
 
+
+
+                        // =================================================================================
+                        // ESTRAZIONE E ORDINAMENTO DEI DATI BASATO SULLA CONFIGURAZIONE JSON 27/05/202
+                        // =================================================================================
+
+                        // 1. Filtriamo solo le colonne che hanno un valore in 'SortOrder' (richiesto l'ordinamento)
+                        //    e le ordiniamo in base a quel valore per stabilire la priorità (es. prima 1, poi 2, poi 3).
+                        var criteriOrdinamento = colonne
+                            .Where(c => c.SortOrder.HasValue)
+                            .OrderBy(c => c.SortOrder.Value)
+                            .ToList();
+
+                        // Questa variabile conterrà la sequenza ordinata. Usiamo 'IOrderedEnumerable' perché
+                        // è l'unico tipo che permette di concatenare gli ordinamenti successivi tramite 'ThenBy'.
+                        IOrderedEnumerable<object> righeOrdinate = null;
+
+                        // Procediamo all'ordinamento solo se ci sono dati da elaborare e se sono stati definiti criteri nel JSON
+                        if (righe != null && righe.Any() && criteriOrdinamento.Any())
+                        {
+                            // -----------------------------------------------------------------------------
+                            // PRIMO LIVELLO DI ORDINAMENTO (Obbligatorio usare OrderBy / OrderByDescending)
+                            // -----------------------------------------------------------------------------
+                            // Recuperiamo il primo criterio (es. SortOrder = 1)
+                            var primoCriterio = criteriOrdinamento.First();
+
+                            // Tramite Reflection, recuperiamo le informazioni della proprietà dell'oggetto usando il nome scritto nel JSON
+                            var primoProp = righe.First().GetType().GetProperty(primoCriterio.Name);
+
+                            // Controlliamo la direzione: se non è espressamente "desc", di default ordiniamo in modo ascendente (A-Z, 0-9)
+                            bool isAsc = primoCriterio.SortDirection?.ToLower() != "desc";
+
+                            // Inizializziamo la sequenza ordinata applicando il primo criterio di sorting
+                            if (isAsc)
+                                righeOrdinate = righe.OrderBy(r => primoProp?.GetValue(r));
+                            else
+                                righeOrdinate = righe.OrderByDescending(r => primoProp?.GetValue(r));
+
+                            // -----------------------------------------------------------------------------
+                            // LIVELLI DI ORDINAMENTO SUCCESSIVI (Obbligatorio usare ThenBy / ThenByDescending)
+                            // -----------------------------------------------------------------------------
+                            // Cicliamo a partire dal secondo criterio (indice 1) fino alla fine della lista.
+                            // Usiamo 'ThenBy' per fare in modo che C# ordini i "duplicati" del primo livello 
+                            // senza distruggere l'ordinamento appena calcolato.
+                            for (int i = 1; i < criteriOrdinamento.Count; i++)
+                            {
+                                var criterio = criteriOrdinamento[i];
+
+                                // Recuperiamo la proprietà specifica per questo livello tramite Reflection
+                                var prop = righe.First().GetType().GetProperty(criterio.Name);
+                                bool isNextAsc = criterio.SortDirection?.ToLower() != "desc";
+
+                                // Concateniamo il nuovo sotto-ordinamento alla struttura 'righeOrdinate' esistente
+                                if (isNextAsc)
+                                    righeOrdinate = righeOrdinate.ThenBy(r => prop?.GetValue(r));
+                                else
+                                    righeOrdinate = righeOrdinate.ThenByDescending(r => prop?.GetValue(r));
+                            }
+                        }
+
+                        // -----------------------------------------------------------------------------
+                        // APPLICAZIONE DEL RISULTATO
+                        // -----------------------------------------------------------------------------
+                        // Se 'righeOrdinate' è stato popolato (quindi c'erano criteri), usiamo la lista ordinata.
+                        // Se è rimasto 'null' (nessun criterio definito nel JSON), usiamo la lista originale 'righe' così com'è.
+                        var listaFinale = righeOrdinate ?? righe;
+
+
                         // Ciclo sulle righe di dati: Reflection per mappare proprietà dinamiche
-                        foreach (var r in righe)
+                        foreach (var r in listaFinale)
                         {
                             foreach (var c in colonne.Where(x => x.Export))
                             {

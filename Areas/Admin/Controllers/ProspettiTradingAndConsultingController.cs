@@ -379,7 +379,10 @@ namespace Calkos.web.Areas.Admin.Controllers
         // * Dalla pagina:
         // * - puoi togliere il filtro file e filtrare per anno/mese/stato fattura
         // */
-        public IActionResult ListaOrdini(int? idMandatario, int? idFileImportato, int? anno, int? mese, int? fatturata, bool mostraEliminati = false)//25/03/2026 aggiunto filtro fatturata
+        public IActionResult ListaOrdini(int? idMandatario, int? idFileImportato, int? anno,
+             int? mese, int? fatturata,
+             int? idTipoPagamento,       // <-- NUOVO PARAMETRO 22/05/2026
+             bool mostraEliminati = false)//25/03/2026 aggiunto filtro fatturata
         {
 
             var sw = Stopwatch.StartNew();
@@ -457,11 +460,14 @@ namespace Calkos.web.Areas.Admin.Controllers
             // ============================================================
             // 2) RECUPERO DATI FILTRATI (ADO.NET OTTIMIZZATO)
             // ============================================================
+            // 22/05/2026: 0 significa "Tutti" → passiamo null al repository così il WHERE nella SP non applica il filtro
+            if (idTipoPagamento == 0)
+                idTipoPagamento = null;
 
             // NUOVO APPROCCIO: Chiamiamo il database chiedendo SOLO le righe che servono.
             //  Ho aggiunto 'fatturata' alla chiamata GetFiltrati. 
             // Dovrai aggiornare la firma del metodo nel tuo Repository per accettare questo nuovo int?.
-            var prospetti = _prospettoRepository.GetFiltrati(idMandatario, idFileImportato, anno, mese, fatturata, mostraEliminati);
+            var prospetti = _prospettoRepository.GetFiltrati(idMandatario, idFileImportato, anno, mese, fatturata, mostraEliminati, idTipoPagamento);//22/05/2026
 
             sw.Stop();
             System.Diagnostics.Debug.WriteLine("TEMPO QUERY: " + sw.ElapsedMilliseconds + " ms");
@@ -474,6 +480,21 @@ namespace Calkos.web.Areas.Admin.Controllers
             ViewBag.Fatturata = fatturata; //  Necessario per far funzionare il 'selected' nella View
                                            // PASSA IL VALORE ALLA VIEW PER MANTENERE LA SELEZIONE NELLA DROPDOWN
             ViewBag.MostraEliminati = mostraEliminati;
+            ViewBag.IdTipoPagamento = idTipoPagamento;//22/05/2026
+
+            // -------------------------------------------------------
+            // 22/05/2026 POPOLA IL VIEWBAG CON I TIPI PAGAMENTO PER LA SELECT
+            // Stesso pattern usato in CaricaLookup per il dettaglio ordine
+            // -------------------------------------------------------
+            var tipiPagamento = _tipoPagamentoRepository.GetAll();
+            ViewBag.TipiPagamento = tipiPagamento
+                .Select(t => new SelectListItem
+                {
+                    Value = t.IdTipoPagamento.ToString(),
+                    Text = t.DescrizioneTipoPagamento
+                })
+                .ToList();
+
 
             // ============================================================
             // 3) CONFIGURAZIONE DINAMICA E VIEWMODEL
@@ -924,12 +945,21 @@ namespace Calkos.web.Areas.Admin.Controllers
         ////  - Carica il JSON (colonne dinamiche)
         ////  - Passa righe + colonne al servizio Excel
         //// ============================================================================
-        public IActionResult ExportExcelProspettoListaOrdini(int? idMandatario, int? idFileImportato, int? anno, int? mese, int? fatturata)
+        public IActionResult ExportExcelProspettoListaOrdini(int? idMandatario, int?
+            idFileImportato, int? anno, int? mese, int? fatturata, int? idTipoPagamento)       // 22/05/2026 <-- NUOVO PARAMETRO)
         {
             // 1. Recupero i prospetti filtrati (stessa logica della view)
             // 25/03/2026: Ho aggiunto 'fatturata' alla chiamata. 
             // Poiché GetFiltrati ora esegue la SP con tutti i filtri, non serve più fare .Where(...).ToList() dopo.
-            var prospetti = _prospettoRepository.GetFiltrati(idMandatario, idFileImportato, anno, mese, fatturata);
+            // GetFiltrati ora include anche idTipoPagamento           
+            // 22/05/2026 Stessa normalizzazione di ListaOrdiniJson: 0 = "Tutti" → null La SP già gestisce 0 come "nessun filtro"
+            if (idTipoPagamento == 0)
+                idTipoPagamento = null;
+
+            var prospetti = _prospettoRepository.GetFiltrati(
+                idMandatario, idFileImportato, anno, mese, fatturata,
+                mostraEliminati: false,   // negli export non mostriamo eliminati
+                idTipoPagamento: idTipoPagamento);//22/05/2026
 
             if (idMandatario.HasValue)
                 HttpContext.Session.SetInt32("IdMandatario", idMandatario.Value);
@@ -961,12 +991,18 @@ namespace Calkos.web.Areas.Admin.Controllers
         ////  - Colonne dal JSON
         ////  - PDF dinamico senza colonne hardcoded
         //// ============================================================================
-        public IActionResult ExportPdfProspettoListaOrdini(int? idMandatario, int? idFileImportato, int? anno, int? mese, int? fatturata)
+        public IActionResult ExportPdfProspettoListaOrdini(int? idMandatario, int? idFileImportato, int? anno, int? mese, int? fatturata ,int? idTipoPagamento)       // <-- NUOVO PARAMETRO 22/05/2026
         {
+            //22/05/2026  Stessa normalizzazione di ListaOrdiniJson: 0 = "Tutti" → null  La SP già gestisce 0 come "nessun filtro"
+            if (idTipoPagamento == 0)
+                idTipoPagamento = null;
+
             // 25/03/2026: Anche qui, aggiunto 'fatturata' e rimosso filtraggio manuale post-query.
             // 25/03/2026 filtra direttamente in SQL per evitare il flash di tutte le righe al caricamento della pagina
-            var prospetti = _prospettoRepository.GetFiltrati(idMandatario, idFileImportato, anno, mese, fatturata);
-
+            var prospetti = _prospettoRepository.GetFiltrati(
+                idMandatario, idFileImportato, anno, mese, fatturata,
+                mostraEliminati: false,
+                idTipoPagamento: idTipoPagamento);//22/05/2026
             if (idMandatario.HasValue)
                 HttpContext.Session.SetInt32("IdMandatario", idMandatario.Value);
             else
@@ -1063,7 +1099,7 @@ namespace Calkos.web.Areas.Admin.Controllers
 
 
         [HttpGet]
-        public IActionResult ListaOrdiniJson(int? idMandatario, int? idFileImportato, int? anno, int? mese, int? fatturata, bool mostraEliminati = false)
+        public IActionResult ListaOrdiniJson(int? idMandatario, int? idFileImportato, int? anno, int? mese, int? fatturata, int? idTipoPagamento,bool mostraEliminati = false)// <-- NUOVO PARAMETRO  22/05/026     
         {
             // ==========================================================================================
             // 1. GESTIONE DEI FILTRI TEMPORALI (DEFAULTING LOGIC)
@@ -1115,7 +1151,9 @@ namespace Calkos.web.Areas.Admin.Controllers
             {
                 fatturata = null;
             }
-
+            // 22/05/2026 NORMALIZZAZIONE: 0 → null (= nessun filtro)
+            if (idTipoPagamento == 0)
+                idTipoPagamento = null;
             // ==========================================================================================
             // 4. DATA ACCESS LAYER (DAL) - ESECUZIONE QUERY
             // ==========================================================================================
@@ -1123,7 +1161,7 @@ namespace Calkos.web.Areas.Admin.Controllers
             // Il metodo GetFiltrati incapsula la chiamata alla Stored Procedure [dbo].[spProspettoTradingAndConsulting_GetAllFiltri].
             // Viene passato anche il flag 'mostraEliminati' per la gestione della Soft Delete (Cestino).
 
-            var prospetti = _prospettoRepository.GetFiltrati(idMandatario, idFileImportato, anno, mese, fatturata, mostraEliminati);
+            var prospetti = _prospettoRepository.GetFiltrati(idMandatario, idFileImportato, anno, mese, fatturata, mostraEliminati, idTipoPagamento);//22/05/2026
 
             // ==========================================================================================
             // 5. SERIALIZZAZIONE JSON E DINAMISMO DATA-DRIVEN

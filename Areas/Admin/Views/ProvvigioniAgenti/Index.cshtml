@@ -158,120 +158,148 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
-        // Variabili globali per gestire l'eliminazione tramite modale del layout
-        let idDaEliminare = 0;
-        let rigaDaRimuovere = null;
+        let idDaEliminare = 0; // ID della riga da eliminare (gestito al click su elimina)
+        let rigaDaRimuovere = null; // Riferimento alla riga DataTables da rimuovere dopo conferma
 
         $(document).ready(function () {
 
-            // Inizializzazione DataTables
             var table = $('#provvigioniTable').DataTable({
-                dom: '<"d-flex justify-content-between mb-2"l>rtip',
-                orderCellsTop: true,
+                dom: '<"d-flex justify-content-between mb-2"l>rtip', // Layout: length menu + tabella + paginazione
+                orderCellsTop: true, // Abilita ordinamento sulle celle dell'header superiore
                 language: {
-                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
+                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" // Localizzazione italiana
                 },
                 columnDefs: [
-                    { targets: 0, visible: false, searchable: false },
-                    { targets: 6, orderable: false, searchable: false }
+                    { targets: 0, visible: false, searchable: false }, // Colonna ID nascosta e non ricercabile
+
+                    {
+                        targets: 3, // Colonna Cliente
+                        render: function (data, type, row) {
+                            // Per filtraggio/ordinamento rimuove HTML e usa solo testo
+                            if (type === 'filter' || type === 'sort') {
+                                var tmp = document.createElement('div');
+                                tmp.innerHTML = data;
+                                return tmp.textContent || tmp.innerText || '';
+                            }
+                            return data; // In visualizzazione mantiene HTML (badge, colori, ecc.)
+                        }
+                    },
+
+                    {
+                        targets: 4, // Colonna % provvigione
+                        render: function (data, type, row) {
+                            // Per filtraggio/ordinamento estrae solo il numero dal badge HTML
+                            if (type === 'filter' || type === 'sort') {
+                                var tmp = document.createElement('div');
+                                tmp.innerHTML = data;
+                                return (tmp.textContent || tmp.innerText || '').trim();
+                            }
+                            return data; // In visualizzazione mantiene HTML
+                        }
+                    },
+
+                    { targets: 6, orderable: false, searchable: false } // Colonna azioni: niente sort, niente ricerca
                 ],
-                order: [[1, 'asc']]
+                order: [[1, 'asc']] // Ordina per colonna 1 (es. agente) in modo crescente
             });
 
-            // Logica Filtri (Testuali e Percentuale)
+            // Filtri colonne — ricerca "contiene" (regex), senza ancoraggio ^ 
             $('#provvigioniTable thead tr.filters input').on('keyup change', function () {
-                var colIndex = $(this).data('col');
-                var val = this.value;
+                var colIndex = parseInt($(this).data('col')); // Indice colonna da filtrare
+                var val = $.trim(this.value); // Valore inserito nel filtro
 
-                if (colIndex === 4) { // Colonna Percentuale
-                    if (!val) {
-                        table.column(4).search("").draw();
-                    } else {
-                        var regex = "^" + parseFloat(val).toFixed(2);
-                        table.column(4).search(regex, true, false).draw();
-                    }
-                } else { // Altre colonne
-                    table.column(colIndex).search(
-                        val ? "^" + val : "",
-                        true,
-                        false
-                    ).draw();
+                if (!val) {
+                    // Reset filtro se input vuoto
+                    table.column(colIndex).search('', true, false).draw();
+                    return;
+                }
+
+                if (colIndex === 4) {
+                    // Colonna percentuale: escape del punto per regex
+                    var escaped = val.replace('.', '\\.');
+                    table.column(4).search(escaped, true, false).draw();
+                } else {
+                    // Ricerca generica "contiene"
+                    table.column(colIndex).search(val, true, false).draw();
                 }
             });
 
+            // Evita che il click sui filtri triggeri ordinamento della colonna
             $('.filters th').on('click', function (e) {
                 e.stopPropagation();
             });
 
-            // Navigazione rapida su doppio click
+            // Doppio click sulla riga → apre pagina di modifica
             $('#provvigioniTable tbody').on('dblclick', 'tr', function (e) {
+                // Evita trigger se si clicca su link o pulsanti
                 if ($(e.target).closest('a, button').length > 0) return;
-                var id = $(this).data('id');
+
+                var id = $(this).data('id'); // Recupera ID dalla riga
                 if (id) window.location.href = '@Url.Action("Edit", "ProvvigioniAgenti")/' + id;
             });
 
-            /**
-             * EVENTO CLICK SU BOTTONE MODALE LAYOUT
-             */
+            // Conferma eliminazione → chiama funzione dedicata
             $('#confirmDeleteBtn').on('click', function () {
                 eseguiEliminazione();
             });
-        });
 
-        /**
-         * RESET FILTRI
-         */
+        }); // fine document.ready
+
         function resetFiltri() {
+            // Reset input filtri + reset ricerca DataTables
             $('.filters input').val('');
             $('#provvigioniTable').DataTable().search('').columns().search('').draw();
         }
 
-        /**
-         * APERTURA MODALE DI CONFERMA
-         */
         function eliminaProvvigione(id, btn) {
-            idDaEliminare = id;
-            rigaDaRimuovere = $(btn).closest('tr');
+            idDaEliminare = id; // Salva ID da eliminare
+            rigaDaRimuovere = $(btn).closest('tr'); // Salva riga DataTables da rimuovere
 
-            let info = rigaDaRimuovere.find('td:eq(0)').text().trim();
+            let info = rigaDaRimuovere.find('td:eq(1)').text().trim(); // Nome agente per conferma
 
+            // Messaggio nel modal di conferma
             $('#confirmDeleteModal .modal-body').html(
                 `Sei sicuro di voler eliminare la provvigione per l'agente: <br><strong>${info}</strong>?`
             );
 
+            // Mostra modal conferma
             var myModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
             myModal.show();
         }
 
-        /**
-         * ESECUZIONE EFFETTIVA ELIMINAZIONE via AJAX
-         */
         function eseguiEliminazione() {
-            if (idDaEliminare === 0) return;
+            if (idDaEliminare === 0) return; // Nessun ID → esci
 
+            // Chiamata AJAX al controller
             $.post('@Url.Action("Delete", "ProvvigioniAgenti")', { id: idDaEliminare })
                 .done(function (res) {
+                    // Chiude modal conferma
                     var modalEl = document.getElementById('confirmDeleteModal');
                     var modalInstance = bootstrap.Modal.getInstance(modalEl);
-                    if(modalInstance) modalInstance.hide();
+                    if (modalInstance) modalInstance.hide();
 
                     if (res.success) {
+                        // Rimuove riga dalla DataTable senza ricaricare pagina
                         $('#provvigioniTable').DataTable()
                             .row(rigaDaRimuovere)
                             .remove()
                             .draw(false);
 
+                        // Mostra modal operazione completata
                         $('#modalOperazioneCompletata .modal-body').text("Configurazione provvigionale eliminata con successo.");
                         var successModal = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
                         successModal.show();
                     } else {
+                        // Errore lato server
                         alert(res.message || "Errore durante l'eliminazione.");
                     }
                 })
                 .fail(function () {
+                    // Errore di comunicazione AJAX
                     alert("Errore tecnico nella comunicazione con il server.");
                 })
                 .always(function () {
+                    // Reset variabili stato eliminazione
                     idDaEliminare = 0;
                     rigaDaRimuovere = null;
                 });

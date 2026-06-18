@@ -35,8 +35,13 @@ namespace Calkos.web.Models.Prospetti
         /// </summary>
         public int Width { get; set; } = 1;
 
-
         public bool Export { get; set; } = true;// determina se esportare una colonna del prospetto nel file pdf\excel
+
+        // 🔥 NUOVE PROPRIETÀ PER L'ORDINAMENTO 27/05/2026
+        public int? SortOrder { get; set; }       // 1 per il primo campo, 2 per il secondo, ecc.
+        public string SortDirection { get; set; } // "asc" oppure "desc"
+
+
     }
 
     /// <summary>

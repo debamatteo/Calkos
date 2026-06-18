@@ -750,7 +750,7 @@
                 }
                 log("Chiamata AJAX ProvvigioneAgente: idAgente=" + idAgente + ", idCliente=" + idCliente);
                 $.getJSON(
-                    '/Admin/ProspettiCobral/GetPercentualeProvvigione',
+                    '/Admin/ProspettiHitech/GetPercentualeProvvigione',
                     { idAgente: idAgente, idCliente: idCliente },
                     function (percentuale) {
                         const valTec = roundTec(safeNum(percentuale));

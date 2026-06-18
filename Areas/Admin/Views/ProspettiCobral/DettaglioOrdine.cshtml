@@ -360,6 +360,7 @@ MODIFICA 13/05/2026
 
 
                 <div class="col-md-2">
+                    @* value="@FDisplay(Model.PrLavTotale, 3)" *@ @* 21/05/2026 *@
                     @* PrLavTotale (Prezzo Lavorazione Totale):
                        = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato
                        Viene aggiornato automaticamente ogni volta che cambiano i suoi componenti. *@
@@ -370,7 +371,7 @@ MODIFICA 13/05/2026
                                id="PrLavTotaleDisplay"
                                class="form-control input-readonly"
                                readonly
-                               value="FDisplay(Model.PrLavTotale, 3)"
+                               value="@FDisplay(Model.PrLavTotale, 3)" 
                                title="PrLavTotale = PrLavSpess + PrLavLarg + ExtraPrezzoKg + ExtraPrezzoStagnato" />
                         <button type="button" id="togglePrLavTotale" class="btn btn-success">
                             <i class="bi bi-lock-fill"></i>

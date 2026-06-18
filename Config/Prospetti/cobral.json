@@ -5,28 +5,36 @@
       "label": "Ordine",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 2,
+      "sortDirection": "asc"
     },
     {
       "name": "NumeroDDT",
       "label": "DDT",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 3,
+      "sortDirection": "asc"
     },
     {
       "name": "NumeroFattura",
       "label": "Fattura",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 4,
+      "sortDirection": "asc"
     },
     {
       "name": "RagioneSociale",
       "label": "Cliente",
       "visible": true,
       "format": "text",
-      "width": 3
+      "width": 3,
+      "sortOrder": 1,
+      "sortDirection": "asc"
     },
     {
       "name": "UnitaMisura",

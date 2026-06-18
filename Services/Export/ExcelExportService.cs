@@ -170,7 +170,7 @@ namespace Calkos.web.Services.Export
 
 
         // ============================================================================
-        //  CREA FILE EXCEL LA STAMPA DEL PROSPETTO
+        //  CREA FILE EXCEL LA STAMPA DEL PROSPETTO 24/05/2026
         //  - Stessa formattazione dei clienti
         //  - Cambia solo la prima colonna (Agente)
         // ============================================================================
@@ -219,16 +219,108 @@ namespace Calkos.web.Services.Export
             // ============================================================
             // 3) INSERIMENTO DATI DINAMICI
             // ============================================================
-            foreach (var r in righe)
+
+            //============================================================
+            // 3.1 ESTRAZIONE E ORDINAMENTO DEI DATI BASATO SULLA CONFIGURAZIONE JSON
+            //    ORDINAMENTO INIZIALE DELLE RIGHE IN BASE ALL'ORDINE DEFINITO NELLE COLONNE (SortOrder + SortDirection)
+            // Estraiamo i criteri di ordinamento definiti nel JSON, ordinati per priorità (SortOrder)
+            // 27/05/2026
+            //============================================================
+   
+
+            // 1. Filtriamo solo le colonne che hanno un valore in 'SortOrder' (richiesto l'ordinamento)
+            //    e le ordiniamo in base a quel valore per stabilire la priorità (es. prima 1, poi 2, poi 3).
+            var criteriOrdinamento = colonne
+                .Where(c => c.SortOrder.HasValue)
+                .OrderBy(c => c.SortOrder.Value)
+                .ToList();
+
+            // Questa variabile conterrà la sequenza ordinata.
+            // Usiamo 'IOrderedEnumerable' perché è l'unico tipo che permette di concatenare gli ordinamenti successivi tramite 'ThenBy'.
+            IOrderedEnumerable<object> righeOrdinate = null;
+
+            // Procediamo all'ordinamento solo se ci sono dati da elaborare e se sono stati definiti criteri nel JSON
+            if (righe != null && righe.Any() && criteriOrdinamento.Any())
+            {
+                // -----------------------------------------------------------------------------
+                // PRIMO LIVELLO DI ORDINAMENTO (Obbligatorio usare OrderBy / OrderByDescending)
+                // -----------------------------------------------------------------------------
+                // Recuperiamo il primo criterio (es. SortOrder = 1)
+                var primoCriterio = criteriOrdinamento.First();
+
+                // Tramite Reflection, recuperiamo le informazioni della proprietà dell'oggetto usando il nome scritto nel JSON
+                var primoProp = righe.First().GetType().GetProperty(primoCriterio.Name);
+
+                // Controlliamo la direzione: se non è espressamente "desc", di default ordiniamo in modo ascendente (A-Z, 0-9)
+                bool isAsc = primoCriterio.SortDirection?.ToLower() != "desc";
+
+                // Inizializziamo la sequenza ordinata applicando il primo criterio di sorting
+                if (isAsc)
+                    righeOrdinate = righe.OrderBy(r => primoProp?.GetValue(r));
+                else
+                    righeOrdinate = righe.OrderByDescending(r => primoProp?.GetValue(r));
+
+                // -----------------------------------------------------------------------------
+                // LIVELLI DI ORDINAMENTO SUCCESSIVI (Obbligatorio usare ThenBy / ThenByDescending)
+                // -----------------------------------------------------------------------------
+                // Cicliamo a partire dal secondo criterio (indice 1) fino alla fine della lista.
+                // Usiamo 'ThenBy' per fare in modo che C# ordini i "duplicati" del primo livello 
+                // senza distruggere l'ordinamento appena calcolato.
+                for (int i = 1; i < criteriOrdinamento.Count; i++)
+                {
+                    var criterio = criteriOrdinamento[i];
+
+                    // Recuperiamo la proprietà specifica per questo livello tramite Reflection
+                    var prop = righe.First().GetType().GetProperty(criterio.Name);
+                    bool isNextAsc = criterio.SortDirection?.ToLower() != "desc";
+
+                    // Concateniamo il nuovo sotto-ordinamento alla struttura 'righeOrdinate' esistente
+                    if (isNextAsc)
+                        righeOrdinate = righeOrdinate.ThenBy(r => prop?.GetValue(r));
+                    else
+                        righeOrdinate = righeOrdinate.ThenByDescending(r => prop?.GetValue(r));
+                }
+            }
+
+            // -----------------------------------------------------------------------------
+            // APPLICAZIONE DEL RISULTATO
+            // -----------------------------------------------------------------------------
+            // Se 'righeOrdinate' è stato popolato (quindi c'erano criteri), usiamo la lista ordinata.
+            // Se è rimasto 'null' (nessun criterio definito nel JSON), usiamo la lista originale 'righe' così com'è.
+            var listaFinale = righeOrdinate ?? righe;
+
+            foreach (var r in listaFinale)
             {
                 col = 1;
+
                 foreach (var c in colonne.Where(x => x.Export))
                 {
                     var prop = r.GetType().GetProperty(c.Name);
                     var value = prop?.GetValue(r);
                     var cell = ws.Cell(row, col);
 
-                    // Gestione tipi di dato per ClosedXML
+                    string fmt = c.Format?.ToLower();
+
+                    // ============================================================
+                    // 🔥 GESTIONE FORMATO TESTO (BLOCCA CONVERSIONI EXCEL)
+                    // ============================================================
+                    // Se la colonna è TEXT → Excel deve trattarla come testo puro.
+                    // - Impostiamo il valore come stringa
+                    // - Impostiamo il formato "@"
+                    // - Allineamento a sinistra
+                    // - NON tentiamo conversioni numeriche
+                    if (fmt == "text")
+                    {
+                        cell.Value = value?.ToString();
+                        cell.Style.NumberFormat.Format = "@"; // ← BLOCCA conversioni automatiche
+                        cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                        col++;
+                        continue; // ← evita che il resto del codice tocchi la cella
+                    }
+
+                    // ============================================================
+                    // GESTIONE TIPI DI DATO PER CLOSEDXML (solo se NON è testo)
+                    // ============================================================
                     if (value == null)
                     {
                         cell.Value = Blank.Value;
@@ -247,26 +339,26 @@ namespace Calkos.web.Services.Export
                         cell.Value = value.ToString();
                     }
 
-                    // Applicazione formattazione dinamica basata sulla configurazione JSON
-                    if (!string.IsNullOrEmpty(c.Format))
+                    // ============================================================
+                    //  FORMATTATORE DINAMICO BASATO SUL JSON
+                    // ============================================================
+                    if (!string.IsNullOrEmpty(fmt))
                     {
-                        var f = c.Format.ToLower();
-
-                        if (f == "int")
+                        if (fmt == "int")
                         {
                             cell.Style.NumberFormat.Format = "#,##0";
                         }
                         // Correzione: impostato a 2 decimali (#,##0.00) invece di 3
-                        else if (f.Contains("decimal"))
+                        else if (fmt.Contains("decimal"))
                         {
                             cell.Style.NumberFormat.Format = "#,##0.00";
                         }
                         // Gestione specifica formato valuta con simbolo Euro
-                        else if (f.Contains("currency"))
+                        else if (fmt.Contains("currency"))
                         {
                             cell.Style.NumberFormat.Format = "€ #,##0.00";
                         }
-                        else if (f.Contains("percent"))
+                        else if (fmt.Contains("percent"))
                         {
                             // Excel vuole il valore matematico (0,05), ma tu salvi 5.
                             // Quindi lo convertiamo automaticamente.
@@ -275,16 +367,16 @@ namespace Calkos.web.Services.Export
 
                             cell.Style.NumberFormat.Format = "0.00%";
                         }
-
-                        else if (f.Contains("date"))
+                        else if (fmt.Contains("date"))
                         {
                             // Recupero formato data specifico se presente, altrimenti default
-                            cell.Style.DateFormat.Format = f.Contains(":") ? f.Split(':')[1] : "dd/MM/yyyy";
+                            cell.Style.DateFormat.Format = fmt.Contains(":") ? fmt.Split(':')[1] : "dd/MM/yyyy";
                         }
                     }
 
                     col++;
                 }
+
                 row++;
             }
 

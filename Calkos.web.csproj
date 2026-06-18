@@ -8,6 +8,157 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Properties\wwwroot\lib\bootstrap\css\bootstrap.min.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Properties\wwwroot\css\site.css" />
+    <Content Include="Properties\wwwroot\favicon.ico" />
+    <Content Include="Properties\wwwroot\img\logo.png" />
+    <Content Include="Properties\wwwroot\js\app-debug.js" />
+    <Content Include="Properties\wwwroot\js\deangelicalcoli.js" />
+    <Content Include="Properties\wwwroot\js\site.js" />
+    <Content Include="Properties\wwwroot\js\tests\deangelicalcoli.test.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.min.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.min.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.min.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.min.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.min.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.min.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.min.js.map" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation-unobtrusive\jquery.validate.unobtrusive.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation-unobtrusive\jquery.validate.unobtrusive.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation-unobtrusive\LICENSE.txt" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\additional-methods.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\additional-methods.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\jquery.validate.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\jquery.validate.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\LICENSE.md" />
+    <Content Include="Properties\wwwroot\lib\jquery\dist\jquery.js" />
+    <Content Include="Properties\wwwroot\lib\jquery\dist\jquery.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery\dist\jquery.min.map" />
+    <Content Include="Properties\wwwroot\lib\jquery\LICENSE.txt" />
+    <Content Include="Properties\wwwroot\tempCST\CST_20260524_115422.xlsm" />
+    <Content Include="Properties\wwwroot\tempCST\CST_20260524_121606.xlsm" />
+    <Content Include="Properties\wwwroot\tempCST\CST_20260524_121804.xlsm" />
+    <Content Include="Properties\wwwroot\tempCST\CST_20260524_122309.xlsm" />
+    <Content Include="Properties\wwwroot\tempCST\CST_20260524_122346.xlsm" />
+    <Content Include="Properties\wwwroot\tempCST\CST_20260524_122355.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260423_141738.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260423_141834.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260423_142908.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260423_143036.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260423_143542.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260423_144321.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260428_171251.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260428_171452.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260428_171505.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260428_171914.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260428_232017.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_100705.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_100730.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_100830.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_100936.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_101849.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_101854.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_102300.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_113457.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_113538.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260507_113614.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260508_231951.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260511_123252.xlsm" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260512_123518.pdf" />
+    <Content Include="Properties\wwwroot\tempDeAngeli\DEANGELI_20260514_102150.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260416_182641.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260416_183244.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260416_183843.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260416_183938.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260416_183942.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260416_184247.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260416_235633.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260417_012222.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260417_090603.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260427_172458.xlsm" />
+    <Content Include="Properties\wwwroot\tempElektraWire\ElektraWire_20260427_172705.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260421_111554.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260421_111739.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260428_152128.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260428_152220.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260428_152254.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260502_120946.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260502_121546.xlsm" />
+    <Content Include="Properties\wwwroot\tempGuerzoni\Guerzoni_20260502_143457.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_102358.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_102524.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_102535.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_102710.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_103144.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_103430.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_111342.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260421_111410.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260508_233019.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260508_233025.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260511_123537.xlsm" />
+    <Content Include="Properties\wwwroot\tempHitech\Hitech_20260524_112836.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260421_123539.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260421_160922.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260425_233627.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260425_233821.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260425_234057.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260425_234123.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260425_235944.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260426_001303.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemCore\SystemCore_20260426_002842.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemP\SystemP_20260421_114615.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemP\SystemP_20260421_115943.xlsm" />
+    <Content Include="Properties\wwwroot\tempSystemP\SystemP_20260421_123355.xlsm" />
+    <Content Include="Properties\wwwroot\tempTradingAndConsulting\TradingAndConsulting_20260429_190204.xlsm" />
+    <Content Include="Properties\wwwroot\tempTradingAndConsulting\TradingAndConsulting_20260429_190439.xlsm" />
+    <Content Include="Properties\wwwroot\tempTradingAndConsulting\TradingAndConsulting_20260429_190549.xlsm" />
+    <Content Include="Properties\wwwroot\tempTradingAndConsulting\TradingAndConsulting_20260429_190605.xlsm" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.24" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.23" />
@@ -19,10 +170,6 @@
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.23" />
     <PackageReference Include="QuestPDF" Version="2026.2.4" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="wwwroot\img\" />
   </ItemGroup>
 
   <ItemGroup>

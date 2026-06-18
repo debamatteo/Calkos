@@ -1564,7 +1564,7 @@
                 if (!idAgente || !idCliente || idAgente === "0" || idCliente === "0") return;
 
                 $.getJSON(
-                    '/Admin/ProspettiCobral/GetPercentualeProvvigione',
+                    '/Admin/ProspettiElektraWire/GetPercentualeProvvigione',
                     { idAgente, idCliente },
                     function (percentuale) {
                         const valTec = roundTec(safeNum(percentuale));

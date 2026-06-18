@@ -4,6 +4,7 @@ using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Office.CustomUI;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Humanizer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -79,11 +80,19 @@ namespace Calkos.web.Helpers
                 r.Agente = GetSafeString(ws.Cell(row, 28), row, 28, errori);
                 r.Scadenza = GetSafeDateTime(ws.Cell(row, 29), row, 29, errori);
                 r.Fatturare = GetSafeString(ws.Cell(row, 30), row, 30, errori);
+
+  
+
                 // 14/04/2026  IMPORTA SOLO LE RIGHE CON FATTURARE = OK
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+
+                // 1) Numero ordine obbligatorio 25/05/2026
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
             }
 
             //15/04/2026
@@ -184,14 +193,18 @@ namespace Calkos.web.Helpers
                 //r.Fatturare = raw;
 
 
-
                 // ============================================================
                 // 14/04/2026 — IMPORTA SOLO LE RIGHE CON FLAG  AMMESSO
                 // ============================================================
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+
+                // 1) Numero ordine obbligatorio 25/05/2026
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
             }
             //15/04/2026
             if (errori.Any())
@@ -276,11 +289,17 @@ namespace Calkos.web.Helpers
                 // Celle con dropdown → GetFormattedString() non serve
                 r.Fatturare = GetSafeString(ws.Cell(row, 27), row, 27, errori); //ws.Cell(row, 27).GetFormattedString().Trim();
 
+
+
                 // Importa solo se Fatturare è ammesso
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+                // 1) Numero ordine obbligatorio 25/05/2026
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
             }
 
             if (errori.Any())
@@ -325,7 +344,7 @@ namespace Calkos.web.Helpers
 
                 var r = new RigaExcelCST();
 
-                // Mappatura secondo sequenza fornita:
+                // Mappatura secondo sequenza fornita://25/05/2026 CAéIRE SE IMPEDIRE NEL CASO ORDINE VUOTO
                 r.OrdineDDT = ordine;                                             // Colonna 1
                 r.Cliente = cliente;// GetSafeString(ws.Cell(row, 2), row, 2, errori);        // Colonna 2
                 r.Kg = GetSafeDecimal(ws.Cell(row, 3), row, 3, errori);             // Colonna 3
@@ -356,11 +375,18 @@ namespace Calkos.web.Helpers
                 r.Agente = GetSafeString(ws.Cell(row, 18), row, 18, errori);                // Colonna 18
                 r.Fatturare = GetSafeString(ws.Cell(row, 19), row, 19, errori);             // Colonna 19
 
-                // Filtro basato sulla colonna 19
+       
+      
+
+                // Filtro basato sulla colonna 19 Controlla se il valore ottenuto è dentro la lista/array valoriAmmessi.Se il valore NON è ammesso → salta la riga e passa alla successiva.
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+                // 1) Numero ordine obbligatorio 25/05/2026
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
             }
 
             if (errori.Any())
@@ -435,11 +461,18 @@ namespace Calkos.web.Helpers
                 // ============================
                 r.Fatturare = GetSafeString(ws.Cell(row, 9), row, 9, errori);
 
+       
+
                 // IMPORTA SOLO LE RIGHE CON FATTURARE AMMESSO
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+
+                // 1) Numero ordine obbligatorio 25/05/2026
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
             }
 
             if (errori.Any())
@@ -556,11 +589,18 @@ namespace Calkos.web.Helpers
                 r.Agente = GetSafeString(ws.Cell(row, 10), row, 10, errori);
                 // 11 - Fatturare
                 r.Fatturare = GetSafeString(ws.Cell(row, 11), row, 11, errori);
+
+    
+
                 // Importa solo se ammesso
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
+
             }
 
             if (errori.Any())
@@ -664,7 +704,11 @@ namespace Calkos.web.Helpers
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
+
             }
 
             if (errori.Any())
@@ -794,7 +838,11 @@ namespace Calkos.web.Helpers
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+                // 1) Numero ordine obbligatorio 25/05/2026
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
             }
 
             if (errori.Any())
@@ -868,11 +916,22 @@ namespace Calkos.web.Helpers
                 r.Agente = GetSafeString(ws.Cell(row, 18), row, 18, errori);                // Colonna 18
                 r.Fatturare = GetSafeString(ws.Cell(row, 19), row, 19, errori);             // Colonna 19
 
-                // Filtro basato sulla colonna 19
+
+
+
+
+
+                // Filtro basato sulla colonna 19 Controlla se il valore ottenuto è dentro la lista/array valoriAmmessi.Se il valore NON è ammesso → salta la riga e passa alla successiva.
+                // 25/05/2026
                 if (!valoriAmmessi.Contains(r.Fatturare?.Trim() ?? ""))
                     continue;
 
-                lista.Add(r);
+
+                // 1) Numero ordine obbligatorio 25/05/2026
+                if (!string.IsNullOrWhiteSpace(ordine))
+                {
+                    lista.Add(r);
+                }
             }
 
             if (errori.Any())

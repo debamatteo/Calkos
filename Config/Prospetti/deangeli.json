@@ -5,28 +5,36 @@
       "label": "Ordine",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 2,
+      "sortDirection": "asc"
     },
     {
       "name": "NumeroDDT",
       "label": "DDT",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 3,
+      "sortDirection": "asc"
     },
     {
       "name": "NumeroFattura",
       "label": "Fattura",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 4,
+      "sortDirection": "asc"
     },
     {
       "name": "RagioneSociale",
       "label": "Cliente",
       "visible": true,
       "format": "text",
-      "width": 3
+      "width": 3,
+      "sortOrder": 1,
+      "sortDirection": "asc"
     },
     {
       "name": "UnitaMisura",
@@ -55,7 +63,7 @@
       "label": "Materiale",
       "visible": true,
       "format": "text",
-      "width": 2
+      "width": 1
     },
     {
       "name": "Prezzo",
@@ -121,7 +129,7 @@
       "label": "Totale Fisso",
       "visible": true,
       "format": "currency",
-      "width": 1
+      "width": 2
     },
     {
       "name": "Differenza",
@@ -135,7 +143,7 @@
       "label": "Totale Provv. Variabile",
       "visible": true,
       "format": "currency",
-      "width": 1
+      "width": 2
     },
 
     {
@@ -143,7 +151,7 @@
       "label": "Totale Fattura",
       "visible": true,
       "format": "currency",
-      "width": 1
+      "width": 2
     },
     {
       "name": "Fatturata",

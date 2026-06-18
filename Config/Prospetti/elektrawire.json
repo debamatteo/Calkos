@@ -5,28 +5,36 @@
       "label": "Ordine",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 2,
+      "sortDirection": "asc"
     },
     {
       "name": "NumeroDDT",
       "label": "DDT",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 3,
+      "sortDirection": "asc"
     },
     {
       "name": "NumeroFattura",
       "label": "Fattura",
       "visible": true,
       "format": "text",
-      "width": 1
+      "width": 1,
+      "sortOrder": 4,
+      "sortDirection": "asc"
     },
     {
       "name": "RagioneSociale",
       "label": "Cliente",
       "visible": true,
       "format": "text",
-      "width": 3
+      "width": 3,
+      "sortOrder": 1,
+      "sortDirection": "asc"
     },
     {
       "name": "UnitaMisura",
@@ -91,21 +99,21 @@
       "label": "Totale provv variabile",
       "visible": true,
       "format": "currency",
-      "width": 1
+      "width": 2
     },
     {
       "name": "TotaleSommaProvvigioni",
       "label": "Tot. Provv.",
       "visible": true,
       "format": "currency",
-      "width": 1
+      "width": 2
     },
     {
       "name": "TotaleProvvigioneDaFatturare",
       "label": "Totale Provvigioni",
       "visible": true,
       "format": "currency",
-      "width": 1
+      "width": 2
     },
 
     {
