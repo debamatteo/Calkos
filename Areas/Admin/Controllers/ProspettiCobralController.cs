@@ -252,7 +252,7 @@ namespace Calkos.web.Areas.Admin.Controllers
             };
 
             // 5. Avvio importazione ImportazioneCobralService
-
+            //24/06/2026
             //gestione del tipopagamento di default del mandatario tramite sessione, così non devo passarlo come parametro da form o URL
             int IdTipoPagamento = HttpContext.Session.GetInt32("TipoPagamentoMandatario") ?? 0;
             //15/04/2026

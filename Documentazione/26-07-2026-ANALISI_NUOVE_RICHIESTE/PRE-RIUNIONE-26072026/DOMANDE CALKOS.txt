@@ -1,0 +1,26 @@
+DOMANDE CALKOS
+
+1) 
+L'Agente deve vedere tutti i dati del gestionale (come fa un Operatore), 
+oppure deve vedere solo i propri clienti / i propri ordini?
+l'agente deve poter inserire, modificare e vedere unicamente i propri dati 
+(ovvero solo le righe/ordini/prospetti in cui l'agente coincide con l'utente collegato)
+2)
+
+
+IDENTITY 1
+https://chatgpt.com/share/6a65df37-f050-83eb-823d-4dab3ca14837
+IDENTITY 2
+https://chatgpt.com/c/6a662737-0cdc-83eb-8095-c48c4513cf0e
+GEMINI
+https://share.gemini.google/SmlBBahscuHG
+
+Windows 10/11 Pro	⚠️ Parzialmente	Funziona, ma IIS su Windows desktop ha limiti di connessioni contemporanee. 
+Se gli utenti esterni sono pochi (es. 2-5 agenti) va bene, altrimenti serve Windows Server.
+
+IP Pubblico Dinamico	⚠️ Parzialmente	Risolvibile facilmente con un servizio DDNS (es. No-IP / DuckDNS) 
+o meglio ancora con Cloudflare Tunnel (senza toccare le porte del router).
+
+Solo HTTP (senza HTTPS)	❌ No per Internet	In rete locale si usa HTTP, 
+ma esporre un gestionale su Internet senza HTTPS (certificato SSL) è un grave rischio di sicurezza. 
+Andrà installato un certificato SSL (es. Let's Encrypt gratuito o tramite Cloudflare).
