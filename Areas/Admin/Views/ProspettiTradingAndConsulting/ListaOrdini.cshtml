@@ -223,6 +223,83 @@
             });
 
 
+            // ================================================================================
+            // ==== 01-  MODIFICA 06/08/2026 - INIZIO ====
+            // PERSISTENZA FILTRI TRA NAVIGAZIONI (sessionStorage)
+            // Obiettivo: se apro un Dettaglio e torno indietro, ritrovo TUTTI i filtri
+            // (sia quelli in alto: anno/mese/fatturata/tipoPagamento/eliminati,
+            //  sia i filtri veloci per colonna del DataTable, es. "Cliente").
+            // Si azzerano SOLO cliccando il pulsante "Reset Filtri" (#btnResetDinamico).
+            // ================================================================================
+            const FILTRI_STORAGE_KEY = 'calkos_filtriListaOrdini_TradingAndConsulting';
+            const FILTRI_COLONNE_STORAGE_KEY = 'calkos_filtriColonneListaOrdini_TradingAndConsulting';
+
+            // ---- Filtri IN ALTO (anno/mese/fatturata/tipoPagamento/eliminati) ----
+            function salvaFiltriInStorage() {
+                var filtri = {
+                    anno: $('#filtroAnno').val(),
+                    mese: $('#filtroMese').val(),
+                    fatturata: $('#filtroFatturata').val(),
+                    idTipoPagamento: $('#filtroTipoPagamento').val(),
+                    mostraEliminati: $('#filtroEliminati').val()
+                };
+                sessionStorage.setItem(FILTRI_STORAGE_KEY, JSON.stringify(filtri));
+            }
+
+            function ripristinaFiltriDaStorage() {
+                var raw = sessionStorage.getItem(FILTRI_STORAGE_KEY);
+                if (!raw) return;
+                try {
+                    var filtri = JSON.parse(raw);
+                    if (filtri.anno !== undefined) $('#filtroAnno').val(filtri.anno);
+                    if (filtri.mese !== undefined) $('#filtroMese').val(filtri.mese);
+                    if (filtri.fatturata !== undefined) $('#filtroFatturata').val(filtri.fatturata);
+                    if (filtri.idTipoPagamento !== undefined) $('#filtroTipoPagamento').val(filtri.idTipoPagamento);
+                    if (filtri.mostraEliminati !== undefined) $('#filtroEliminati').val(filtri.mostraEliminati);
+                } catch (e) {
+                    console.warn('Impossibile ripristinare i filtri salvati', e);
+                }
+            }
+
+            // ---- Filtri COLONNA del DataTable (input nella riga "tr.filters") ----
+            // MODIFICA  06/08/2026: salviamo/ripristiniamo usando SEMPRE l'indice colonna
+            // reale di DataTables (table.columns()), non l'indice degli <input> nel DOM.
+            // In precedenza i due indici erano disallineati di 1 (perché la prima colonna,
+            // IdProspettoTradingAndConsulting, non ha un <input> associato mentre in DataTables occupa
+            // comunque l'indice 0): il valore filtrato finiva sulla colonna sbagliata e la
+            // tabella risultava vuota dopo il ripristino.
+            function salvaFiltriColonneInStorage() {
+                var filtriColonne = {};
+                table.columns().every(function (index) {
+                    var val = this.search();
+                    if (val) filtriColonne[index] = val;
+                });
+                sessionStorage.setItem(FILTRI_COLONNE_STORAGE_KEY, JSON.stringify(filtriColonne));
+            }
+
+            function ripristinaFiltriColonneDaStorage() {
+                var raw = sessionStorage.getItem(FILTRI_COLONNE_STORAGE_KEY);
+                if (!raw) return {};
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    console.warn('Impossibile ripristinare i filtri colonna salvati', e);
+                    return {};
+                }
+            }
+
+            // Ripristina SUBITO i filtri in alto, prima che venga costruita la tabella,
+            // così la prima chiamata AJAX di DataTables parte già con i valori corretti.
+            // (I filtri colonna invece si ripristinano dentro initComplete, vedi sotto,
+            //  perché richiedono che la tabella abbia già i dati caricati.)
+            ripristinaFiltriDaStorage();
+            // ==== 1 MODIFICA 06/08/2026 - FINE ====
+            // ================================================================================
+
+
+
+
+
         //22/05/2026 aggiornaLinkExport  aggiornaLinkExport() i link vengono ricostruiti dinamicamente ad ogni cambio filtro,per allineare le estrazioni
         function aggiornaLinkExport() {
 
@@ -302,6 +379,16 @@
             // ----------------------------------------------------------
             // 2. INIZIALIZZAZIONE DATATABLES CON AJAX
             // ----------------------------------------------------------
+
+            // ================================================================================
+            // ==== 1 FIX 06/08/2026 - INIZIO ====
+            //Filtro DataTables sfalsato: il primo draw rimuove il <th> della colonna nascosta, spostando gli indici
+            //dei filtri. Il valore salvato per Cliente finisce nell’input della colonna successiva.
+            //Soluzione: salvare gli input prima del draw e riutilizzarli in initComplete.
+            var filterInputsByColumnIndex = {};
+            // ==== 1 FIX 06/08/2026 - FINE ====
+            // ================================================================================
+
             var table = $('#ordiniTable').DataTable({
                 dom: 'lrtip',
                 orderCellsTop: true,
@@ -324,8 +411,6 @@
                         d.idMandatario = $('#filtroidMandatario').val();
                         d.idFileImportato = $('#filtroidFileImportato').val();
                         d.idTipoPagamento  = $('#filtroTipoPagamento').val(); // <-- NUOVO 22/05/2026
-
-
                     }
                 },
                 columns: colConfig,
@@ -335,7 +420,47 @@
                     }
                     $(row).attr('data-id', data.IdProspettoTradingAndConsulting);
                 },
-                order: []
+                order: [],
+
+                // ================================================================================
+                // ==== 2 MODIFICA 06/08/2026 - INIZIO ====
+                // Ripristino dei filtri colonna SOLO dentro initComplete, cioè dopo che la prima
+                // chiamata AJAX ha già caricato e disegnato i dati.
+                //
+                // MOTIVO (fix di un bug reale riscontrato in test):
+                // Se si chiama table.draw() o column.search() SUBITO dopo l'inizializzazione,
+                // mentre la prima richiesta AJAX di init è ancora in corso (è asincrona),
+                // il contatore interno di draw di DataTables va fuori sincrono: quando la
+                // risposta del server arriva, DataTables la scarta pensando sia "vecchia"
+                // e la tabella resta vuota. initComplete scatta una sola volta, DOPO che i
+                // dati sono già stati caricati e renderizzati la prima volta: da lì un
+                // draw() locale è sicuro perché non genera una nuova chiamata AJAX.
+                // ================================================================================
+                initComplete: function () {
+                    var tableApi = this.api();
+                    var filtriColonneSalvati = ripristinaFiltriColonneDaStorage();
+
+                    if (Object.keys(filtriColonneSalvati).length === 0) return;
+
+                    tableApi.columns().every(function (index) {
+                        var column = this;
+                        if (filtriColonneSalvati[index] !== undefined) {
+                            // ==== 2 FIX 06/08/2026 ====: riferimento salvato in Sezione 4,
+                            // NON $('tr.filters th').eq(index) che qui è già sfalsato.
+                            var input = filterInputsByColumnIndex[index];
+                            if (input && input.length) {
+                                input.val(filtriColonneSalvati[index]);
+                            }
+                            column.search(filtriColonneSalvati[index]);
+                        }
+                    });
+
+                    tableApi.draw();
+                }
+
+
+                // ==== 2 MODIFICA 06/08/2026 - FINE ====
+                // ================================================================================
             });
 
             // ----------------------------------------------------------
@@ -353,10 +478,12 @@
                         '/Admin/ProspettiTradingAndConsulting/ListaOrdini'
                     );
 
+                    // ==== 3 MODIFICA 06/08/2026 ====: salva lo stato dei filtri in alto ad ogni cambio
+                    salvaFiltriInStorage();
                     aggiornaLinkExport();//22/05/2026
 
                     // Reload DataTable AJAX
-            table.ajax.reload(null, false);
+                    table.ajax.reload(null, false);
             });
 
             // ----------------------------------------------------------
@@ -377,6 +504,22 @@
                 // Reset filtro hidden usato dall'AJAX
                 $('#filtroidFileImportato').val('');
 
+                // ================================================================================
+                // ==== 4 MODIFICA 06/08/2026 - INIZIO ====
+                // FIX: il reset doveva pulire anche i filtri veloci per colonna (es. "Cliente"),
+                // sia a video (gli <input> nella riga tr.filters) sia nella ricerca interna di
+                // DataTables (altrimenti il filtro colonna restava applicato anche dopo il reset,
+                // pur avendo svuotato lo storage).
+                $('#ordiniTable thead tr.filters th input').val('');
+                table.columns().search('');
+
+                // Rimuove SOLO qui (pulsante Reset) i filtri persistiti in sessionStorage:
+                // sia quelli in alto sia quelli colonna.
+                sessionStorage.removeItem(FILTRI_STORAGE_KEY);
+                sessionStorage.removeItem(FILTRI_COLONNE_STORAGE_KEY);
+                // ==== 4 MODIFICA 06/08/2026 - FINE ====
+                // ================================================================================
+
                 // Pulisce la URL del browser senza reload pagina
                 window.history.replaceState(
                     {},
@@ -385,21 +528,25 @@
             );
 
                 // Ricarica dati tabella via AJAX mantenendo la pagina corrente
+                // (ajax.reload esegue già un draw, non serve chiamarne uno separato)
                 table.ajax.reload(null, false);
             });
 
             // ----------------------------------------------------------
             // 4. FILTRI VELOCI PER COLONNA
             // ----------------------------------------------------------
-            $('#ordiniTable thead tr.filters th').on('click', function (e) {
-                e.stopPropagation();
-            });
-
             table.columns().every(function (index) {
                 var column = this;
-                $('tr.filters th').eq(index).find('input').on('keyup change', function () {
+                var input = $('tr.filters th').eq(index).find('input');
+
+                // ==== 3 FIX 06/08/2026 ====: salvato ORA, unico momento in cui il DOM
+                // è ancora allineato 1:1 con gli indici di DataTables.
+                filterInputsByColumnIndex[index] = input;
+
+                input.on('keyup change', function () {
                     if (column.search() !== this.value) {
                         column.search(this.value).draw();
+                        salvaFiltriColonneInStorage();
                     }
                 });
             });
