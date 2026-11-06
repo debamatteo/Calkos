@@ -1,0 +1,159 @@
+﻿@{
+    /*
+     * VIEW: Importazione Ordini ELEKTRAWIRE
+     *
+     * Questa pagina permette di caricare un file Excel ELEKTRAWIRE.
+     *
+     * Il Mandatario è fisso:
+     * ELEKTRAWIRE = IdMandatario = 1
+     *
+     * La pipeline di importazione è gestita dal controller:
+     * - Legge Excel
+     * - Converte righe in ImportElektraWire
+     * - Crea FileImportato
+     * - Avvia ImportazioneService
+     * - Mostra modale di conferma
+     */
+    ViewData["Title"] = "Importazione Ordini ELEKTRAWIRE";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-upload text-success me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Importazione Ordini ELEKTRAWIRE</h1>
+        <small class="text-muted">Carica un file Excel per generare i prospetti ELEKTRAWIRE</small>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* Messaggio di errore se il file non è valido *@
+        @if (TempData["Errore"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Errore"]</div>
+        }
+        @if (TempData["BackupWarning"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <strong>Attenzione:</strong> @TempData["BackupWarning"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @* FORM DI IMPORTAZIONE *@
+        <form method="post" enctype="multipart/form-data">
+
+            @* remmo ora uso la sessione *@
+            @*<input type="hidden" name="idMandatario" value="@ViewBag.IdMandatario" /> *@
+
+
+            <!-- BLOCCO ANNO + MESE -->
+            <div class="row mb-3">
+
+                <!-- ANNO -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Anno</label>
+                    <select name="Anno" class="form-select" required>
+                        @for (int a = DateTime.Now.Year - 5; a <= DateTime.Now.Year + 1; a++)
+                        {
+                            if (a == DateTime.Now.Year)
+                            {
+                                <option value="@a" selected>@a</option>
+                            }
+                            else
+                            {
+                                <option value="@a">@a</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- MESE -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Mese</label>
+
+                    @{
+                        string[] mesi = new[]
+                        {
+                                        "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+                                        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+                                        };
+
+                        int meseCorrente = DateTime.Now.Month;
+                    }
+
+                    <select name="Mese" class="form-select" required>
+                        @for (int i = 0; i < mesi.Length; i++)
+                        {
+                            var value = i + 1;
+
+                            if (value == meseCorrente)
+                            {
+                                <option value="@value" selected>@mesi[i]</option>
+                            }
+                            else
+                            {
+                                <option value="@value">@mesi[i]</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- BLOCCO FILE -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Seleziona file da Importare</label>
+                    <input type="file" name="fileExcel" class="form-control" required />
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-play-fill me-1"></i> Avvia Importazione
+            </button>
+
+            @* MODALE DI CONFERMA IMPORTAZIONE *@
+            @if (TempData["ImportSuccess"] != null)
+            {
+                <div class="modal fade show" id="importSuccessModal" tabindex="-1" style="display:block; background:rgba(0,0,0,0.5);">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content shadow">
+
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title">Importazione completata</h5>
+                            </div>
+
+                            <div class="modal-body">
+                                <p>Il file ELEKTRAWIRE è stato importato correttamente.</p>
+                                <p>Vuoi visualizzare subito gli ordini importati?</p>
+                            </div>
+
+                            <div class="modal-footer">
+
+                                @* Redirect alla lista ordini ELEKTRAWIRE *@
+                                <a class="btn btn-primary"
+                                   href="/Admin/ProspettiElektraWire/ListaOrdini?idFileImportato=@TempData["IdFileImportato"]">
+                                    Vai alla Lista Ordini ELEKTRAWIRE
+                                </a>
+
+                                <button class="btn btn-secondary" onclick="closeModal()">Rimani qui</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function closeModal() {
+                        document.getElementById("importSuccessModal").style.display = "none";
+                    }
+                </script>
+            }
+
+        </form>
+
+    </div>
+</div>

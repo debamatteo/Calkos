@@ -1,0 +1,1134 @@
+﻿@model Calkos.web.Models.ViewModels.Prospetti.ProspettoSystemPListaViewModel
+
+@* AGGIUNTO PER ANTIFORGERY CENTRALIZZATO  05/04/2026 *@
+@Html.AntiForgeryToken()
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Lista Ordini SYSTEMP";
+    int idMandatario = Context.Session.GetInt32("IdMandatario") ?? 0;
+    // NUOVO 10/08/2026 Inizio 1
+    bool isAdmin = User.IsInRole("Admin");
+    bool isOperatore = User.IsInRole("Operatore");
+    bool isAgente = User.IsInRole("Agente");
+    bool campiEditabili = isAdmin || isOperatore || isAgente;
+    // NUOVO 10/08/2026 fine
+
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-table text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Lista Ordini SYSTEMP</h1>
+        <small class="text-muted">Visualizza gli ordini importati dal file selezionato</small>
+    </div>
+</div>
+
+@* ============================================================
+   FILTRI DI RICERCA (Anno, Mese, File)
+   ============================================================ *@
+<div class="row g-3 mb-4 align-items-end" id="areaFiltri">
+    <input type="hidden" id="filtroidMandatario" value="@ViewBag.IdMandatario" />
+    <input type="hidden" id="filtroidFileImportato" value="@ViewBag.IdFileImportato" />
+
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Anno</label>
+        <select name="anno" id="filtroAnno" class="form-select border-primary">
+            <option value="">Tutti</option>
+            @for (int a = DateTime.Now.Year - 5; a <= DateTime.Now.Year + 1; a++)
+            {
+                <option value="@a" selected="@(ViewBag.Anno == a)">@a</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Mese</label>
+        <select name="mese" id="filtroMese" class="form-select border-primary">
+            <option value="">Tutti</option>
+            @for (int m = 1; m <= 12; m++)
+            {
+                <option value="@m" selected="@(ViewBag.Mese == m)">
+                    @System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetMonthName(m)
+                </option>
+            }
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label fw-bold text-primary">Stato Fatturazione</label>
+        <select name="fatturata" id="filtroFatturata" class="form-select border-primary">
+            <option value="-1" selected="@(ViewBag.Fatturata == null)">Tutti i record</option>
+            <option value="0" selected="@(ViewBag.Fatturata?.ToString() == "0")">Solo NON Fatturate</option>
+            <option value="1" selected="@(ViewBag.Fatturata?.ToString() == "1")">Solo Fatturate</option>
+        </select>
+    </div>
+
+    @*  30/09/2026 filtro filtroDaFatturare*@
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Da Fatturare</label>
+        <select name="daFatturare" id="filtroDaFatturare" class="form-select border-primary">
+            <option value="-1" selected="@(ViewBag.DaFatturare == null)">Tutti i record</option>
+            <option value="1" selected="@(ViewBag.DaFatturare?.ToString() == "1")">Solo Da Fatturare</option>
+            <option value="0" selected="@(ViewBag.DaFatturare?.ToString() == "0")">Solo NON Da Fatturare</option>
+        </select>
+    </div>
+
+    @* 05/10/2026 NUOVI FILTRI PER RITARDI CONSEGNA *@
+    @{
+        var filtroRitardo = (ViewBag.InRitardo as string) ?? "";
+    }
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Ritardo</label>
+        <select name="inRitardo" id="filtroInRitardo" class="form-select border-primary">
+            <option value="" selected="@(filtroRitardo == "")">Tutti</option>
+            <option value="aperti" selected="@(filtroRitardo == "aperti")">In ritardo</option>
+            <option value="consegnati" selected="@(filtroRitardo == "consegnati")">Consegnati in ritardo</option>
+            <option value="tutti_ritardi" selected="@(filtroRitardo == "tutti_ritardi")">Tutti i ritardi</option>
+            <option value="false" selected="@(filtroRitardo == "false")">Non in ritardo</option>
+        </select>
+    </div>
+
+    @* 02/10/2026 NUOVI FILTRI Giorni Ritardo *@
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Giorni Ritardo </label>
+        <input type="number" name="giorniRitardoMin" id="filtroGiorniRitardoMin" class="form-control border-primary"
+               placeholder="Es. 5" min="0" value="@ViewBag.GiorniRitardoMin" />
+    </div>
+
+    @* ============================================================
+        22/05/2026 NUOVO FILTRO: TIPO PAGAMENTO filtroTipoPagamento
+       - ViewBag.TipiPagamento viene popolato dal controller (vedi sotto)
+       - Il valore 0 = "Tutti" (nessun filtro applicato)
+       - ViewBag.IdTipoPagamento mantiene la selezione dopo reload/redirect
+       ============================================================ *@
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-primary">Tipo Pagamento</label>
+        <select name="idTipoPagamento" id="filtroTipoPagamento" class="form-select border-primary">
+            @* Opzione "Tutti" → valore 0 = nessun filtro *@
+            <option value="0" selected="@(ViewBag.IdTipoPagamento == null || ViewBag.IdTipoPagamento == 0)">
+                Tutti
+            </option>
+            @* Ciclo sui tipi pagamento popolati dal controller *@
+            @foreach (var item in ViewBag.TipiPagamento as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>())
+            {
+                <option value="@item.Value"
+                        selected="@(ViewBag.IdTipoPagamento?.ToString() == item.Value)">
+                    @item.Text
+                </option>
+            }
+        </select>
+    </div>
+
+
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-danger">Visualizzazione</label>
+        <select name="mostraEliminati" id="filtroEliminati" class="form-select border-danger">
+            <option value="false" selected="@(ViewBag.MostraEliminati == false)">Record Attivi</option>
+            <option value="true" selected="@(ViewBag.MostraEliminati == true)">Cestino (Eliminati)</option>
+        </select>
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="button" id="btnResetDinamico" class="btn btn-outline-secondary w-100" style="height: 38px;">
+            <i class="bi bi-arrow-counterclockwise me-2"></i> Reset Filtri
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <style>
+            #ordiniTable tbody tr:hover {
+                background-color: #e8f1ff !important;
+                cursor: pointer;
+            }
+
+            .row-deleted {
+                background-color: #f8d7da !important;
+                color: #6c757d !important;
+                text-decoration: line-through;
+            }
+
+            /* ==== 23/10/2026 INIZIO - Colonna Azioni sempre visibile a destra (sticky) ====
+                                       Con la finestra stretta compare lo scroll orizzontale di .table-responsive e
+                                       l'ultima colonna usciva dall'area visibile. position:sticky + right:0 la tiene
+                                       agganciata al bordo destro del contenitore mentre le altre colonne scorrono.
+                                       NON si imposta background-color né box-shadow: restano quelli di Bootstrap 5.3
+                                       (righe alternate, hover, table-danger) già applicati alla cella. */
+            #ordiniTable th.col-azioni,
+            #ordiniTable td.col-azioni {
+                position: sticky;
+                right: 0;
+                z-index: 2;
+            }
+
+            #ordiniTable thead th.col-azioni {
+                z-index: 3; /* l'intestazione sta sopra le celle del corpo */
+            }
+
+            /* Separatore visivo: pseudo-elemento, perché con border-collapse (forzato in site.css)
+                                       un border sulla cella sticky non si sposta insieme alla cella */
+            #ordiniTable th.col-azioni::before,
+            #ordiniTable td.col-azioni::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: -6px;
+                width: 6px;
+                pointer-events: none;
+                background: linear-gradient(to right, transparent, rgba(0, 0, 0, .08));
+            }
+            /* ==== 23/10/2026 FINE ==== */
+        </style>
+
+        @*  22/05/2026 *@
+        <a href="/Admin/ProspettiSystemP/Nuovo" class="btn btn-primary mb-3">
+            <i class="bi bi-plus-circle"></i> Nuova riga
+        </a>
+
+        <a id="btnExportExcel" class="btn btn-primary mb-3">
+            <i class="bi bi-file-earmark-excel"></i> Esporta Excel
+        </a>
+
+        <a id="btnExportPdf" class="btn btn-primary mb-3">
+            <i class="bi bi-file-earmark-pdf"></i> Esporta PDF
+        </a>
+
+
+        <div class="table-responsive" style="overflow-x: auto;">
+
+            <table id="ordiniTable" class="table table-striped table-hover align-middle table-custom-header">
+                <thead>
+                    <tr>
+                        <th style="display:none;">ID</th>
+
+                        @foreach (var col in Model.Colonne)
+                        {
+                            if (col.Visible)
+                            {
+                                <th>@col.Label</th>
+                            }
+                        }
+                        @* 23/10/2026 aggiunta classe col-azioni (colonna sticky a destra) *@
+                        <th style="width: 120px;" class="text-center col-azioni">Azioni</th>
+                    </tr>
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        @foreach (var col in Model.Colonne)
+                        {
+                            if (col.Visible)
+                            {
+                                <th>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Filtra @col.Label" />
+                                </th>
+                            }
+                        }
+                        @* 23/10/2026 aggiunta classe col-azioni (colonna sticky a destra) *@
+                        <th class="col-azioni"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+
+        @* 02/10/2026 DISABILITATO - IMPORT  NON PIÙ ATTIVO *@
+        @if (false)
+        {
+            <a href="/Admin/ProspettiSystemP/Importa?idMandatario=@idMandatario" class="btn btn-primary mb-3">
+                Importa un nuovo file SYSTEMP
+            </a>
+        }
+
+
+
+    </div>
+</div>
+
+
+@* ==== MODIFICA 02/11/2026 - INIZIO ==== Popup scelta periodo per Duplica *@
+@{
+    var itDup = System.Globalization.CultureInfo.GetCultureInfo("it-IT");
+    var oggiDup = DateTime.Today;
+    int annoInizioDup = isAgente ? oggiDup.Year : oggiDup.Year - 5;   // l'Agente non va nel passato
+}
+<div class="modal fade" id="modalDuplica" tabindex="-1" aria-labelledby="modalDuplicaTitolo" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDuplicaTitolo">Duplica riga</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Periodo (Anno/Mese) della nuova riga:</p>
+
+                @if (!isAgente)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="duplicaPeriodo" id="duplicaPeriodoOriginale" value="originale" checked />
+                        <label class="form-check-label" for="duplicaPeriodoOriginale">Come la riga originale</label>
+                    </div>
+                }
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="duplicaPeriodo" id="duplicaPeriodoCorrente" value="corrente" checked="@isAgente" />
+                    <label class="form-check-label" for="duplicaPeriodoCorrente">
+                        Mese corrente (@itDup.DateTimeFormat.GetMonthName(oggiDup.Month) @oggiDup.Year)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="duplicaPeriodo" id="duplicaPeriodoScelta" value="scelta" />
+                    <label class="form-check-label" for="duplicaPeriodoScelta">A scelta</label>
+                </div>
+
+                <div class="row g-2 mt-2" id="duplicaScelta" style="display:none;">
+                    <div class="col-6">
+                        <label class="form-label" for="duplicaAnno">Anno</label>
+                        <select id="duplicaAnno" class="form-select">
+                            @for (int annoDup = annoInizioDup; annoDup <= oggiDup.Year + 1; annoDup++)
+                            {
+                                <option value="@annoDup" selected="@(annoDup == oggiDup.Year)">@annoDup</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label" for="duplicaMese">Mese</label>
+                        <select id="duplicaMese" class="form-select">
+                            @for (int meseDup = 1; meseDup <= 12; meseDup++)
+                            {
+                                <option value="@meseDup" selected="@(meseDup == oggiDup.Month)">@itDup.DateTimeFormat.GetMonthName(meseDup)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-warning" id="btnConfermaDuplica"><i class="bi bi-files"></i> Duplica</button>
+            </div>
+        </div>
+    </div>
+</div>
+@* ==== MODIFICA 02/11/2026 - FINE ==== *@
+
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // ============================================================
+        // VARIABILI GLOBALI PER LE MODALI DI CONFERMA
+        // ============================================================
+        let deleteId  = null;
+        let deleteRow = null;
+        let resetId   = null;
+        let resetRow  = null;
+
+        // Nuove variabili per gestire ripristino ed eliminazione database tramite modale
+        let ripristinaId = null;
+        let deleteDefinitivoId = null;
+
+
+
+        // --- CENTRALIZZAZIONE CONFIGURAZIONE --- 11/05/2026
+                // per mettere decimali diversi ad esempio 3  basta cambiare questi numeri qui:
+                const CONFIG_VISUALIZZAZIONE = {
+                    decimaliValuta: 2,
+                    decimaliNumerici: 2,
+                    locale: 'it-IT'
+                };
+
+                // --- FUNZIONE DI ARROTONDAMENTO E FORMATTAZIONE ---
+                function formattaDatoNumerico(valore, isCurrency) {
+                    let num = parseFloat(valore);
+                    if (isNaN(num)) return valore;
+
+                    return num.toLocaleString(CONFIG_VISUALIZZAZIONE.locale, {
+                        minimumFractionDigits: isCurrency ? CONFIG_VISUALIZZAZIONE.decimaliValuta : CONFIG_VISUALIZZAZIONE.decimaliNumerici,
+                        maximumFractionDigits: isCurrency ? CONFIG_VISUALIZZAZIONE.decimaliValuta : CONFIG_VISUALIZZAZIONE.decimaliNumerici
+                    });
+                }
+
+
+
+
+         const isAdmin = @isAdmin.ToString().ToLower();//10/08/2026 2 True se l’utente è Admin
+          const isAgente = @isAgente.ToString().ToLower();//24/10/2026
+
+
+         // ==== MODIFICA 24/10/2026 - INIZIO ====
+        function mostraErroreAjax(xhr, prefisso) {
+            var msg = (xhr.responseJSON && xhr.responseJSON.error)
+                ? xhr.responseJSON.error
+                : 'Operazione non consentita o errore di rete.';
+            alert(prefisso + msg);
+        }
+        // ==== MODIFICA 24/10/2026 - FINE ====
+
+
+        $(document).ready(function () {
+
+            /**
+             * ============================================================
+             * CENTRALIZZAZIONE ANTIFORGERY 05/04/2026
+             * ============================================================
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+
+             // ================================================================================
+            // ==== 01-  MODIFICA 06/08/2026 - INIZIO ====
+            // PERSISTENZA FILTRI TRA NAVIGAZIONI (sessionStorage)
+            // Obiettivo: se apro un Dettaglio e torno indietro, ritrovo TUTTI i filtri
+            // (sia quelli in alto: anno/mese/fatturata/tipoPagamento/eliminati,
+            //  sia i filtri veloci per colonna del DataTable, es. "Cliente").
+            // Si azzerano SOLO cliccando il pulsante "Reset Filtri" (#btnResetDinamico).
+            // ================================================================================
+            const FILTRI_STORAGE_KEY = 'calkos_filtriListaOrdini_SystemP';
+            const FILTRI_COLONNE_STORAGE_KEY = 'calkos_filtriColonneListaOrdini_SystemP';
+
+            // ---- Filtri IN ALTO (anno/mese/fatturata/tipoPagamento/eliminati) ----
+            function salvaFiltriInStorage() {
+                var filtri = {
+                    anno: $('#filtroAnno').val(),
+                    mese: $('#filtroMese').val(),
+                    fatturata: $('#filtroFatturata').val(),
+                    daFatturare: $('#filtroDaFatturare').val(),             // NUOVO 30/09/2026
+                    idTipoPagamento: $('#filtroTipoPagamento').val(),
+                    inRitardo: $('#filtroInRitardo').val(),           // 02/10/2026
+                    giorniRitardoMin: $('#filtroGiorniRitardoMin').val(),    // 02/10/2026
+                    mostraEliminati: $('#filtroEliminati').val()
+
+                };
+                sessionStorage.setItem(FILTRI_STORAGE_KEY, JSON.stringify(filtri));
+            }
+
+            function ripristinaFiltriDaStorage() {
+                var raw = sessionStorage.getItem(FILTRI_STORAGE_KEY);
+                if (!raw) return;
+                try {
+                    var filtri = JSON.parse(raw);
+                    if (filtri.anno !== undefined) $('#filtroAnno').val(filtri.anno);
+                    if (filtri.mese !== undefined) $('#filtroMese').val(filtri.mese);
+                    if (filtri.fatturata !== undefined) $('#filtroFatturata').val(filtri.fatturata);
+                    if (filtri.daFatturare !== undefined) $('#filtroDaFatturare').val(filtri.daFatturare);          // NUOVO 30/09/2026
+                    if (filtri.idTipoPagamento !== undefined) $('#filtroTipoPagamento').val(filtri.idTipoPagamento);
+                    if (filtri.inRitardo !== undefined) $('#filtroInRitardo').val(filtri.inRitardo);            // 02/10/2026
+                    if (filtri.giorniRitardoMin !== undefined) $('#filtroGiorniRitardoMin').val(filtri.giorniRitardoMin); // 02/10/2026
+                    if (filtri.mostraEliminati !== undefined) $('#filtroEliminati').val(filtri.mostraEliminati);
+
+
+                } catch (e) {
+                    console.warn('Impossibile ripristinare i filtri salvati', e);
+                }
+            }
+
+            // ---- Filtri COLONNA del DataTable (input nella riga "tr.filters") ----
+            // MODIFICA  06/08/2026: salviamo/ripristiniamo usando SEMPRE l'indice colonna
+            // reale di DataTables (table.columns()), non l'indice degli <input> nel DOM.
+            // In precedenza i due indici erano disallineati di 1 (perché la prima colonna,
+            // IdProspettoSystemP, non ha un <input> associato mentre in DataTables occupa
+            // comunque l'indice 0): il valore filtrato finiva sulla colonna sbagliata e la
+            // tabella risultava vuota dopo il ripristino.
+            function salvaFiltriColonneInStorage() {
+                var filtriColonne = {};
+                table.columns().every(function (index) {
+                    var val = this.search();
+                    if (val) filtriColonne[index] = val;
+                });
+                sessionStorage.setItem(FILTRI_COLONNE_STORAGE_KEY, JSON.stringify(filtriColonne));
+            }
+
+            function ripristinaFiltriColonneDaStorage() {
+                var raw = sessionStorage.getItem(FILTRI_COLONNE_STORAGE_KEY);
+                if (!raw) return {};
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    console.warn('Impossibile ripristinare i filtri colonna salvati', e);
+                    return {};
+                }
+            }
+
+            // Ripristina SUBITO i filtri in alto, prima che venga costruita la tabella,
+            // così la prima chiamata AJAX di DataTables parte già con i valori corretti.
+            // (I filtri colonna invece si ripristinano dentro initComplete, vedi sotto,
+            //  perché richiedono che la tabella abbia già i dati caricati.)
+
+            //02/10/2026 Se l'URL porta filtri ritardo, vincono quelli dell'URL e NON sovrascriviamo dallo storage
+            @if (ViewBag.FiltriDaUrl != true)
+            {
+                    <text>ripristinaFiltriDaStorage();</text>
+            }
+            // ==== MODIFICA 06/08/2026 - FINE ====
+            // ================================================================================
+
+
+
+
+            //22/05/2026 aggiornaLinkExport  aggiornaLinkExport() i link vengono ricostruiti dinamicamente ad ogni cambio filtro,per allineare le estrazioni
+        function aggiornaLinkExport() {
+
+            let qs =
+                "idMandatario=" + $('#filtroidMandatario').val() +
+                "&idFileImportato=" + $('#filtroidFileImportato').val() +
+                "&anno=" + $('#filtroAnno').val() +
+                "&mese=" + $('#filtroMese').val() +
+                "&fatturata=" + $('#filtroFatturata').val() +
+                "&daFatturare=" + $('#filtroDaFatturare').val() +      // NUOVO 30/09/2026
+                "&idTipoPagamento=" + $('#filtroTipoPagamento').val() +
+                "&inRitardo=" + $('#filtroInRitardo').val() +                 // 02/10/2026
+                "&giorniRitardoMin=" + $('#filtroGiorniRitardoMin').val();    // 02/10/2026
+
+            $('#btnExportExcel').attr('href',
+                "/Admin/ProspettiSystemP/ExportExcelProspettoListaOrdini?" + qs);
+
+            $('#btnExportPdf').attr('href',
+                "/Admin/ProspettiSystemP/ExportPdfProspettoListaOrdini?" + qs);
+        }
+
+                // 24/05/2026 Aggiorna i link export con i filtri iniziali (anno/mese corrente di default)
+                aggiornaLinkExport();
+            // ----------------------------------------------------------
+            // 1. COSTRUZIONE DINAMICA DELLA CONFIGURAZIONE COLONNE
+            // ----------------------------------------------------------
+            var colConfig = [
+                { data: 'IdProspettoSystemP', visible: false }
+            ];
+
+            @foreach (var col in Model.Colonne)
+            {
+                        if (col.Visible)
+                        {
+                                    var colName = col.Name;
+                                    var colFormat = col.Format;
+                                    var isNumeric = col.Format.Contains("decimal") || col.Format.Contains("currency");
+                                    <text>
+                                    colConfig.push({
+                                        data: '@colName',
+                                        className: '@(isNumeric ? "text-end" : "")',
+                                        render: function (data, type, row) {
+                                            if (data === null || data === undefined) return '';
+                                             // Gestione colonna Fatturata
+                                            if ('@colName' === 'Fatturata') {
+                                                return data == 1
+                                                    ? '<span class="badge bg-success">Si</span>'
+                                                    : '<span class="badge bg-secondary">No</span>';
+                                            }
+
+                                            @* 
+                                            // PercentualeDelta → 0.5 → 50%
+                                            if ('@colName' === 'PercentualeDelta') {
+                                                var val = parseFloat(data);
+                                                if (isNaN(val)) return data;
+                                                return (val * 100).toFixed(2) + '%';
+                                            }
+                                            *@
+
+                                            // 05/05/2025 Percentuale → salvata già come 50 nel database → visualizza 50%
+                                            if ('@colFormat' === 'percent') {
+                                                var val = parseFloat(data);
+                                                if (isNaN(val)) return data;
+                                                return val.toFixed(2) + '%';
+                                            }
+
+
+
+
+                                                    // 02/10/2026 - Modificato il 02/10/2026 per opzione B
+                                                    // Gestione colonna InRitardo (Badge Rosso / Arancione / Verde / Escluso)
+                                                    // Gestione colonna InRitardo (Badge Rosso / Arancione / Verde / Escluso)
+                                                    if ('@colName' === 'InRitardo') {
+                                                        if (row.EscludiControlloRitardo || row.escludiControlloRitardo) {
+                                                            return '<span class="badge bg-secondary" title="Controllo ritardo escluso">Escluso</span>';
+                                                        }
+
+                                                        var isRitardo = data === true || data === 1 || data === 'true';
+                                                        var gg = parseInt(row.GiorniRitardo || row.giorniRitardo) || 0;
+
+                                                        if (isRitardo) {
+                                                            // Ordine ancora aperto e in ritardo
+                                                            return '<span class="badge bg-danger">Sì</span>';
+                                                        } else if (gg > 0) {
+                                                            // Ordine già consegnato ma arrivato in ritardo
+                                                            return '<span class="badge bg-warning text-dark" title="Consegnato in ritardo">Cons. in ritardo</span>';
+                                                        } else {
+                                                            // Ordine perfettamente nei tempi
+                                                            return '<span class="badge bg-success">No</span>';
+                                                        }
+                                                    }
+
+                                                    // Gestione colonna GiorniRitardo
+                                                    if ('@colName' === 'GiorniRitardo') {
+                                                        var gg = parseInt(data) || 0;
+                                                        var isRitardo = row.InRitardo === true || row.InRitardo === 1 || row.inRitardo === true;
+
+                                                        if (gg > 0) {
+                                                            // Se è in ritardo ed è aperto usiamo il testo rosso, se è già consegnato usiamo il testo arancione/scuro
+                                                            return isRitardo
+                                                                ? '<span class="fw-bold text-danger">+' + gg + ' gg</span>'
+                                                                : '<span class="fw-bold text-warning">+' + gg + ' gg</span>';
+                                                        }
+                                                        return '0';
+                                                    }
+
+
+                                                    // 30/09/2026 Gestione colonna DaFatturare (Badge Rosso / Verde )
+
+                                                    if ('@colName' === 'DaFatturare') {
+
+                                                        var isFatturare = data === true || data === 1 || data === 'true';
+                                                        return isFatturare
+                                                            ? '<span class="badge bg-danger">Sì</span>'
+                                                            : '<span class="badge bg-success">No</span>';
+                                                    }
+
+
+                                                    // Gestione colonne Date (più robusta)
+                                                    if ('@colFormat' === 'date' || '@colName'.toLowerCase().indexOf('data') !== -1) {
+                                                        if (!data) return '';
+
+                                                        // Se arriva come stringa "YYYY-MM-DD...", prende solo i primi 10 caratteri
+                                                        if (typeof data === 'string' && data.length >= 10) {
+                                                            var parti = data.substring(0, 10).split('-');
+                                                            if (parti.length === 3) {
+                                                                return parti[2] + '/' + parti[1] + '/' + parti[0]; // GG/MM/YYYY
+                                                            }
+                                                        }
+
+                                                        var d = new Date(data);
+                                                       // return isNaN(d.getTime()) ? data : d.toLocaleDateString('it-IT');
+                                                                return isNaN(d.getTime()) ? window.escapeHtml(data) : d.toLocaleDateString('it-IT');//20/10/2026
+                                                    }
+
+
+
+                                                 // APPLICAZIONE DELLA  FUNZIONE CENTRALIZZATA 11/05/2026
+                                                    if ('@colFormat'.indexOf('currency') !== -1 || '@colFormat'.indexOf('decimal') !== -1) {
+                                                        // Determiniamo se è valuta controllando il formato
+                                                        let checkCurrency = '@colFormat'.indexOf('currency') !== -1;
+                                                        return formattaDatoNumerico(data, checkCurrency);
+                                                    }
+
+                                                     return type === 'display' ? window.escapeHtml(data) : data;//20/10/2026 return data;
+                                        }
+                                    });
+                                    </text>
+                        }
+            }
+
+             colConfig.push({
+                 data: null,
+                 orderable: false,
+                 className: 'text-center text-nowrap col-azioni', // 23/10/2026 aggiunta col-azioni (sticky a destra)
+                 render: function (data, type, row) {
+                     return generaBottoniAzione(row);
+                 }
+             });
+
+            // ----------------------------------------------------------
+            // 2. INIZIALIZZAZIONE DATATABLES CON AJAX
+            // ----------------------------------------------------------
+
+            // ================================================================================
+            // ==== 1 FIX 06/08/2026 - INIZIO ====
+            //Filtro DataTables sfalsato: il primo draw rimuove il <th> della colonna nascosta, spostando gli indici
+            //dei filtri. Il valore salvato per Cliente finisce nell’input della colonna successiva.
+            //Soluzione: salvare gli input prima del draw e riutilizzarli in initComplete.
+            var filterInputsByColumnIndex = {};
+            // ==== 1 FIX 06/08/2026 - FINE ====
+            // ================================================================================
+
+            var table = $('#ordiniTable').DataTable({
+                dom: 'lrtip',
+                orderCellsTop: true,
+                fixedHeader: true,
+                pageLength: 25,
+                lengthMenu: [10, 25, 50, 100],
+                serverSide: false,
+                processing: true,
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json"
+                },
+                ajax: {
+                    url: '/Admin/ProspettiSystemP/ListaOrdiniJson',
+                    type: 'GET',
+                    data: function (d) {
+                        d.anno = $('#filtroAnno').val();
+                        d.mese = $('#filtroMese').val();
+                        d.fatturata = $('#filtroFatturata').val();
+                        d.daFatturare = $('#filtroDaFatturare').val();       // NUOVO 30/09/2026
+                        d.mostraEliminati = $('#filtroEliminati').val();
+                        d.idMandatario = $('#filtroidMandatario').val();
+                        d.idFileImportato = $('#filtroidFileImportato').val();
+                        d.idTipoPagamento  = $('#filtroTipoPagamento').val();         // <-- NUOVO 22/05/2026
+                        d.inRitardo = $('#filtroInRitardo').val();                   // NUOVO 02/10/2026
+                        d.giorniRitardoMin = $('#filtroGiorniRitardoMin').val();     // NUOVO 02/10/2026
+
+                    }
+                },
+                columns: colConfig,
+                createdRow: function (row, data) {
+                    if (data.IsDeleted) {
+                        $(row).addClass('row-deleted');
+                    } else if (data.InRitardo) {
+                        // 29/09/2026 Evidenzia leggermente la riga in rosso se l'ordine è in ritardo 2
+                         //aggiungere la classe CSS table-danger nella funzione createdRow se l'ordine è in ritardo:
+                        $(row).addClass('table-danger');
+                    }
+                    $(row).attr('data-id', data.IdProspettoSystemP);
+                },
+                order: [],
+
+                // ================================================================================
+                // ==== 2 MODIFICA 06/08/2026 - INIZIO ====
+                // Ripristino dei filtri colonna SOLO dentro initComplete, cioè dopo che la prima
+                // chiamata AJAX ha già caricato e disegnato i dati.
+                //
+                // MOTIVO (fix di un bug reale riscontrato in test):
+                // Se si chiama table.draw() o column.search() SUBITO dopo l'inizializzazione,
+                // mentre la prima richiesta AJAX di init è ancora in corso (è asincrona),
+                // il contatore interno di draw di DataTables va fuori sincrono: quando la
+                // risposta del server arriva, DataTables la scarta pensando sia "vecchia"
+                // e la tabella resta vuota. initComplete scatta una sola volta, DOPO che i
+                // dati sono già stati caricati e renderizzati la prima volta: da lì un
+                // draw() locale è sicuro perché non genera una nuova chiamata AJAX.
+                // ================================================================================
+                initComplete: function () {
+                    var tableApi = this.api();
+                    var filtriColonneSalvati = ripristinaFiltriColonneDaStorage();
+
+                    if (Object.keys(filtriColonneSalvati).length === 0) return;
+
+                    tableApi.columns().every(function (index) {
+                        var column = this;
+                        if (filtriColonneSalvati[index] !== undefined) {
+                            // ==== 2 FIX 06/08/2026 ====: riferimento salvato in Sezione 4,
+                            // NON $('tr.filters th').eq(index) che qui è già sfalsato.
+                            var input = filterInputsByColumnIndex[index];
+                            if (input && input.length) {
+                                input.val(filtriColonneSalvati[index]);
+                            }
+                            column.search(filtriColonneSalvati[index]);
+                        }
+                    });
+
+                    tableApi.draw();
+                }
+
+
+                // ==== 2 MODIFICA 06/08/2026 - FINE ====
+                // ================================================================================
+            });
+
+            // ----------------------------------------------------------
+            // 3. FILTRI IN CIMA ALLA PAGINA 22/05/2026 // 02/10/2026 aggiunti ritardi
+            // ----------------------------------------------------------
+            $('#filtroAnno, #filtroMese, #filtroFatturata, #filtroDaFatturare, #filtroEliminati, #filtroTipoPagamento, #filtroInRitardo, #filtroGiorniRitardoMin').on('change', function () {
+
+                    // Reset filtro file importato
+                    $('#filtroidFileImportato').val('');
+
+                    // Pulisce eventuale querystring residua
+                    window.history.replaceState(
+                        {},
+                        '',
+                        '/Admin/ProspettiSystemP/ListaOrdini'
+                    );
+
+                    // ==== 3 MODIFICA 06/08/2026 ====: salva lo stato dei filtri in alto ad ogni cambio
+                    salvaFiltriInStorage();
+                    aggiornaLinkExport();//22/05/2026
+
+                    // Reload DataTable AJAX
+                    table.ajax.reload(null, false);
+            });
+
+            // ----------------------------------------------------------
+            // RESET FILTRI DINAMICO
+            // ----------------------------------------------------------
+            // Resetta i filtri UI, pulisce eventuali querystring
+            // residue dalla URL (es. ?idFileImportato=190)
+            // e ricarica la DataTable via AJAX senza refresh pagina.
+            // ----------------------------------------------------------
+            $('#btnResetDinamico').on('click', function () {
+
+               // Reset filtri visuali
+                $('#filtroAnno').val('');
+                $('#filtroMese').val('');
+                $('#filtroFatturata').val('-1');
+                $('#filtroDaFatturare').val('-1');          // NUOVO 30/09/2026
+                $('#filtroInRitardo').val('');              // 02/10/2026
+                $('#filtroGiorniRitardoMin').val('');       // 02/10/2026
+                $('#filtroEliminati').val('false');
+                $('#filtroTipoPagamento').val('0');         // <-- NUOVO: reset a "Tutti" 22/05/2026
+                                                            // Reset filtro hidden usato dall'AJAX
+                $('#filtroidFileImportato').val('');
+
+                // ================================================================================
+                // ==== 4 MODIFICA 06/08/2026 - INIZIO ====
+                // FIX: il reset doveva pulire anche i filtri veloci per colonna (es. "Cliente"),
+                // sia a video (gli <input> nella riga tr.filters) sia nella ricerca interna di
+                // DataTables (altrimenti il filtro colonna restava applicato anche dopo il reset,
+                // pur avendo svuotato lo storage).
+                $('#ordiniTable thead tr.filters th input').val('');
+                table.columns().search('');
+
+                // Rimuove SOLO qui (pulsante Reset) i filtri persistiti in sessionStorage:
+                // sia quelli in alto sia quelli colonna.
+                sessionStorage.removeItem(FILTRI_STORAGE_KEY);
+                sessionStorage.removeItem(FILTRI_COLONNE_STORAGE_KEY);
+                // ==== 4 MODIFICA 06/08/2026 - FINE ====
+                // ================================================================================
+
+                // Pulisce la URL del browser senza reload pagina
+                window.history.replaceState(
+                    {},
+                    '',
+                    '/Admin/ProspettiSystemP/ListaOrdini'
+            );
+
+                // Ricarica dati tabella via AJAX mantenendo la pagina corrente
+                // (ajax.reload esegue già un draw, non serve chiamarne uno separato)
+                table.ajax.reload(null, false);
+            });
+
+            // ----------------------------------------------------------
+            // 4. FILTRI VELOCI PER COLONNA
+            // ----------------------------------------------------------
+            table.columns().every(function (index) {
+                var column = this;
+                var input = $('tr.filters th').eq(index).find('input');
+
+                // ==== 3 FIX 06/08/2026 ====: salvato ORA, unico momento in cui il DOM
+                // è ancora allineato 1:1 con gli indici di DataTables.
+                filterInputsByColumnIndex[index] = input;
+
+                input.on('keyup change', function () {
+                    if (column.search() !== this.value) {
+                        column.search(this.value).draw();
+                        salvaFiltriColonneInStorage();
+                    }
+                });
+            });
+
+            // ----------------------------------------------------------
+            // 5. DOPPIO CLICK SU RIGA
+            // ----------------------------------------------------------
+            $('#ordiniTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).is('input, button, a, i')) return;
+                var id = $(this).data('id');
+                if (id) {
+                    window.location.href = '/Admin/ProspettiSystemP/DettaglioOrdine/' + id;
+                }
+            });
+
+            /**
+             * 6. GESTIONE PULSANTE CONFERMA CANCELLAZIONE (SOFT E DEFINITIVA)
+             * Il pulsante 'confirmDeleteBtn' è condiviso tra la cancellazione logica e quella fisica.
+             */
+            var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function () {
+
+                    // Caso A: Eliminazione Definitiva (Database)
+                    // NOTA: copiamo l'ID in una variabile locale PRIMA di azzerare deleteDefinitivoId.
+                    // Se azzerassimo prima, la callback asincrona di $.ajax troverebbe null
+                    // e non saprebbe quale riga rimuovere dal dataset di DataTables.
+                    if (deleteDefinitivoId) {
+                        var idDaEliminare = deleteDefinitivoId; // copia locale per la callback asincrona
+                        deleteDefinitivoId = null;              // reset immediato per prevenire doppi click
+                        $.ajax({
+                            url: '/Admin/ProspettiSystemP/CancellaAjaxDatabase',
+                            type: 'POST',
+                            data: { id: idDaEliminare },
+                            success: function (res) {
+                                if (res.success) {
+                                    // Rimozione tramite dataset interno di DataTables.
+                                    // table.row($(...)) non funziona in modalità AJAX perché
+                                    // DataTables gestisce le righe nel proprio dataset, non nel DOM.
+                                    // table.rows(function) itera sul dataset interno ed è il metodo corretto.
+                                    table.rows(function (idx, data) {
+                                        return data.IdProspettoSystemP == idDaEliminare;
+                                    }).remove().draw();
+                                    $('#modalOperazioneCompletata .modal-body').text('Record eliminato definitivamente dal database.');
+                                    new bootstrap.Modal(document.getElementById('modalOperazioneCompletata')).show();
+                            } else {
+                                alert('Errore: ' + res.error);
+                            }
+                        },
+                        error: function (xhr) { mostraErroreAjax(xhr, 'Errore: '); } // 24/10/2026
+                    });
+                    }
+                    // Caso B: Cancellazione Soft (Spostamento nel cestino)
+                    else if (deleteId) {
+                        $.ajax({
+                            url: '/Admin/ProspettiSystemP/CancellaAjax',
+                            type: 'POST',
+                            data: { id: deleteId },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.row(deleteRow).remove().draw();
+                                    if (typeof showToast === 'function') showToast('Riga cancellata con successo');
+                            } else {
+                                alert('Errore durante la cancellazione');
+                            }
+                        },
+                        error: function (xhr) { mostraErroreAjax(xhr, 'Errore: '); } // 24/10/2026
+                    });
+                    deleteId = null; // Reset ID dopo operazione
+                }
+                bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal')).hide();
+            });
+            }
+
+            /**
+             * 7. GESTIONE PULSANTE CONFERMA RESET (FATTURAZIONE E RIPRISTINO)
+             * Il pulsante 'confirmResetBtn' gestisce sia il reset fattura che il ripristino dal cestino.
+             */
+            var confirmResetBtn = document.getElementById('confirmResetBtn');
+            if (confirmResetBtn) {
+                confirmResetBtn.addEventListener('click', function () {
+                    // Caso A: Ripristino record eliminato
+                    if (ripristinaId) {
+                        $.ajax({
+                            url: '/Admin/ProspettiSystemP/RipristinaAjax',
+                            type: 'POST',
+                            data: { id: ripristinaId },
+                            success: function (res) {
+                                if (res.success) {
+                                    location.reload(); // Reload necessario per aggiornare visualizzazione filtri/stati
+                                } else {
+                                    alert('Errore durante il ripristino');
+                                }
+                            }
+                        });
+                        ripristinaId = null;
+                    }
+                    // Caso B: Reset stato fatturazione
+                    else if (resetId) {
+                        $.ajax({
+                            url: '/Admin/ProspettiSystemP/ResetFatturazioneAjax',
+                            type: 'POST',
+                            data: { id: resetId },
+                            success: function (res) {
+                                if (res.success) {
+                                    table.ajax.reload(null, false);
+                                    if (typeof showToast === 'function') showToast('Stato fatturazione Modificato');//10/08/2026  3
+                                } else {
+                                    alert('Errore durante il reset fatturazione');
+                                }
+                            }
+                        });
+                        resetId = null;
+                    }
+                    bootstrap.Modal.getInstance(document.getElementById('confirmResetModal')).hide();
+                });
+            }
+
+        }); // Fine document.ready
+
+        // ============================================================
+        // FUNZIONI GLOBALI PER LE AZIONI SULLE RIGHE
+        // ============================================================
+        //10/08/2026 4 aggiunto impostaFattura INIZIO
+        function generaBottoniAzione(row) {
+            let id = row.IdProspettoSystemP;
+
+
+            if (row.IsDeleted) {    // ==== MODIFICA 24/10/2026 - INIZIO ====
+                let htmlCestino = '';
+                // Ripristina: lato server consentito solo ad Admin/Operatore
+                if (!isAgente) {
+                    htmlCestino += `<a href="javascript:void(0)" onclick="ripristinaRiga(${id})"
+                                        class="text-success me-2" title="Ripristina">
+                                        <i class="bi bi-arrow-up-left-circle-fill"></i></a>`;
+                }
+                // Eliminazione definitiva: Admin sempre; Agente solo se non fatturato (Operatore non è autorizzato lato server)
+                if (isAdmin || (isAgente && row.Fatturata != 1)) {
+                    htmlCestino += `<a href="javascript:void(0)" onclick="cancellaDefinitivoDatabase(${id})"
+                                        class="text-danger" title="Elimina definitivamente">
+                                        <i class="bi bi-trash3-fill"></i></a>`;
+                }
+                return htmlCestino;
+                // ==== MODIFICA 24/10/2026 - FINE ====
+            }
+
+
+            let html = `
+                <a href="/Admin/ProspettiSystemP/DettaglioOrdine/${id}"
+                   class="text-primary me-2" title="Dettaglio">
+                    <i class="bi bi-eye-fill"></i>
+                </a>
+                <a href="javascript:void(0)" onclick="duplicaRiga(${id})"
+                   class="text-warning me-2" title="Duplica">
+                    <i class="bi bi-files"></i>
+                        </a> `;
+
+            // ✔️ MOSTRA reset/imposta fattura SOLO SE ADMIN
+            if (isAdmin) {
+                html += row.Fatturata
+                    ? `<a href="javascript:void(0)" onclick="resettaFattura(${id},${row.Fatturata})"
+                           class="text-info me-2" title="Resetta fattura">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                       </a>`
+                    : `<a href="javascript:void(0)" onclick="resettaFattura(${id},${row.Fatturata})"
+                           class="text-success me-2" title="Imposta fattura">
+                            <i class="bi bi-receipt-cutoff"></i>
+                       </a>`;
+                }
+                    // Cestino
+            html += row.Fatturata == 1
+                ? `<i class="bi bi-trash-fill text-muted" style="opacity:0.3"
+                      title="Già fatturato: resetta prima"></i>`
+                : `<a href="javascript:void(0)" onclick="cancellaRiga(${id})"
+                      class="text-danger" title="Elimina">
+                        <i class="bi bi-trash-fill"></i>
+                    </a>`;
+
+            return html;
+        }
+        //10/08/2026 aggiunto impostaFattura FINE
+
+        window.cancellaRiga = function (id) {
+            deleteId  = id;
+            deleteRow = $(`#ordiniTable tbody tr[data-id="${id}"]`);
+            // Reset titoli modale per cancellazione standard
+            $('#confirmDeleteModal .modal-title').text("Conferma eliminazione");
+            $('#confirmDeleteModal .modal-body').text("Sei sicuro di voler eliminare questa riga?");
+            new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+        };
+
+         // ==== MODIFICA 02/11/2026 - INIZIO ====
+        const DUPLICA_ANNO_CORRENTE = @DateTime.Today.Year;
+        const DUPLICA_MESE_CORRENTE = @DateTime.Today.Month;
+        var duplicaIdDaConfermare = null;
+
+        // Agente: nell'anno corrente disabilita i mesi già passati
+        function aggiornaMesiDuplica() {
+            if (!isAgente) return;
+            var annoSel = parseInt($('#duplicaAnno').val(), 10);
+            $('#duplicaMese option').each(function () {
+                $(this).prop('disabled', annoSel === DUPLICA_ANNO_CORRENTE && parseInt(this.value, 10) < DUPLICA_MESE_CORRENTE);
+            });
+            if ($('#duplicaMese option:selected').prop('disabled')) {
+                $('#duplicaMese option:not(:disabled)').first().prop('selected', true);
+            }
+        }
+
+        window.duplicaRiga = function (id) {
+            duplicaIdDaConfermare = id;
+            // default: Admin/Operatore = come l'originale; Agente = mese corrente
+            $('input[name="duplicaPeriodo"][value="' + (isAgente ? 'corrente' : 'originale') + '"]').prop('checked', true);
+            $('#duplicaAnno').val(DUPLICA_ANNO_CORRENTE);
+            $('#duplicaMese').val(DUPLICA_MESE_CORRENTE);
+            $('#duplicaScelta').hide();
+            $('#btnConfermaDuplica').prop('disabled', false);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDuplica')).show();
+        };
+
+        $(document).on('change', 'input[name="duplicaPeriodo"]', function () {
+            $('#duplicaScelta').toggle($('input[name="duplicaPeriodo"]:checked').val() === 'scelta');
+            aggiornaMesiDuplica();
+        });
+        $(document).on('change', '#duplicaAnno', aggiornaMesiDuplica);
+
+        $(document).on('click', '#btnConfermaDuplica', function () {
+            var periodo = $('input[name="duplicaPeriodo"]:checked').val();
+            var dati = { id: duplicaIdDaConfermare, periodo: periodo };
+            if (periodo === 'scelta') {
+                dati.anno = $('#duplicaAnno').val();
+                dati.mese = $('#duplicaMese').val();
+            }
+
+            var $btn = $(this).prop('disabled', true);   // evita il doppio click (doppia riga)
+            $.ajax({
+                url: '/Admin/ProspettiSystemP/DuplicaAjax',
+                type: 'POST',
+                data: dati,
+                success: function (res) {
+                    if (res.success) {
+                        window.location.href = '/Admin/ProspettiSystemP/DettaglioOrdine/' + res.newId;
+                    } else {
+                        $btn.prop('disabled', false);
+                        alert('Errore durante la duplicazione: ' + res.error);
+                    }
+                },
+                error: function (xhr) { $btn.prop('disabled', false); mostraErroreAjax(xhr, 'Errore: '); }
+            });
+        });
+        // ==== MODIFICA 02/11/2026 - FINE ====
+
+
+        @*  10/08/2026 5 INIZIO *@
+         window.resettaFattura = function (id, fatturata) {
+             resetId = id;
+             resetRow = $(`#ordiniTable tbody tr[data-id="${id}"]`);
+
+             if (fatturata == 1) {
+                 // Caso: già fatturata → RESET
+                 $('#confirmResetModal .modal-title').text("Reset Fatturazione");
+                 $('#confirmResetModal .modal-body').text("Vuoi davvero resettare lo stato di fatturazione di questa riga?");
+                 $('#confirmResetBtn').text("Reset")
+                     .removeClass('btn-success')
+                     .addClass('btn-info');
+             } else {
+                 // Caso: NON fatturata → IMPOSTA
+                 $('#confirmResetModal .modal-title').text("Imposta come Fatturata");
+                 $('#confirmResetModal .modal-body').text("Vuoi impostare questa riga come fatturata?");
+                 $('#confirmResetBtn').text("Imposta")
+                     .removeClass('btn-info')
+                     .addClass('btn-success');
+             }
+
+             new bootstrap.Modal(document.getElementById('confirmResetModal')).show();
+         };
+         @*  10/08/2026 FINE *@
+        /**
+         * Apre la modale per confermare il ripristino di un record eliminato.
+         * Sfrutta la modale 'confirmResetModal' adattandone i testi.
+         */
+        window.ripristinaRiga = function (id) {
+            ripristinaId = id;
+            $('#confirmResetModal .modal-title').text("Conferma Ripristino");
+            $('#confirmResetModal .modal-body').text("Vuoi ripristinare questa riga dal cestino?");
+            $('#confirmResetBtn').text("Ripristina").removeClass('btn-info').addClass('btn-success');
+            new bootstrap.Modal(document.getElementById('confirmResetModal')).show();
+        };
+
+        /**
+         * Apre la modale per confermare l'eliminazione definitiva dal database.
+         * Sfrutta la modale 'confirmDeleteModal' cambiandone il contenuto per evidenziare il pericolo.
+         */
+        window.cancellaDefinitivoDatabase = function (id) {
+            deleteDefinitivoId = id;
+            $('#confirmDeleteModal .modal-title').text("ELIMINAZIONE DEFINITIVA");
+            $('#confirmDeleteModal .modal-body').html("<span class='text-danger fw-bold'>ATTENZIONE:</span> il record verrà eliminato definitivamente dal database.<br>L'operazione non è reversibile. Continuare?");
+            new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+        };
+
+        @if (TempData["ModalMessage"] != null)
+        {
+                    <text>
+                    $(document).ready(function () {
+                             var messaggio = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["ModalMessage"]?.ToString() ?? ""));//20/10/2026
+                        $('#modalOperazioneCompletata .modal-body').text(messaggio);
+                        var modalElement = document.getElementById('modalOperazioneCompletata');
+                        if (modalElement) {
+                            var modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                        }
+                    });
+                    </text>
+        }
+    </script>
+}

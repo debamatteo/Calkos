@@ -1,0 +1,211 @@
+﻿@model CalkosManager.Domain.Entities.ProvvigioniAgenti
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    // 26/10/2026 "??=": l'azione Replica imposta gia' il titolo "Replica Provvigione"; negli altri casi vale quello di default
+    ViewData["Title"] ??= "Nuova Provvigione";
+
+    // 26/10/2026 Valorizzato dal controller SOLO quando esiste gia' la combinazione Mandatario - Agente - Cliente
+    var duplicato = ViewBag.Duplicato as CalkosManager.Domain.Entities.ProvvigioniAgenti;
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi bi-plus-circle-fill me-2"></i> @ViewData["Title"]
+    </h3>
+
+    @* ==== MODIFICA 30/10/2026 - INIZIO ====
+       Esito del salvataggio precedente quando si usa "Salva e aggiungi un altro" (si resta su questa pagina).
+       Leggere TempData["Success"] qui lo CONSUMA: l'Index non lo mostrera' una seconda volta. *@
+    @if (TempData["Success"] is string messaggioSuccesso)
+    {
+        <div class="alert alert-success alert-dismissible fade show fw-bold shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-1"></i> @messaggioSuccesso
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @* ==== MODIFICA 30/10/2026 - FINE ==== *@
+
+    @* 26/10/2026 Promemoria in modalita' Replica *@
+    @if (ViewBag.IdOrigineReplica != null)
+    {
+        <div class="alert alert-info small">
+            <i class="bi bi-files me-1"></i>
+            Stai replicando la provvigione n. @ViewBag.IdOrigineReplica. Modifica Mandatario, Agente, Cliente o Percentuale
+            e salva: se la combinazione esiste già ti verrà chiesto se sovrascriverla.
+        </div>
+    }
+
+    <form id="formProvvigione" asp-area="Admin" asp-controller="ProvvigioniAgenti" asp-action="Save" method="post">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" asp-for="IdProvvigione" value="0" />
+
+        @* 26/10/2026 Parte a "false"; diventa "true" solo quando l'utente preme "Sovrascrivi" nel popup.
+           NON e' una proprieta' dell'entita': e' il parametro confermaSovrascrittura dell'azione Save. *@
+        <input type="hidden" id="confermaSovrascrittura" name="confermaSovrascrittura" value="false" />
+
+        @* 30/10/2026 "altro" = Salva e aggiungi un altro; vuoto = Salva e torna all'elenco.
+           Lo imposta il pulsante premuto; il controller lo rimanda indietro se il form viene riproposto (es. popup duplicato). *@
+        <input type="hidden" id="azione" name="azione" value="@ViewBag.Azione" />
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row g-3">
+
+                    <!-- AGENTE -->
+                    <div class="col-md-6">
+                        <label asp-for="IdAgente" class="form-label fw-bold">Agente</label>
+                        <select asp-for="IdAgente" class="form-select select2" asp-items="ViewBag.Agenti">
+                            <option value="">-- Seleziona Agente --</option>
+                        </select>
+                        <span asp-validation-for="IdAgente" class="text-danger small"></span>
+                    </div>
+
+                    <!-- MANDATARIO -->
+                    <div class="col-md-6">
+                        <label asp-for="IdMandatario" class="form-label fw-bold">Mandatario</label>
+                        <select asp-for="IdMandatario" class="form-select select2" asp-items="ViewBag.Mandatari">
+                            <option value="">-- Seleziona Mandatario --</option>
+                        </select>
+                        <span asp-validation-for="IdMandatario" class="text-danger small"></span>
+                    </div>
+
+                    <!-- CLIENTE (OPZIONALE) -->
+                    <div class="col-md-6">
+                        <label asp-for="IdCliente" class="form-label fw-bold">Cliente (opzionale)</label>
+                        <select asp-for="IdCliente" class="form-select select2" asp-items="ViewBag.Clienti">
+                            <option value="">-- Nessun Cliente Specifico (Tutti) --</option>
+                        </select>
+                        <span asp-validation-for="IdCliente" class="text-danger small"></span>
+                    </div>
+
+                    <!-- PERCENTUALE -->
+                    <div class="col-md-6">
+                        <label asp-for="Percentuale" class="form-label fw-bold">Percentuale Provvigione (%)</label>
+                        <div class="input-group">
+                            <input asp-for="Percentuale"
+                                   type="number"
+                                   step="0.01"
+                                   min="0"
+                                   max="100"
+                                   class="form-control"
+                                   placeholder="0.00" />
+                            <span class="input-group-text bg-light">%</span>
+                        </div>
+                        <span asp-validation-for="Percentuale" class="text-danger small"></span>
+                    </div>
+
+                </div>
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+
+                    @* ==== MODIFICA 30/10/2026 - INIZIO ====
+                       Due pulsanti: il primo (come prima) salva e torna all'elenco; il secondo salva e riapre questo form
+                       con Agente e Mandatario gia' scelti. L'onclick imposta il campo nascosto "azione" prima dell'invio. *@
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-outline-primary fw-bold shadow-sm"
+                                onclick="document.getElementById('azione').value='altro';">
+                            <i class="bi bi-plus-circle"></i> Salva e aggiungi un altro
+                        </button>
+                        <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm"
+                                onclick="document.getElementById('azione').value='';">
+                            <i class="bi bi-save"></i> Salva Provvigione
+                        </button>
+                    </div>
+                    @* ==== MODIFICA 30/10/2026 - FINE ====
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Provvigione
+                    </button> *@
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@* ============================================================
+   26/10/2026 POPUP "PROVVIGIONE GIA' PRESENTE"
+   Esiste nel DOM solo se il server ha rilevato la combinazione Mandatario - Agente - Cliente gia' presente
+   (e non ha scritto nulla). Annulla = si resta sul form con i dati inseriti; Sovrascrivi = si reinvia il form
+   con confermaSovrascrittura = true.
+   I testi arrivano dal server come stringhe: Razor li codifica in HTML.
+   ============================================================ *@
+@if (duplicato != null)
+{
+    <div class="modal fade" id="modalDuplicato" tabindex="-1" aria-labelledby="modalDuplicatoTitolo" aria-hidden="true"
+         data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalDuplicatoTitolo">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Provvigione già presente
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Esiste già una provvigione per la stessa combinazione:</p>
+                    <ul class="mb-3">
+                        <li><strong>Mandatario:</strong> @ViewBag.DescMandatario</li>
+                        <li><strong>Agente:</strong> @ViewBag.DescAgente</li>
+                        <li><strong>Cliente:</strong> @ViewBag.DescCliente</li>
+                    </ul>
+                    <p class="mb-3">
+                        Percentuale attuale: <strong>@duplicato.Percentuale.ToString("F2") %</strong><br />
+                        Nuova percentuale: <strong>@Model.Percentuale.ToString("F2") %</strong>
+                    </p>
+                    <p class="mb-0 fw-bold">Vuoi sovrascrivere la provvigione esistente?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-warning fw-bold" id="btnSovrascrivi">
+                        <i class="bi bi-arrow-repeat me-1"></i> Sovrascrivi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY (Coerenza Progetto)
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // Inizializzazione componenti UI
+            if ($.fn.select2) {
+                $('.select2').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%'
+                });
+            }
+
+            // 26/10/2026 Popup duplicato: si apre da solo al caricamento della pagina (se presente nel DOM)
+            const modalEl = document.getElementById('modalDuplicato');
+            if (modalEl) {
+                const modalDuplicato = new bootstrap.Modal(modalEl);
+                modalDuplicato.show();
+
+                document.getElementById('btnSovrascrivi').addEventListener('click', function () {
+                    this.disabled = true; // evita il doppio invio
+                    document.getElementById('confermaSovrascrittura').value = 'true';
+                    // submit() nativo: i dati sono gia' stati validati dal server nella richiesta precedente.
+                    // Il campo nascosto "azione" mantiene il valore scelto (salva e aggiungi un altro / salva).
+                    document.getElementById('formProvvigione').submit();
+                });
+            }
+        });
+    </script>
+}

@@ -1,0 +1,208 @@
+{
+  "columns": [
+    {
+      "name": "NumeroOrdine",
+      "label": "Conferma ORD",
+      "visible": true,
+      "format": "text",
+      "width": 1,
+      "sortOrder": 2,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "NumeroDDT",
+      "label": "DDT",
+      "visible": true,
+      "format": "text",
+      "width": 1,
+      "sortOrder": 3,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "NumeroFattura",
+      "label": "Fattura",
+      "visible": true,
+      "format": "text",
+      "width": 1,
+      "sortOrder": 4,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "RagioneSociale",
+      "label": "Cliente",
+      "visible": true,
+      "format": "text",
+      "width": 3,
+      "sortOrder": 1,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "UnitaMisura",
+      "label": "U.M.",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Quantita",
+      "label": "Q.tà",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+
+    {
+      "name": "CostoLavorazione",
+      "label": "Lavorazione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "DescrizioneMateriale",
+      "label": "Materiale",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Prezzo",
+      "label": "Materiale € Riferimento",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoConLavorazione",
+      "label": "Materiale Lav con Commissione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoVendita",
+      "label": "Vendita",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PercentualeProvvigioneVariabile",
+      "label": "Aliquota variabile",
+      "visible": true,
+      "format": "percent",
+      "width": 1
+    },
+    {
+      "name": "ValoreProvvigioneVariabile",
+      "label": "Commissione con aliquota Variabile",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "ValoreProvvigioneFissa1",
+      "label": "1,5% fissa",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "ValoreProvvigioneFissa2",
+      "label": "3% Fissa",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "ValoreProvvigioneFissa3",
+      "label": "8% Fissa",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 1
+    },
+
+
+    {
+      "name": "TotaleFissoProvvigione",
+      "label": "Totale Fisso",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 2
+    },
+    {
+      "name": "Differenza",
+      "label": "Delta",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "TotaleVariabileProvvigione",
+      "label": "Totale Provv. Variabile",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 2
+    },
+
+    {
+      "name": "TotaleProvvigioneDaFatturare",
+      "label": "Totale Fattura",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 2
+    },
+    {
+      "name": "Fatturata",
+      "label": "Fatturata",
+      "visible": true,
+      "export": true,
+      "format": "boolean",
+      "width": 1
+    },
+    {
+      "name": "DataConsegnaIpotetica",
+      "label": "Prevista Consegna",
+      "visible": true,
+      "format": "date:dd/MM/yyyy",
+      "width": 1
+    },
+    {
+      "name": "DataConsegna",
+      "label": "Consegna",
+      "visible": true,
+      "format": "date:dd/MM/yyyy",
+      "width": 1
+    },
+    {
+      "name": "InRitardo",
+      "label": "Ritardo",
+      "visible": true,
+      "format": "boolean",
+      "width": 1
+    },
+    {
+      "name": "GiorniRitardo",
+      "label": "GG Ritardo",
+      "visible": true,
+      "format": "int",
+      "width": 1
+    },
+    {
+      "name": "DaFatturare",
+      "label": "Fatturare",
+      "visible": true,
+      "format": "boolean",
+      "width": 1
+    }
+  ]
+}

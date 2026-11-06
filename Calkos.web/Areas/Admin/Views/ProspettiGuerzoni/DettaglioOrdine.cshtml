@@ -1,0 +1,1541 @@
+﻿@using Calkos.web.Models.DTO
+@model CalkosManager.Domain.Entities.ProspettoGuerzoni
+@* ============================================================
+   ANTIFORGERY TOKEN — Inserito UNA SOLA VOLTA qui in cima.
+   Il token Antiforgery è una "chiave segreta" che il server genera per assicurarsi che la richiesta arrivi effettivamente dalla tua pagina web
+   e non da un sito malevolo che tenta di eseguire azioni a nome dell'utente loggato.
+   ============================================================ *@
+@Html.AntiForgeryToken()
+
+@{
+    ViewData["Title"] = "Dettaglio Ordine GUERZONI";
+    bool isAdmin = User.IsInRole("Admin");
+    bool isOperatore = User.IsInRole("Operatore");   // NUOVO 07/08/2026
+    bool isAgente = User.IsInRole("Agente");         // NUOVO 07/08/2026
+    // NUOVO: ora anche Operatore e Agente possono inserire/modificare ordini (prima erano tutti readonly/disabled tranne Admin).
+    bool campiEditabili = isAdmin || isOperatore || isAgente;// NUOVO 07/08/2026
+
+    int fatturata = Model.Fatturata;// NUOVO 10/08/2026 1
+
+    @* ============================================================
+       FIX cast ViewBag.Agenti → AgenteSelectItem
+       Il controller CaricaLookup popola ViewBag.Agenti con List<AgenteSelectItem>
+       (tipo custom che porta anche PercentualeDefault, non disponibile in SelectListItem).
+       Il cast deve corrispondere esattamente al tipo prodotto dal controller,
+       altrimenti "as" restituisce null silenziosamente e la select rimane vuota.
+       ============================================================ *@
+    var agenti = ViewBag.Agenti as IEnumerable<AgenteSelectItem>
+                 ?? Enumerable.Empty<AgenteSelectItem>();
+}
+
+@* ============================================================
+   HELPER LOCALE — FormatDecimal
+   Accetta object? per compatibilità con i valori restituiti
+   dalla Reflection nel blocco "Altri Campi".
+   Forza il punto decimale (InvariantCulture) per i campi
+   type="number" del browser, che non accetta la virgola.
+   ============================================================ *@
+@* @functions {
+    public string FormatDecimal(object? valore, int decimali = 3)
+    {
+        if (valore == null || valore == DBNull.Value) return string.Empty;
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+            return d.ToString("F" + decimali, System.Globalization.CultureInfo.InvariantCulture);
+        return valore.ToString() ?? string.Empty;
+    }
+} *@
+@functions {
+
+    // ============================================================
+    // CONFIGURAZIONE CENTRALIZZATA DECIMALI DELLA VIEW
+    // Cambi qui e aggiorni tutta la pagina
+    // ============================================================
+    public const int DECIMALI_DISPLAY = 4;
+    public const int DECIMALI_TECNICI = 4;
+
+    public string FormatDecimal(object? valore, int decimali = DECIMALI_DISPLAY)
+    {
+        if (valore == null || valore == DBNull.Value)
+            return string.Empty;
+
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+        {
+            return d.ToString(
+                "F" + decimali,
+                System.Globalization.CultureInfo.InvariantCulture
+            );
+        }
+
+        return valore?.ToString() ?? string.Empty;
+    }
+
+    // ============================================================
+    // DISPLAY UI
+    // ============================================================
+    public string FDisplay(object? valore, int decimali = 0)
+    {
+        //int decimali = 0 introdotto  solo per non cambiare decine di chiamate a FDisplay, ma in realtà ora è ridondante perché FormatDecimal ha già un default.
+        return FormatDecimal(valore, DECIMALI_DISPLAY);
+    }
+
+    // ============================================================
+    // VALORI TECNICI/HIDDEN
+    // ============================================================
+    public string FTecnico(object? valore, int decimali = 0)
+    {
+        //int decimali = 0 introdotto  solo per non cambiare decine di chiamate a FDisplay, ma in realtà ora è ridondante perché FormatDecimal ha già un default.
+        return FormatDecimal(valore, DECIMALI_TECNICI);
+    }
+}
+<div class="d-flex align-items-center mb-4">
+    <h1 class="h3 fw-bold">Dettaglio Ordine GUERZONI</h1>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        <form asp-action="DettaglioOrdine" method="post">
+
+            @* ============================================================
+               RIEPILOGO ERRORI MODELSTATE
+               Cicla su tutti i campi invalidi e stampa il nome
+               della proprietà + il messaggio di validazione.
+               ============================================================ *@
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger mt-3">
+                    <h5 class="fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Attenzione: correggi i seguenti errori
+                    </h5>
+                    <ul>
+                        @foreach (var modelState in ViewData.ModelState.Where(x => x.Value.Errors.Any()))
+                        {
+                            foreach (var error in modelState.Value.Errors)
+                            {
+                                <li><strong>@modelState.Key</strong>: @error.ErrorMessage</li>
+                            }
+                        }
+                    </ul>
+                </div>
+            }
+
+            @* Campo hidden obbligatorio per identificare il record in POST *@
+            <input type="hidden" asp-for="IdProspettoGuerzoni" />
+
+            @* ============================================================
+               SEZIONE: DATI DOCUMENTO
+               ============================================================ *@
+            <h5 class="fw-bold mt-3">Dati Documento</h5>
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    @* NumeroOrdine: NON obbligatorio. Se lasciato vuoto il server assegna TEMPAAAAMMGG.
+                       Modificabile anche su record esistente (08/10/2026).
+                       data-val="false" disattiva la validazione client-side su questo campo. *@
+                    <label class="form-label fw-bold">Conferma Ordine</label>
+                    @if (campiEditabili)
+                    {
+                        <input asp-for="NumeroOrdine" type="text" class="form-control" data-val="false" />
+                    }
+                    else
+                    {
+                        <input asp-for="NumeroOrdine" type="text" class="form-control input-readonly" readonly="readonly" />
+                    }
+                    <span asp-validation-for="NumeroOrdine" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-3">
+                    @* NumeroDDT: modificabile solo da Admin, in sola lettura per gli altri ruoli *@
+                    <label class="form-label fw-bold">Numero DDT</label>
+                    @if (campiEditabili)
+                    {
+                        <input class="form-control" asp-for="NumeroDDT" type="text" />
+                    }
+                    else
+                    {
+                        <input asp-for="NumeroDDT" type="text" class="form-control input-readonly" readonly="readonly" />
+                    }
+                </div>
+
+                <div class="col-md-3">
+                    @* NumeroFattura: stessa logica di NumeroDDT *@
+                    <label class="form-label fw-bold">Numero Fattura</label>
+                    @if (campiEditabili)
+                    {
+                        <input class="form-control" asp-for="NumeroFattura" type="text" />
+                    }
+                    else
+                    {
+                        <input asp-for="NumeroFattura" type="text" class="form-control input-readonly" readonly="readonly" />
+                    }
+                </div>
+
+                @* 10/08/2026 2 Campo hidden Fatturata per sapere se un ordine è fatturato*@
+                <input type="hidden" asp-for="Fatturata" />
+
+                <div class="col-md-3">
+                    @* IdCliente: per i non-Admin la select è disabled (non invia il valore in POST),
+                       quindi aggiungiamo un hidden field per garantire che il valore arrivi al server. *@
+                    <label class="form-label fw-bold required-label">Cliente</label>
+                    @if (campiEditabili)
+                    {
+                        <select asp-for="IdCliente" asp-items="ViewBag.Clienti" class="form-select"></select>
+                    }
+                    else
+                    {
+                        <select asp-for="IdCliente" asp-items="ViewBag.Clienti" class="form-select input-readonly" disabled="disabled"></select>
+                        <input type="hidden" asp-for="IdCliente" />
+                    }
+                    <span asp-validation-for="IdCliente" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+
+            @* ============================================================
+               SEZIONE: MISURE STATISTICHE (18,3) — MODIFICA 05/10/2026
+               ============================================================ *@
+            <h5 class="fw-bold mt-4">Misure Statistiche</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Spessore Num.</label>
+                    @if (campiEditabili)
+                    {
+                        <input asp-for="SpessoreNum" type="number" step="any"
+                               class="form-control"
+                               value="@FDisplay(Model.SpessoreNum, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="SpessoreNum" type="number" step="any"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FDisplay(Model.SpessoreNum, 3)" />
+                    }
+                    <span asp-validation-for="SpessoreNum" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Larghezza Num.</label>
+                    @if (campiEditabili)
+                    {
+                        <input asp-for="LarghezzaNum" type="number" step="any"
+                               class="form-control"
+                               value="@FDisplay(Model.LarghezzaNum, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="LarghezzaNum" type="number" step="any"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FDisplay(Model.LarghezzaNum, 3)" />
+                    }
+                    <span asp-validation-for="LarghezzaNum" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Diametro Num.</label>
+                    @if (campiEditabili)
+                    {
+                        <input asp-for="DiametroNum" type="number" step="any"
+                               class="form-control"
+                               value="@FDisplay(Model.DiametroNum, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="DiametroNum" type="number" step="any"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FDisplay(Model.DiametroNum, 3)" />
+                    }
+                    <span asp-validation-for="DiametroNum" class="text-danger small"></span>
+                </div>
+            </div>
+
+
+            @* ============================================================
+               SEZIONE: QUANTITÀ E PREZZI
+               ============================================================ *@
+            <h5 class="fw-bold mt-4">Quantità e Prezzi</h5>
+            <div class="row g-3">
+
+
+                <div class="col-md-1">
+                    @* IdUnitaMisura: stessa logica di IdMateriale *@
+                    <label class="form-label fw-bold required-label">U.M.</label>
+                    @if (campiEditabili)
+                    {
+                        <select asp-for="IdUnitaMisura" asp-items="ViewBag.UnitaMisura" class="form-select"></select>
+                    }
+                    else
+                    {
+                        <select asp-for="IdUnitaMisura" asp-items="ViewBag.UnitaMisura" class="form-select input-readonly" disabled="disabled"></select>
+                        <input type="hidden" asp-for="IdUnitaMisura" />
+                    }
+                    <span asp-validation-for="IdUnitaMisura" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-2">
+                    @* Quantita: FormatDecimal con 2 decimali (kg commerciali).
+                       Input type="number" richiede il punto come separatore decimale,
+                       da qui l'uso di InvariantCulture nel FormatDecimal. *@
+                    <label class="form-label fw-bold required-label">Quantità (Kg)</label>
+                    @if (campiEditabili)
+                    {
+                        <input asp-for="Quantita" id="Quantita" type="number" step="any"
+                               class="form-control"
+                               value="@FDisplay(Model.Quantita, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="Quantita" id="Quantita" type="number" step="any"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FDisplay(Model.Quantita, 3)" />
+                    }
+                    <span asp-validation-for="Quantita" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold required-label">PrezzoUnitario(€)</label>
+                    @if (campiEditabili)
+                    {
+                        <input asp-for="PrezzoUnitario" id="PrezzoUnitario" type="number" step="any"
+                               class="form-control"
+                               value="@FDisplay(Model.PrezzoUnitario, 3)" />
+                    }
+                    else
+                    {
+                        <input asp-for="PrezzoUnitario" id="PrezzoUnitario" type="number" step="any"
+                               class="form-control input-readonly" readonly="readonly"
+                               value="@FDisplay(Model.PrezzoUnitario, 3)" />
+                    }
+                    <span asp-validation-for="PrezzoUnitario" class="text-danger small"></span>
+                </div>
+
+
+
+                <div class="col-md-2">
+                    @* Colonna (E)	Imponibile	
+                     FORMULA D5*E5	=Imponibile= Quantità X Prezzo Unitario
+                    Campo DB Imponibile= Quantità X PrezzoUnitario *@
+                    <label class="form-label fw-bold">Imponibile(€)</label>
+                    <div class="input-group">
+                        <input type="number"
+                               step="any"
+                               id="ImponibileDisplay"
+                               class="form-control input-readonly"
+                               readonly
+                               value="@FDisplay(Model.Imponibile, 3)"
+                               title="Imponibile= Quantità X Prezzo Unitario" />
+                        <button type="button" id="toggleImponibile" class="btn btn-success">
+                            <i class="bi bi-lock-fill"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="Imponibile" name="Imponibile" value="@FTecnico(Model.Imponibile, 6)" />
+                </div>
+
+                <!-- Percentuale Delta Provvigione (estratta da Formula Excel) -->
+                <div class="col-md-2">
+                    @if (!isAgente)//04/11/2026: per ruolo Agente la percentuale provvigione è nascosta, ma il valore viene comunque inviato al POST tramite l'hidden sottostante
+                    {
+                        @*  <label class="form-label fw-bold">Perc. Delta Provv. (%)</label> *@
+                        <label class="form-label fw-bold">Percentuale Provvigione (%)</label>@*  29/10/2026 *@
+                        <i class="bi bi-info-circle-fill text-danger ms-2"
+                           style="font-size: 1.2rem;"
+                           title="Inserire la percentuale in formato umano: 5 significa 5%, NON 0,05"></i>
+
+                        <div class="input-group">
+
+                            <!-- DISPLAY A 2 DECIMALI (FUNZIONANTE) -->
+                            @* // il Display mostra * 100 NON 0.4 MA 40%: *@
+                            <input type="number"
+                                   step="any"
+                                   id="Perc_Delta_ProvvigioneDisplay"
+                                   class="form-control input-readonly"
+                                   readonly
+                                   value="@FDisplay(Model.Perc_Delta_Provvigione)"
+                                   title="Percentuale su Delta (estratta da formula Excel)" />
+
+                            <!-- Lucchetto -->
+                            <button type="button" id="togglePerc_Delta_Provvigione" class="btn btn-success">
+                                <i class="bi bi-lock-fill"></i>
+                            </button>
+                        </div>
+
+                    }
+
+                    <!-- VALORE TECNICO A 6 DECIMALI (IDENTICO AL TUO) -->
+                    <input type="hidden"  id="Perc_Delta_Provvigione"   name="Perc_Delta_Provvigione"   value="@FTecnico(Model.Perc_Delta_Provvigione)" />
+
+                    @*<div style="color:red; font-weight:bold;">
+                        DEBUG VIEW: @Model.Perc_Delta_Provvigione
+                    </div> *@
+                </div>
+
+
+                <div class="col-md-2">
+                    @*  07/08/2026 INIZIO *@
+                    @if (!isAgente)
+                    {
+                        @*TotaleProvvigione	
+                     FORMULA =F5*0,03	//	 TotaleProvvigione * Perc_Delta_Provvigione 	
+                     calcolo di una provvigione fissa del 3% (Perc_Delta_Provvigione)
+                     Sul valore dell'imponibile	Perc_Delta_Provvigione *@
+                        <label class="form-label fw-bold">TotaleProvvigione(€)</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   step="any"
+                                   id="TotaleProvvigioneDisplay"
+                                   class="form-control input-readonly"
+                                   readonly
+                                   value="@FDisplay(Model.TotaleProvvigione, 3)"
+                                   title="TotaleProvvigione = Imponibile * Perc_Delta_Provvigione " />
+                            <button type="button" id="toggleTotaleProvvigione" class="btn btn-success">
+                                <i class="bi bi-lock-fill"></i>
+                            </button>
+                        </div>
+                    }
+                    @*  07/08/2026 FINE *@
+                    <input type="hidden" id="TotaleProvvigione" name="TotaleProvvigione" value="@FTecnico(Model.TotaleProvvigione, 6)" />
+                </div>
+
+
+
+
+
+            </div>
+
+
+            @* ============================================================
+               SEZIONE: DATE
+               ============================================================ *@
+
+
+            <h5 class="fw-bold mt-4">Date</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Data Consegna Prevista</label>
+                    <input asp-for="DataConsegnaIpotetica" type="date" class="form-control" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Data Consegna </label>
+                    <input asp-for="DataConsegna" type="date" class="form-control" />
+                </div>
+                @*           <input type="hidden" id="DataConsegna" name="DataConsegna"
+                       value="@(Model.DataConsegna?.ToString("yyyy-MM-dd") ?? "")" /> *@
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Scadenza</label>
+                    <input asp-for="Scadenza" type="date" class="form-control" />
+                </div>
+            </div>
+            @* ============================================================
+               SEZIONE: GESTIONE RITARDO E FATTURAZIONE — AGGIUNTA 30/09/2026
+               ============================================================ *@
+
+            @* MODIFICA 12/10/2026: per il ruolo Agente l'INTERA sezione "Gestione Ritardo e Fatturazione"
+              (compresi "Escludi da controllo ritardo" e "Da Fatturare") è invisibile.
+              Per gli altri ruoli (Admin/Operatore) il comportamento resta invariato. *@
+            @if (!isAgente)
+            {
+                <h5 class="fw-bold mt-4">Gestione Ritardo e Fatturazione</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold d-block">Escludi da controllo ritardo</label>
+                        @if (campiEditabili && !isAgente) //30/09/20296 SE campiEditabili è TRUE E l’utente NON è Agente → ABILITA il controllo
+                        {
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       asp-for="EscludiControlloRitardo" id="EscludiControlloRitardo" />
+                                <label class="form-check-label" for="EscludiControlloRitardo">
+                                    Ignora la scadenza sulla Data Consegna Prevista
+                                </label>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       checked="@(Model.EscludiControlloRitardo ? "checked" : null)"
+                                       disabled="disabled" />
+                                <label class="form-check-label">Ignora la scadenza sulla Data Consegna Prevista</label>
+                            </div>
+                            <input type="hidden" asp-for="EscludiControlloRitardo" />
+                        }
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold d-block">Da Fatturare</label>
+                        @if (campiEditabili && !isAgente)//30/09/20296 SE campiEditabili è TRUE E l’utente NON è Agente → ABILITA il controllo
+                        {
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       asp-for="DaFatturare" id="DaFatturare" />
+                                <label class="form-check-label" for="DaFatturare">
+                                    Ordine pronto per la fatturazione
+                                </label>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       checked="@(Model.DaFatturare ? "checked" : null)"
+                                       disabled="disabled" />
+                                <label class="form-check-label">Ordine pronto per la fatturazione</label>
+                            </div>
+                            <input type="hidden" asp-for="DaFatturare" />
+                        }
+                        <div class="form-text">
+                            Se disattivato, l'ordine viene escluso dalla Dashboard Provvigioni in fase di fatturazione.
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @* MODIFICA 12/10/2026: Agente -> sezione non visibile, ma i valori correnti devono comunque
+                  viaggiare nel POST (altrimenti i bool verrebbero azzerati a false al salvataggio).
+                  Il controller, inoltre, ripristina comunque i valori dal DB per l'Agente (vedi POST DettaglioOrdine). *@
+                <input type="hidden" asp-for="EscludiControlloRitardo" />
+                <input type="hidden" asp-for="DaFatturare" />
+            }
+
+
+            @* ============================================================
+               SEZIONE: AGENTE E PAGAMENTO
+               ============================================================ *@
+            <h5 class="fw-bold mt-4">Agente e Pagamento</h5>
+            <div class="row g-3">
+
+                <div class="col-md-4">
+                    @* Select Agente: costruita manualmente per aggiungere data-percentuale
+                    su ogni option, necessario per il calcolo client-side della provvigione.
+                    ViewBag.Agenti è IEnumerable<AgenteSelectItem> con Id, Nome, PercentualeDefault.
+                    Per ruolo Agente la select è disabled e mostra solo se stesso; hidden inviato al POST. *@
+                    <label class="form-label fw-bold">Agente</label>
+
+                    @if (isAgente) //07/08/2026 inizio : per ruolo Agente la select è bloccata e mostra solo se stesso
+                    {
+                        var mioAgente = agenti.FirstOrDefault(a => a.Id.ToString() == Model.IdAgente.ToString());
+                        <select class="form-select input-readonly" disabled="disabled">
+                            <option selected="selected">@(mioAgente?.Nome ?? "—")</option>
+                        </select>
+                        <input type="hidden" id="IdAgente" name="IdAgente" value="@Model.IdAgente" />
+                    }
+                    else
+                    {
+                        <select id="IdAgente" name="IdAgente" class="form-select">
+                            @foreach (var a in agenti)
+                            {
+                                bool isSelected = (Model?.IdAgente.ToString() == a.Id.ToString());
+                                <option value="@a.Id"
+                                        data-percentuale="@a.PercentualeDefault"
+                                        selected="@(isSelected ? "selected" : null)">
+                                    @a.Nome
+                                </option>
+                            }
+                        </select>
+                    }
+@* 07/08/2026 fine *@
+                </div>
+
+                <div class="col-md-2">
+                    @* ProvvigioneAgente: campo readonly, sbloccabile da Admin.
+                    Per ruolo Agente il blocco visivo è nascosto; hidden sempre presente
+                    per invio al POST e aggiornato dal JS. *@
+                    @{
+                        string provValue = FTecnico(Model.ProvvigioneAgente);
+                    }
+                    @if (!isAgente) //07/08/2026 inizio: per ruolo Agente il blocco visivo è nascosto; hidden sempre presente
+                    {
+                        <label class="form-label fw-bold">Provvigione Agente (%)</label>
+                        <i class="bi bi-info-circle-fill text-danger ms-2" style="font-size: 1.2rem;" title="Inserire la percentuale in formato umano: 5 significa 5%, NON 0,05"></i>
+                        <div class="input-group">
+                            @* Campo visibile: solo id (niente name); il name è sull'hidden. *@
+                            <input id="ProvvigioneAgenteDisplay"
+                                   type="number"
+                                   step="any"
+                                   class="form-control input-readonly"
+                                   readonly="readonly"
+                                   value="@provValue" />
+                            @if (isAdmin)
+                            {
+                                <button type="button" id="toggleProvAgente" class="btn btn-success">
+                                    <i class="bi bi-lock-fill"></i>
+                                </button>
+                            }
+                        </div>
+                    }
+                    @* 07/08/2026 fine  *@
+
+                    @* Hidden: porta il valore al POST esattamente come tutti gli altri campi calcolati
+                        (es. TotaleProvvigioneFissa, Delta, ecc.).
+                        Il JS lo aggiorna in sincronia con il Display. *@
+                    <input type="hidden"
+                           id="ProvvigioneAgente"
+                           name="ProvvigioneAgente"
+                           value="@provValue" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Tipo Pagamento</label>
+                    <select asp-for="IdTipoPagamento" class="form-select"
+                            asp-items="@(ViewBag.TipiPagamento as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)">
+                    </select>
+                </div>
+
+            </div>
+
+
+            @* ============================================================
+               SEZIONE: ALTRI CAMPI (collapsible)
+               Generata via Reflection su tutte le proprietà del modello
+               non già presenti nelle sezioni precedenti.
+               Usa FormatDecimal per i campi decimal (3 decimali = precisione tecnica Cobral).
+               ============================================================ *@
+            <div class="row g-3">
+                <div class="col-md-2">
+
+                    <h5 class="fw-bold mt-4">Altri Campi</h5>
+                    @* MODIFICA 12/10/2026: il pulsante è DISABILITATO per il ruolo Agente (isAgente = true).
+                       I campi restano comunque nel DOM (collapse chiuso) quindi continuano ad essere inviati nel POST. *@
+                    <button class="btn btn-outline-primary mb-3" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#tecnici"
+                            disabled="@(isAgente ? "disabled" : null)"
+                            title="@(isAgente ? "Non disponibile per il ruolo Agente" : null)">
+                        Mostra / Nascondi Altri Campi
+                    </button>
+                </div>
+            </div>
+
+            <div class="collapse" id="tecnici">
+                <div class="row g-3">
+                    @foreach (var prop in typeof(CalkosManager.Domain.Entities.ProspettoGuerzoni).GetProperties())
+                    {
+                        @* Lista completa dei campi da escludere dalla sezione "Altri Campi"
+                           perché già gestiti nelle sezioni precedenti o non rilevanti per l'utente *@
+                        var skip = new[] {
+                                        "IdProspettoGuerzoni", "NumeroOrdine", "NumeroDDT", "NumeroFattura","DataConsegnaIpotetica",
+                                        "IdCliente", "IdUnitaMisura", "Quantita", "PrezzoUnitario",
+                                        "ImponibileDisplay", "toggleImponibile", "Imponibile", "Perc_Delta_Provvigione",
+                                        "TotaleProvvigioneDisplay", "toggleTotaleProvvigione", "TotaleProvvigione", "DataConsegna",
+                                        "Scadenza", "IdAgente", "ProvvigioneAgente", "toggleProvAgente",
+                                        "IdTipoPagamento", "tecnici", "Fatturare", "AgenteDescrizione",
+
+                                        "IdMandatario", "IdFileImportato", "IdImportGuerzoni",
+                                        "IdMateriale", "DataInserimento", "DataModifica",
+                                        "Utente", "Anno", "Mese",
+                                        "Fatturata", "DataFatturazione", "IsDeleted",
+                                        "RagioneSociale", "DescrizioneMateriale", "UnitaMisura",
+                                        "PercentualeDefaultAgente", "TipoPagamento",
+                                        "DataConsegna","EscludiControlloRitardo","DaFatturare"   // AGGIUNTA 30/09/2026
+                                        ,"SpessoreNum","LarghezzaNum","DiametroNum" // MODIFICA 05/10/2026: Esclusi perché inseriti in posizione dedicata
+
+                                        };
+
+                        if (skip.Contains(prop.Name)) continue;
+
+                        // MODIFICA 12/10/2026: campi DISMESSI (sostituiti da SpessoreNum/LarghezzaNum/DiametroNum).
+                        // Restano visibili in "Altri Campi" per tutti i ruoli, ma NON editabili:
+                        // servono solo per consultazione dello storico. Uso readonly (e non disabled)
+                        // cosi' il valore viene comunque inviato nel POST e non viene azzerato.
+                        bool isDismesso = prop.Name == "Spessore" || prop.Name == "Larghezza";
+
+                        // MODIFICA 12/10/2026: riconoscimento dei campi booleani (bool / bool?),
+                        // prima trattati come testo fisso (es. "True") e quindi non modificabili.
+                        bool isBool = (Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType) == typeof(bool);
+
+
+                        bool isDecimal = prop.PropertyType == typeof(decimal) || prop.PropertyType == typeof(decimal?);
+                        string inputType = isDecimal ? "number" :
+                        (prop.PropertyType == typeof(int?) || prop.PropertyType == typeof(int)) ? "number" :
+                        (prop.PropertyType == typeof(DateTime?) || prop.PropertyType == typeof(DateTime)) ? "date" : "text";
+
+                        @* step="any" per tutti i decimal tecnici Guerzoni (massima precisione) *@
+                        string stepAttr = isDecimal ? "step=any" : "";
+
+                        var rawValue = prop.GetValue(Model);
+                        string formattedValue;
+
+                        if (isDecimal)
+                        {
+                            formattedValue = FDisplay(rawValue); //formattedValue = FormatDecimal(rawValue, 3);
+                        }
+                        else if (inputType == "date" && rawValue is DateTime dt)
+                        {
+                            formattedValue = dt.ToString("yyyy-MM-dd");
+                        }
+                        else
+                        {
+                            formattedValue = rawValue?.ToString() ?? "";
+                        }
+
+                        @if (isBool)
+                        {
+                            @* MODIFICA 12/10/2026: campo booleano (es. InRitardo) -> checkbox/switch modificabile.
+                                   Pattern ASP.NET MVC: checkbox value="true" + hidden value="false" con lo stesso name:
+                                   se spuntato il binder riceve "true,false" -> true; se non spuntato riceve solo "false".
+                                   Per un bool? il valore null viene mostrato come non spuntato (e inviato come false). *@
+                            bool boolValue = rawValue is bool bv && bv;
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold d-block">@prop.Name</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                           name="@prop.Name"
+                                           id="@prop.Name"
+                                           value="true"
+                                           checked="@(boolValue ? "checked" : null)" />
+                                    <input type="hidden" name="@prop.Name" value="false" />
+                                    <label class="form-check-label" for="@prop.Name">@(boolValue ? "Sì" : "No")</label>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">
+                                    @prop.Name
+                                    @if (isDismesso)
+                                    {
+                                        @* MODIFICA 12/10/2026: etichetta informativa per i campi dismessi *@
+                                        <span class="badge bg-secondary ms-1" title="Campo dismesso: sostituito dai campi SpessoreNum / LarghezzaNum / DiametroNum. Solo consultazione storico.">Dismesso</span>
+                                    }
+                                </label>
+                                <input class="form-control @(isDismesso ? "input-readonly" : "")"
+                                       name="@prop.Name"
+                                       id="@prop.Name"
+                                       type="@inputType"
+                                       @stepAttr
+                                       readonly="@(isDismesso ? "readonly" : null)"
+                                       value="@formattedValue" />
+                            </div>
+                        }
+
+
+                        @*                         <div class="col-md-4">
+                            <label class="form-label fw-bold">@prop.Name</label>
+                            <input class="form-control"
+                                   name="@prop.Name"
+                                   id="@prop.Name"
+                                   type="@inputType"
+                                   @stepAttr
+                                   value="@formattedValue" />
+                        </div> *@
+                    }
+                </div>
+            </div>
+
+            <hr />
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="/Admin/ProspettiGuerzoni/ListaOrdini" class="btn btn-secondary">Torna alla lista</a>
+                <button type="submit" class="btn btn-primary">Salva modifiche</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@* C:\Lavoro\Calkos\Calkos.web\Areas\Admin\Views\ProspettiGuerzoni\DettaglioOrdine.cshtml *@
+@*LOGICA DI COBRAL 09/05/2026*@
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+
+            /**
+             * ============================================================
+             * CENTRALIZZAZIONE ANTIFORGERY
+             * Aggiunge automaticamente il token CSRF a tutte le chiamate
+             * AJAX jQuery, evitando di doverlo passare manualmente ogni volta.
+             * ============================================================
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+               //10/08/2026 3 se fatturata disabilito tutto
+                const fatturata = @Model.Fatturata;
+
+                if (fatturata === 1) {
+                    document.querySelectorAll("input, select, textarea, button").forEach(el => {
+                        el.disabled = true;
+                    });
+                }
+                //10/08/2026 3 se fatturata disabilito tutto
+
+
+            /**
+             * ============================================================
+             * CONFIGURAZIONE DECIMALI CENTRALIZZATA
+             * Deve essere allineata con le costanti C# in cima alla view:
+             *   DECIMALI_TECNICI  → usati nei campi hidden (inviati al server)
+             *   DECIMALI_DISPLAY  → usati nei campi visibili all'utente
+             * ============================================================
+             */
+            const DECIMALI_TECNICI = 4;
+            const DECIMALI_DISPLAY = 4;
+
+            // 13/05/2026 — MODIFICA: aggiunto Number.EPSILON prima di toFixed.
+            // Stessa modifica applicata su ElektraWire, Cobral, DeAngeli, SystemCore, SystemP, CST e Hitech.
+            function roundTec(v) {
+                return Number((toNum(v) + Number.EPSILON).toFixed(DECIMALI_TECNICI));
+            }
+
+            function roundDisplay(v) {
+                return Number((toNum(v) + Number.EPSILON).toFixed(DECIMALI_DISPLAY));
+            }
+
+            /**
+             * ============================================================
+             * HELPER NUMERICI
+             * ============================================================
+             */
+
+            /**
+             * toNum — conversione grezza stringa → numero.
+             * Gestisce: null, undefined, stringa vuota, virgola decimale, NaN, Infinity.
+             * Restituisce sempre 0 in caso di fallimento (mai NaN).
+             */
+            function toNum(v) {
+                if (v === null || v === undefined) return 0;
+                if (typeof v === "string") {
+                    v = v.replace(',', '.').trim();
+                    if (v === "") return 0;
+                }
+                const n = parseFloat(v);
+                return (isNaN(n) || !isFinite(n)) ? 0 : n;
+            }
+
+            /**
+             * safeNum — bonifica un valore già letto (variabile JS o $(this).val()).
+             * Uso: safeNum($(this).val())  oppure  safeNum(miaVariabile)
+             * Accetta un fallback opzionale (default: 0).
+             */
+            function safeNum(v, fallback) {
+                if (fallback === undefined) fallback = 0;
+                return toNum(v) || fallback;
+            }
+
+            /**
+             * safeField — legge un campo jQuery dal DOM e lo bonifica.
+             * Uso: safeField("#Imponibile")  invece di  toNum($("#Imponibile").val())
+             * Emette un warning in console se il selettore non trova nulla.
+             */
+            function safeField(selector, fallback) {
+                if (fallback === undefined) fallback = 0;
+                const el = $(selector);
+                if (el.length === 0) {
+                    console.warn("safeField: campo non trovato →", selector);
+                    return fallback;
+                }
+                return safeNum(el.val(), fallback);
+            }
+
+            /**
+             * ============================================================
+             * REGOLA DI SCELTA TRA safeNum e safeField
+             * ============================================================
+             *
+             *  safeField("#MioCampo")   → quando leggi direttamente dal DOM
+             *  safeNum($(this).val())   → quando hai già il valore in una variabile
+             *
+             *  Mnemonica: vedi il cancelletto "#"? → safeField.
+             *             Hai già il valore? → safeNum.
+             */
+
+            /**
+             * ============================================================
+             * VARIABILI DI STATO LUCCHETTI
+             * true  = calcolo automatico attivo (lucchetto chiuso, verde)
+             * false = valore forzato manualmente (lucchetto aperto, rosso)
+             *
+             * NOTA su Perc_Delta_Provvigione:
+             * NON ha un lock di calcolo perché NON è un campo calcolato.
+             * È un valore inserito manualmente (estratto da formula Excel
+             * ma non ricalcolato automaticamente dalla view).
+             * Il suo lucchetto gestisce solo l'editabilità UI.
+             * Partecipa ai calcoli SOLO come input di TotaleProvvigione.
+             * Rimosso lockPercProvv presente nell'originale per questo motivo.
+             *
+             * Tutti i lock partono true e vengono corretti da rilevaDivergenze()
+             * prima del primo ricalcolaTutto().
+             * ============================================================
+             */
+            let lockImponibile        = true;
+            let lockTotaleProvvigione = true;
+            let lockProvAgente        = true;
+
+
+
+                // ============================================================
+        // ============================================================
+        // 30/09/2026 — AUTOMAZIONE DataConsegna ALLA COMPILAZIONE DDT
+        // Quando l'operatore valorizza/modifica il Numero DDT, avvisiamo
+        // che la Data Consegna Effettiva verrà impostata automaticamente
+        // ============================================================
+        // ============================================================
+        // AUTOMAZIONE DataConsegna ALLA COMPILAZIONE DDT 01/10/2026
+        // ============================================================
+        let valoreOriginaleDDT = $("#NumeroDDT").val();
+
+        $("#NumeroDDT").on("change", function () {
+            const nuovoValore = $(this).val().trim();
+
+            // Se il Numero DDT è stato compilato o modificato
+            if (nuovoValore !== "" && nuovoValore !== valoreOriginaleDDT) {
+                const oggi = new Date();
+                const oggiIso = oggi.toISOString().substring(0, 10);
+                const dataFormattata = oggi.toLocaleDateString('it-IT');
+
+                if (typeof confirmAction === "function") {
+                    confirmAction(
+                        "Aggiornare la  Data Consegna ?",
+                        `Hai inserito/modificato il Numero DDT. Vuoi aggiornare la Data Consegna ad oggi (${dataFormattata})?`,
+                        "question",
+                        "Sì, aggiorna data",
+                        "No, mantieni data attuale"
+                    ).then((res) => {
+                        // Gestisce sia il booleano semplice sia l'oggetto di SweetAlert2 ({ isConfirmed: true })
+                        const isConfirmed = (typeof res === "object" && res !== null) ? res.isConfirmed : Boolean(res);
+
+                        if (isConfirmed) {
+                            // SOLO SE CONFERMA: aggiorna il campo DataConsegna
+                            $("#DataConsegna").val(oggiIso);
+                        }
+                        // SE ANNULLA: non fa nulla su #DataConsegna (il Numero DDT rimane comunque quello digitato)
+
+                        // Aggiorna il valore di riferimento per i cambi successivi
+                        valoreOriginaleDDT = nuovoValore;
+                    });
+                } else {
+                    // Fallback con confirm nativo
+                    if (confirm(`Vuoi aggiornare la Data Consegna ad oggi (${dataFormattata})?`)) {
+                        $("#DataConsegna").val(oggiIso);
+                    }
+                    valoreOriginaleDDT = nuovoValore;
+                }
+            }
+        });
+
+        // ============================================================
+        // 28/10/2026 — AVVISO "DA FATTURARE" SENZA TIPO PAGAMENTO
+        // Quando l'operatore attiva lo switch "Da Fatturare" e nella select "Tipo Pagamento" non c'è nessun valore selezionato, mostriamo un popup
+        // lo switch su OFF, così l'ordine non viene marcato come fatturabile senza un Tipo Pagamento.
+        // ============================================================
+        $("#DaFatturare").on("change", function () {
+            const $chk = $(this);
+
+            // 28/10/2026 — Interessa solo quando lo switch viene ATTIVATO
+            if (!$chk.is(":checked")) return;
+
+            // 28/10/2026 — Tipo Pagamento "non selezionato" = valore vuoto oppure 0 (segnaposto)
+            const tipoPagamento = ($("#IdTipoPagamento").val() || "").toString().trim();
+            if (tipoPagamento !== "" && tipoPagamento !== "0") return;
+
+            // 28/10/2026 — Annulla l'attivazione dello switch
+            // (rimuovi questa riga se vuoi solo avvisare e lasciare lo switch attivo)
+            $chk.prop("checked", false);
+
+            const titolo = "Tipo Pagamento mancante";
+            const testo  = "Per impostare l'ordine come \"Da Fatturare\" devi prima selezionare un Tipo Pagamento.";
+
+            if (typeof Swal !== "undefined") {
+                Swal.fire({
+                    icon: "warning",
+                    title: titolo,
+                    text: testo,
+                    confirmButtonText: "OK"
+                }).then(function () {
+                    // 28/10/2026 — Porta il focus sulla select da compilare
+                    $("#IdTipoPagamento").trigger("focus");
+                });
+            } else {
+                // 28/10/2026 — Fallback se SweetAlert non è caricato
+                alert(titolo + "\n" + testo);
+                $("#IdTipoPagamento").trigger("focus");
+            }
+        });
+
+            /**
+             * ============================================================
+             * FUNZIONI DI CALCOLO PURE (senza side-effect)
+             * Queste funzioni SOLO calcolano e restituiscono il valore.
+             * Non scrivono nulla nel DOM. Servono a due scopi:
+             *   1. Essere chiamate da rilevaDivergenze() al caricamento
+             *      per capire se un campo è stato forzato nel DB.
+             *   2. Essere richiamate dalle funzioni "ricalcola*" che
+             *      invece scrivono nel DOM.
+             *
+             * CONVENZIONI Guerzoni:
+             *   Perc_Delta_Provvigione → formato intero (es. 3 = 3%) → dividi per 100 nel calcolo.
+             *                            È un INPUT MANUALE, non calcolato dalla view.
+             * ============================================================
+             */
+
+            /**
+             * Imponibile = PrezzoUnitario * Quantita
+             * Colonna E — "Imponibile"
+             * FORMULA Excel: D5 * E5 (Quantità × Prezzo Unitario)
+             */
+            function calcola_Imponibile() {
+                return roundTec(
+                    safeField("#PrezzoUnitario") *
+                    safeField("#Quantita")
+                );
+            }
+
+            /**
+             * TotaleProvvigione = Imponibile * (Perc_Delta_Provvigione / 100)
+             * FORMULA Excel: F5 * 0.03  (con Perc_Delta_Provvigione = 3)
+             *
+             * ATTENZIONE: Perc_Delta_Provvigione è in formato intero (3 = 3%),
+             * quindi si divide sempre per 100. Non modificare questa divisione.
+             * Perc_Delta_Provvigione è un INPUT MANUALE, non calcolato dalla view.
+             */
+            function calcola_TotaleProvvigione() {
+                return roundTec(
+                    safeField("#Imponibile") *
+                    (safeField("#Perc_Delta_Provvigione") / 100)
+                );
+            }
+
+            /**
+             * ============================================================
+             * FUNZIONI DI RICALCOLO (con side-effect: scrivono nel DOM)
+             * Ogni funzione:
+             *   1. Controlla se il lucchetto è chiuso (lock = true).
+             *      Se aperto, non fa nulla (il valore è stato forzato).
+             *   2. Usa la corrispondente funzione pura per calcolare.
+             *   3. Aggiorna Display (visibile) e Hidden (inviato al server).
+             *   4. Propaga a cascata verso i campi dipendenti.
+             * ============================================================
+             */
+
+            // Colonna E — Imponibile = PrezzoUnitario * Quantita
+            function ricalcolaImponibile() {
+                if (!lockImponibile) return;
+                const tec = calcola_Imponibile();
+                log("Calcolo Imponibile: prezzoUnit=" + safeField("#PrezzoUnitario") +
+                    " * qta=" + safeField("#Quantita") + " → " + tec);
+                $("#ImponibileDisplay").val(roundDisplay(tec));
+                $("#Imponibile").val(tec);
+                // Imponibile è input di TotaleProvvigione → propaga
+                ricalcolaTotaleProvvigione();
+            }
+
+            // TotaleProvvigione = Imponibile * (Perc_Delta_Provvigione / 100)
+            function ricalcolaTotaleProvvigione() {
+                if (!lockTotaleProvvigione) return;
+                const tec = calcola_TotaleProvvigione();
+                log("Calcolo TotaleProvvigione: imponibile=" + safeField("#Imponibile") +
+                    " * perc%=" + safeField("#Perc_Delta_Provvigione") + " → " + tec);
+                $("#TotaleProvvigioneDisplay").val(roundDisplay(tec));
+                $("#TotaleProvvigione").val(tec);
+            }
+
+            /**
+             * ============================================================
+             * ricalcolaTutto — punto di ingresso principale
+             * Chiamato da tutti gli event listener sui campi di input.
+             *
+             * Catena di dipendenze Guerzoni:
+             *   PrezzoUnitario ──┐
+             *                    ├── Imponibile ── TotaleProvvigione
+             *   Quantita       ──┘        ↑
+             *                    Perc_Delta_Provvigione (input manuale)
+             *
+             * NOTA: i campi con lucchetto aperto (lock = false) vengono
+             * ignorati automaticamente dalla loro funzione ricalcola*.
+             * ============================================================
+             */
+            function ricalcolaTutto() {
+                log("--- ricalcolaTutto START ---");
+                log("PrezzoUnitario:", safeField("#PrezzoUnitario"));
+                log("Quantita:", safeField("#Quantita"));
+                log("Perc_Delta_Provvigione (input manuale):", safeField("#Perc_Delta_Provvigione"));
+
+                // 1. Imponibile → in cascata propaga a TotaleProvvigione
+                ricalcolaImponibile();
+                log("Imponibile dopo:", $("#Imponibile").val());
+
+                // 2. TotaleProvvigione esplicito: Perc_Delta_Provvigione può cambiare
+                //    indipendentemente da PrezzoUnitario/Quantita, e in quel caso
+                //    la cascata del punto 1 non partirebbe.
+                ricalcolaTotaleProvvigione();
+                log("TotaleProvvigione dopo:", $("#TotaleProvvigione").val());
+
+                log("--- ricalcolaTutto END ---");
+            }
+
+
+
+
+            /**
+             * ============================================================
+             * PROVVIGIONE AGENTE (AJAX)
+             * Recupera la percentuale di provvigione dell'agente per il
+             * cliente selezionato. Non fa nulla se il lucchetto è aperto.
+             * ============================================================
+             */
+                  //23/10/2026 ricalcolaProvvigioneAgente nuova
+                    let tokenProvvigione = 0; // identifica l'ultima richiesta di provvigione: le risposte precedenti vengono scartate
+
+                    function ricalcolaProvvigioneAgente() {
+                        if (!lockProvAgente) return;
+
+                        // Ogni nuova chiamata invalida quelle ancora in corso, anche se questa poi esce subito (es. agente mancante)
+                        const token = ++tokenProvvigione;
+
+                        const idAgente  = idValido($("#IdAgente").val());   // idValido è definita più sotto: funziona perché è una function declaration
+                        const idCliente = idValido($("#IdCliente").val());
+
+                        // 26/10/2026 1 Senza agente (o cliente) non esiste una provvigione valida: azzero invece di
+                        // lasciare nel campo la percentuale del cliente/agente precedente.
+                        if (!idAgente || !idCliente) {
+                            log("ProvvigioneAgente azzerata: IdAgente o IdCliente mancante o non valido.");
+                            $("#ProvvigioneAgenteDisplay").val(roundDisplay(0));
+                            $("#ProvvigioneAgente").val(0);
+                            return;
+                        }
+
+                        log("Chiamata AJAX ProvvigioneAgente: idAgente=" + idAgente + ", idCliente=" + idCliente);
+
+                        $.ajax({
+                            url: '/Admin/ProspettiGuerzoni/GetPercentualeProvvigione',
+                            data: { idAgente: idAgente, idCliente: idCliente },
+                            dataType: 'json',
+                            cache: false
+                        }).done(function (percentuale) {
+                            if (token !== tokenProvvigione) return; // nel frattempo è partita una richiesta più recente
+
+                            const valTec = roundTec(safeNum(percentuale));
+                            const valVis = roundDisplay(valTec);
+
+                            log("Risultato AJAX ProvvigioneAgente: Percentuale ricevuta=" +
+                                percentuale + " → Formattata=" + valTec);
+
+                            $("#ProvvigioneAgenteDisplay").val(valVis);
+                            $("#ProvvigioneAgente").val(valTec);
+                        }).fail(function (jqXHR, textStatus, error) {
+                            if (token !== tokenProvvigione) return;
+                            log("ERRORE AJAX ricalcolaProvvigioneAgente:", textStatus, error);
+                        });
+                    }
+
+            /**
+             * ============================================================
+             * GESTIONE LUCCHETTI — aggiornaUILucchetto
+             * Funzione condivisa che aggiorna l'aspetto visivo del pulsante
+             * e lo stato readonly del campo Display associato.
+             *
+             * isLocked = true  → campo readonly, pulsante verde con lucchetto chiuso
+             * isLocked = false → campo editabile, pulsante rosso con lucchetto aperto
+             *
+             * Usata sia da setupToggle (click utente) sia da rilevaDivergenze
+             * (inizializzazione automatica al caricamento pagina).
+             * ============================================================
+             */
+            function aggiornaUILucchetto(idBtn, idInputDisplay, isLocked) {
+                const $input = $(idInputDisplay);
+                const $btn   = $(idBtn);
+                if (isLocked) {
+                    $input.prop("readonly", true).addClass("input-readonly");
+                    $btn.removeClass("btn-danger").addClass("btn-success")
+                        .html('<i class="bi bi-lock-fill"></i>');
+                } else {
+                    $input.prop("readonly", false).removeClass("input-readonly");
+                    $btn.removeClass("btn-success").addClass("btn-danger")
+                        .html('<i class="bi bi-unlock-fill"></i>');
+                }
+            }
+
+            /**
+             * ============================================================
+             * GESTIONE LUCCHETTI — setupToggle
+             * Al click:
+             *   - chiude il lucchetto (lock → true): sincronizza l'hidden
+             *     col valore attuale del Display, poi aggiorna UI.
+             *   - apre il lucchetto (lock → false): campo diventa editabile,
+             *     il valore NON viene resettato a quello originale.
+             *
+             * CORREZIONI rispetto all'originale:
+             *   - Rimosso lockPercProvv: Perc_Delta_Provvigione è input manuale,
+             *     non ha un lock di calcolo (case 'percprovv' ora gestisce solo UI).
+             *   - Rimosso ricalcolaTutto() alla chiusura del lucchetto: non necessario
+             *     e potrebbe sovrascrivere valori forzati.
+             *   - Corretto setupToggle("#toggleProvAgente", "#ProvvigioneAgente", 'agente')
+             *     → ora usa "#ProvvigioneAgenteDisplay" come secondo parametro.
+             * ============================================================
+             */
+            function setupToggle(idBtn, idInputDisplay, type) {
+                $(idBtn).on("click", function () {
+
+                    let isLocked;
+                    switch (type) {
+                        case 'imp':     lockImponibile        = !lockImponibile;        isLocked = lockImponibile;        break;
+                        case 'totprov': lockTotaleProvvigione = !lockTotaleProvvigione; isLocked = lockTotaleProvvigione; break;
+                        case 'agente':  lockProvAgente        = !lockProvAgente;        isLocked = lockProvAgente;        break;
+
+                        // Perc_Delta_Provvigione: input manuale, nessuna variabile lock di calcolo.
+                        // Il toggle gestisce solo readonly/editabile sull'UI.
+                        case 'percprovv':
+                            const attualmenteReadonly = $(idInputDisplay).prop("readonly");
+                            isLocked = !attualmenteReadonly;
+                            aggiornaUILucchetto(idBtn, idInputDisplay, isLocked);
+                            return; // esce subito, senza toccare hidden
+                    }
+
+                    // Se si chiude il lucchetto, sincronizza l'hidden col valore
+                    // attuale del Display (preserva eventuali modifiche manuali).
+                    if (isLocked) {
+                        const hiddenId = idInputDisplay.replace("#", "").replace("Display", "");
+                        $("#" + hiddenId).val(roundTec(safeNum($(idInputDisplay).val())));
+                    }
+
+                    aggiornaUILucchetto(idBtn, idInputDisplay, isLocked);
+                });
+            }
+
+            setupToggle("#toggleImponibile",          "#ImponibileDisplay",          "imp");
+            setupToggle("#toggleTotaleProvvigione",   "#TotaleProvvigioneDisplay",   "totprov");
+            setupToggle("#toggleProvAgente",          "#ProvvigioneAgenteDisplay",   "agente");
+            // CORRETTO: il secondo parametro era "#ProvvigioneAgente" (hidden) nell'originale.
+            // Deve essere "#ProvvigioneAgenteDisplay" (campo visibile) per aggiornaUILucchetto.
+            setupToggle("#togglePerc_Delta_Provvigione", "#Perc_Delta_ProvvigioneDisplay", "percprovv");
+
+            /**
+             * ============================================================
+             * rilevaDivergenze — inizializzazione automatica lucchetti
+             * ============================================================
+             * Confronta ogni valore salvato nel DB (campo Hidden) con il
+             * risultato della funzione pura corrispondente. Se differiscono
+             * oltre la soglia 0.0001, apre il lucchetto automaticamente
+             * per proteggere il valore forzato dal primo ricalcolaTutto().
+             *
+             * Perc_Delta_Provvigione NON viene controllata: è un input manuale,
+             * non ha una funzione pura di calcolo e non ha un lock di calcolo.
+             *
+             * ORDINE: dal livello più basso della catena verso il più alto,
+             * così le funzioni pure leggono sempre i valori DB originali
+             * dagli hidden (non ancora sovrascritti da ricalcoli parziali).
+             *
+             * Catena Guerzoni:
+             *   PrezzoUnitario ──┐
+             *                    ├── Imponibile ── TotaleProvvigione
+             *   Quantita       ──┘
+             * ============================================================
+             */
+
+
+
+        function rilevaDivergenze() {
+                        const SOGLIA = 0.001;
+
+                        /** MODIFICA 11/05/2026
+                         * Valuta se il valore nel database diverge dal calcolo teorico della formula.
+                         * Viene utilizzata nei moduli (Cobral, SystemCore, ecc.) per inizializzare lo stato dei lucchetti.
+                         */
+                        // 13/05/2026 — MODIFICA: rimossa la logica con toFixed(3) sugli operandi
+                        // che arrotondava PRIMA della sottrazione generando falsi negativi.
+                        // Esempio del problema:
+                        //   0.2228 → toFixed(3) → 0.223
+                        //   0.2227 → toFixed(3) → 0.223
+                        //   diff = 0.000 → lucchetto mai aperto anche per divergenze reali.
+                        // Soluzione: confronto sulla differenza GREZZA tra valoreDB e valoreCalc.
+                        // La soglia 0.001 assorbe solo floating-point noise (< 0.0001),
+                        // non divergenze reali del dominio (≥ 0.01).
+                        // 13/05/2026 — VERIFICA CAMPI MANCANTI:
+                        // Tutti i campi calcolati con lucchetto sono già presenti:
+                        //   Imponibile, TotaleProvvigione.
+                        // Perc_Delta_Provvigione NON viene controllata: è un input manuale,
+                        // non ha una funzione pura di calcolo e non ha un lock di calcolo.
+                        // Nessun campo mancante rilevato in questo modulo.
+                        function controlla(idHidden, idBtn, idDisplay, fnCalcola, setLock) {
+                            const valoreDB   = safeField(idHidden);
+                            const valoreCalc = fnCalcola();
+                            const diff       = Math.abs(valoreDB - valoreCalc);
+
+                            if (diff > SOGLIA) {
+                                log("Valore forzato rilevato per", idHidden,
+                                    "| DB =", valoreDB,
+                                    "| Calcolato =", valoreCalc,
+                                    "| Diff =", diff,
+                                    "→ lucchetto aperto automaticamente");
+
+                                // Sblocca la logica (setLock false = non più vincolato alla formula)
+                                setLock(false);
+
+                                // Aggiorna visivamente il lucchetto e rende il campo editabile
+                                aggiornaUILucchetto(idBtn, idDisplay, false);
+                            }
+                        }
+
+                        // Livello 1 — dipende da PrezzoUnitario e Quantita (input diretti)
+                        controlla(
+                            "#Imponibile", "#toggleImponibile", "#ImponibileDisplay",
+                            calcola_Imponibile,
+                            (v) => { lockImponibile = v; }
+                        );
+
+                        // Livello 2 — dipende da Imponibile (letto dall'hidden DB)
+                        //             e Perc_Delta_Provvigione (input manuale)
+                        controlla(
+                            "#TotaleProvvigione", "#toggleTotaleProvvigione", "#TotaleProvvigioneDisplay",
+                            calcola_TotaleProvvigione,
+                            (v) => { lockTotaleProvvigione = v; }
+                        );
+                    }
+
+
+
+
+
+
+
+
+            /**
+             * ============================================================
+             * EVENT LISTENERS — campi principali
+             * ============================================================
+             * Triggera ricalcolaTutto() su ogni modifica.
+             *
+             * Perc_Delta_Provvigione è incluso come input manuale:
+             * quando l'utente lo modifica, TotaleProvvigione deve ricalcolare.
+             * Nota: l'originale ascoltava "#Perc_Delta_ProvvigioneDisplay" (il Display),
+             * qui ascoltiamo anche "#Perc_Delta_Provvigione" (l'hidden) per coerenza
+             * con il listener dedicato sul Display qui sotto.
+             * ============================================================
+             */
+            $("#Quantita, #PrezzoUnitario").on("input change", ricalcolaTutto);
+
+            // Perc_Delta_Provvigione è input manuale: la modifica diretta del campo
+            // (non tramite lucchetto aperto ma nel campo hidden stesso) deve propagare.
+            $("#Perc_Delta_Provvigione").on("input change", function () {
+                ricalcolaTotaleProvvigione();
+            });
+
+            // Agente / Cliente → provvigione agente via AJAX
+            // 26/10/2026 2 Solo l'agente: il cambio cliente e' gestito da gestisciCambioCliente(), che ricalcola
+            // DOPO aver aggiornato l'agente (evita la combinazione vecchio agente + nuovo cliente e le chiamate
+            // partite prima della conferma sull'ordine gia' salvato).
+            $("#IdAgente").on("change", ricalcolaProvvigioneAgente);
+            // NUOVO 07/08/2026: Cliente → proposta automatica Agente (solo su Nuovo)
+            //$("#IdCliente").on("change", proponiAgenteDaCliente);
+             $("#IdCliente").on("change", gestisciCambioCliente);//26/08/2026
+            /**
+             * ============================================================
+             * EVENT LISTENERS — modifica manuale Display (lucchetto aperto)
+             * Sincronizzano l'Hidden e propagano a cascata verso i dipendenti.
+             * Le funzioni ricalcola* verificano il proprio lock: se un campo
+             * intermedio è anch'esso forzato, la cascata si ferma lì.
+             * ============================================================
+             */
+
+            // Imponibile → TotaleProvvigione
+            // CORREZIONE rispetto all'originale: il listener controllava lockImponibile
+            // internamente con un if, ma il pattern corretto è lasciare che
+            // ricalcolaTotaleProvvigione() verifichi il proprio lock autonomamente.
+            $("#ImponibileDisplay").on("input", function () {
+                $("#Imponibile").val(roundTec(safeNum($(this).val())));
+                // Propaga a cascata: Imponibile è input di TotaleProvvigione
+                ricalcolaTotaleProvvigione();
+            });
+
+            // Perc_Delta_Provvigione Display: aggiorna hidden e propaga.
+            // CONVENZIONE: il valore è già in formato intero percentuale (es. 3 = 3%).
+            // NON dividere qui — la divisione per 100 avviene solo in calcola_TotaleProvvigione.
+            $("#Perc_Delta_ProvvigioneDisplay").on("input", function () {
+                $("#Perc_Delta_Provvigione").val(roundTec(safeNum($(this).val())));
+                ricalcolaTotaleProvvigione();
+            });
+
+            // TotaleProvvigione — foglia della catena, nessuna cascata
+            $("#TotaleProvvigioneDisplay").on("input", function () {
+                $("#TotaleProvvigione").val(roundTec(safeNum($(this).val())));
+            });
+
+            // ProvvigioneAgente — campo indipendente
+            $("#ProvvigioneAgenteDisplay").on("input", function () {
+                $("#ProvvigioneAgente").val(roundTec(safeNum($(this).val())));
+            });
+
+            /**
+             * ============================================================
+             * SINCRONIZZAZIONE DISPLAY → HIDDEN (generica — tutti gli altri)
+             * Cattura tutti i campi Display non già gestiti sopra.
+             *
+             * CORREZIONE rispetto all'originale: mancava il .not() con l'elenco
+             * dei campi già gestiti, causando doppia scrittura sull'hidden
+             * (dal listener specifico E da questo generico).
+             * ============================================================
+             */
+            $("input[id$='Display']")
+                .not("#ImponibileDisplay, "              +
+                     "#Perc_Delta_ProvvigioneDisplay, "  +
+                     "#TotaleProvvigioneDisplay, "       +
+                     "#ProvvigioneAgenteDisplay")
+                .on("input", function () {
+                    const hiddenId = $(this).attr("id").replace("Display", "");
+                    $("#" + hiddenId).val(roundTec(safeNum($(this).val())));
+                });
+
+            /**
+             * ============================================================
+             * INIZIALIZZAZIONE
+             * ============================================================
+             * Ordine obbligatorio:
+             *   1. rilevaDivergenze() — imposta i lock corretti leggendo
+             *      gli hidden con i valori DB originali, PRIMA di qualsiasi
+             *      ricalcolo che potrebbe sovrascriverli.
+             *   2. ricalcolaTutto()  — esegue i calcoli rispettando i lock
+             *      appena impostati (i campi forzati vengono saltati).
+             *   3. Provvigione agente — carica via AJAX solo se il valore
+             *      DB è zero (record nuovo o non ancora valorizzato).
+             * ============================================================
+             */
+            rilevaDivergenze();
+            ricalcolaTutto();
+
+            if ($("#IdAgente").val() && $("#IdCliente").val()) {
+                const valAttuale = safeField("#ProvvigioneAgente");
+                if (valAttuale === 0) ricalcolaProvvigioneAgente();
+            }
+
+
+
+
+            /* ============================================================
+            * 26/08/2026 LOGICA GESTIONE CAMBIO CLIENTE (UNIFICATA) Agente, provvigioneAgente e tipo pagamento
+            * ============================================================
+            */
+            const idProspettoCorrente = @Model.IdProspettoGuerzoni;
+
+            /* ============================================================
+             * 23/10/2026 Versione rinforzata: ID validati, risposte "vecchie" scartate, annullamento che ripristina il cliente
+             * ============================================================ */
+
+            let idClientePrecedente = $("#IdCliente").val(); // per ripristinare il cliente se l'utente annulla
+            let tokenCambioCliente = 0;                      // identifica l'ultima richiesta: le risposte precedenti vengono scartate
+
+            // Accetta solo interi positivi; qualunque altra cosa (null, undefined, testo, 0) diventa 0
+            function idValido(v) {
+                const n = Number(v);
+                return Number.isInteger(n) && n > 0 ? n : 0;
+            }
+
+            // Imposta una <select> solo se l'opzione esiste davvero; altrimenti usa il valore di ripiego
+            function impostaSelect(selector, valore, fallback) {
+                const $sel = $(selector);
+                let daImpostare = valore ? String(valore) : String(fallback);
+
+                if ($sel.is("select") && !$sel.find("option").is(function () { return this.value === daImpostare; })) {
+                    if (valore) console.warn("Valore " + valore + " non presente in " + selector);
+                    daImpostare = String(fallback);
+                }
+                $sel.val(daImpostare).trigger("change");
+            }
+
+            // Conferma: gestisce confirmAction booleano/SweetAlert2 e il caso in cui la funzione non esista
+            function chiediConferma(messaggio) {
+                if (typeof confirmAction !== "function") return Promise.resolve(window.confirm(messaggio));
+                return Promise.resolve(confirmAction(messaggio)).then(function (r) {
+                    return (typeof r === "object" && r !== null) ? Boolean(r.isConfirmed) : Boolean(r);
+                });
+            }
+
+            // 1. Logic Agente
+            function aggiornaAgenteDaCliente(idCliente, token) {
+                return $.ajax({   // 26/10/2026 3 return: l'orchestratore deve poter attendere la risposta
+                    // 26/10/2026 4 era '/Admin/Clienti/GetAgenteCliente' (legge solo Clienti.IdAgente).
+                    // Ora: Clienti.IdAgente, altrimenti l'agente in ProvvigioniAgenti per il mandatario corrente.
+                    url: '/Admin/ProspettiGuerzoni/GetAgenteClienteMandatario',
+                    data: { idCliente: idCliente },
+                    dataType: 'json',
+                    cache: false
+                }).done(function (res) {
+                    if (token !== tokenCambioCliente) return; // nel frattempo l'utente ha cambiato di nuovo cliente
+                    // Nessun agente (null/0): selezioniamo il segnaposto "— —" (value = 0)
+                    impostaSelect("#IdAgente", idValido(res && res.idAgente), 0);
+                }).fail(function (jqXHR) {
+                    if (token !== tokenCambioCliente) return;
+                    console.error("ERRORE AJAX aggiornaAgenteDaCliente:", jqXHR.status);
+                    alert("Impossibile recuperare l'agente del cliente (errore " + jqXHR.status + "). Verificare manualmente il campo Agente.");
+                });
+            }
+
+            // 2. Logic Tipo Pagamento
+            function aggiornaTipoPagamentoDaCliente(idCliente, token) {
+                return $.ajax({   // 26/10/2026 5 return: l'orchestratore deve poter attendere la risposta
+                    url: '/Admin/Clienti/GetTipoPagamentoDefault',
+                    data: { IdCliente: idCliente },
+                    dataType: 'json',
+                    cache: false
+                }).done(function (res) {
+                    if (token !== tokenCambioCliente) return;
+                    // Accetta sia IdTipoPagamento sia idTipoPagamento (dipende dalla serializzazione JSON)
+                    const id = idValido(res && (res.IdTipoPagamento ?? res.idTipoPagamento));
+                    impostaSelect("#IdTipoPagamento", id, "");
+                }).fail(function (jqXHR) {
+                    if (token !== tokenCambioCliente) return;
+                    console.warn("Impossibile recuperare il Tipo Pagamento di default:", jqXHR.status);
+                });
+            }
+
+            // 3. Orchestratore unico eventi & conferma
+            async function gestisciCambioCliente() {
+                const idCliente = idValido($("#IdCliente").val());
+
+                // 26/10/2026 6 Cliente non valido (es. segnaposto "— —"): nessuna riassegnazione, ma la provvigione
+                // non deve restare quella del cliente precedente (il ricalcolo la azzera perche' manca il cliente).
+                if (!idCliente) {
+                    tokenCambioCliente++;   // invalida le risposte AJAX ancora in corso
+                    ricalcolaProvvigioneAgente();
+                    return;
+                }
+
+                if (idProspettoCorrente !== 0) {
+                    const confermato = await chiediConferma(
+                        "Hai scelto di modificare il Cliente su un ordine già salvato. " +
+                        "Agente, Provvigione e Tipo Pagamento verranno riassegnati."
+                    );
+
+                    if (!confermato) {
+                        // Annullato: ripristino il cliente precedente (senza rilanciare l'evento) e riallineo la provvigione
+                        $("#IdCliente").val(idClientePrecedente);
+                        ricalcolaProvvigioneAgente();
+                        return; // Interrompe l'aggiornamento di ENTRAMBI i campi
+                    }
+                }
+
+                idClientePrecedente = String(idCliente);
+                const token = ++tokenCambioCliente;
+
+                // 26/10/2026 7 Attendo ENTRAMBE le risposte (anche in caso di errore) prima di ricalcolare.
+                // .always() esiste in tutte le versioni di jQuery (Promise.allSettled direttamente sui jqXHR no).
+                const attendi = function (jq) { return new Promise(function (ok) { jq.always(ok); }); };
+                await Promise.all([
+                    attendi(aggiornaAgenteDaCliente(idCliente, token)),
+                    attendi(aggiornaTipoPagamentoDaCliente(idCliente, token))
+                ]);
+
+                // L'utente ha cambiato di nuovo cliente nel frattempo: questo giro e' obsoleto
+                if (token !== tokenCambioCliente) return;
+
+                // 26/10/2026 8 Ricalcolo ESPLICITO: agente e cliente sono ora definitivi. Se il nuovo cliente non ha
+                // agente (select su "— —" = 0) la provvigione viene azzerata, non lasciata com'era.
+                ricalcolaProvvigioneAgente();
+            }
+
+
+
+
+
+
+
+              }); // fine document.ready
+    </script>
+}

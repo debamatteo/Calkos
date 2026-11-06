@@ -1,0 +1,199 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Documentazione\01-08-2026-ANALISI_NUOVE_RICHIESTE\**" />
+    <Compile Remove="Properties\wwwroot\tempCST\**" />
+    <Compile Remove="Properties\wwwroot\tempDeAngeli\**" />
+    <Compile Remove="Properties\wwwroot\tempElektraWire\**" />
+    <Compile Remove="Properties\wwwroot\tempGuerzoni\**" />
+    <Compile Remove="Properties\wwwroot\tempHitech\**" />
+    <Compile Remove="Properties\wwwroot\tempSystemCore\**" />
+    <Compile Remove="Properties\wwwroot\tempSystemP\**" />
+    <Compile Remove="Properties\wwwroot\tempTradingAndConsulting\**" />
+    <Compile Remove="wwwroot\tempCobral\**" />
+    <Compile Remove="wwwroot\tempCST\**" />
+    <Compile Remove="wwwroot\tempDeAngeli\**" />
+    <Compile Remove="wwwroot\tempElektraWire\**" />
+    <Compile Remove="wwwroot\tempGuerzoni\**" />
+    <Compile Remove="wwwroot\tempHitech\**" />
+    <Compile Remove="wwwroot\tempSystemCore\**" />
+    <Compile Remove="wwwroot\tempSystemP\**" />
+    <Compile Remove="wwwroot\tempTradingAndConsulting\**" />
+    <Content Remove="Documentazione\01-08-2026-ANALISI_NUOVE_RICHIESTE\**" />
+    <Content Remove="Properties\wwwroot\tempCST\**" />
+    <Content Remove="Properties\wwwroot\tempDeAngeli\**" />
+    <Content Remove="Properties\wwwroot\tempElektraWire\**" />
+    <Content Remove="Properties\wwwroot\tempGuerzoni\**" />
+    <Content Remove="Properties\wwwroot\tempHitech\**" />
+    <Content Remove="Properties\wwwroot\tempSystemCore\**" />
+    <Content Remove="Properties\wwwroot\tempSystemP\**" />
+    <Content Remove="Properties\wwwroot\tempTradingAndConsulting\**" />
+    <Content Remove="wwwroot\tempCobral\**" />
+    <Content Remove="wwwroot\tempCST\**" />
+    <Content Remove="wwwroot\tempDeAngeli\**" />
+    <Content Remove="wwwroot\tempElektraWire\**" />
+    <Content Remove="wwwroot\tempGuerzoni\**" />
+    <Content Remove="wwwroot\tempHitech\**" />
+    <Content Remove="wwwroot\tempSystemCore\**" />
+    <Content Remove="wwwroot\tempSystemP\**" />
+    <Content Remove="wwwroot\tempTradingAndConsulting\**" />
+    <EmbeddedResource Remove="Documentazione\01-08-2026-ANALISI_NUOVE_RICHIESTE\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempCST\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempDeAngeli\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempElektraWire\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempGuerzoni\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempHitech\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempSystemCore\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempSystemP\**" />
+    <EmbeddedResource Remove="Properties\wwwroot\tempTradingAndConsulting\**" />
+    <EmbeddedResource Remove="wwwroot\tempCobral\**" />
+    <EmbeddedResource Remove="wwwroot\tempCST\**" />
+    <EmbeddedResource Remove="wwwroot\tempDeAngeli\**" />
+    <EmbeddedResource Remove="wwwroot\tempElektraWire\**" />
+    <EmbeddedResource Remove="wwwroot\tempGuerzoni\**" />
+    <EmbeddedResource Remove="wwwroot\tempHitech\**" />
+    <EmbeddedResource Remove="wwwroot\tempSystemCore\**" />
+    <EmbeddedResource Remove="wwwroot\tempSystemP\**" />
+    <EmbeddedResource Remove="wwwroot\tempTradingAndConsulting\**" />
+    <None Remove="Documentazione\01-08-2026-ANALISI_NUOVE_RICHIESTE\**" />
+    <None Remove="Properties\wwwroot\tempCST\**" />
+    <None Remove="Properties\wwwroot\tempDeAngeli\**" />
+    <None Remove="Properties\wwwroot\tempElektraWire\**" />
+    <None Remove="Properties\wwwroot\tempGuerzoni\**" />
+    <None Remove="Properties\wwwroot\tempHitech\**" />
+    <None Remove="Properties\wwwroot\tempSystemCore\**" />
+    <None Remove="Properties\wwwroot\tempSystemP\**" />
+    <None Remove="Properties\wwwroot\tempTradingAndConsulting\**" />
+    <None Remove="wwwroot\tempCobral\**" />
+    <None Remove="wwwroot\tempCST\**" />
+    <None Remove="wwwroot\tempDeAngeli\**" />
+    <None Remove="wwwroot\tempElektraWire\**" />
+    <None Remove="wwwroot\tempGuerzoni\**" />
+    <None Remove="wwwroot\tempHitech\**" />
+    <None Remove="wwwroot\tempSystemCore\**" />
+    <None Remove="wwwroot\tempSystemP\**" />
+    <None Remove="wwwroot\tempTradingAndConsulting\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempCST\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempDeAngeli\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempElektraWire\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempGuerzoni\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempHitech\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempSystemCore\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempSystemP\**" />
+    <_WebToolingArtifacts Remove="Properties\wwwroot\tempTradingAndConsulting\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Areas\Admin\Views\Shared\COPIA_AdminLayout - Copia.cshtml" />
+    <Content Remove="Views\Shared\COPIA_Layout.cshtml" />
+    <Content Remove="wwwroot\js\tests\deangelicalcoli.test.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Properties\wwwroot\lib\bootstrap\css\bootstrap.min.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Properties\wwwroot\css\site.css" />
+    <Content Include="Properties\wwwroot\favicon.ico" />
+    <Content Include="Properties\wwwroot\img\logo.png" />
+    <Content Include="Properties\wwwroot\js\app-debug.js" />
+    <Content Include="Properties\wwwroot\js\deangelicalcoli.js" />
+    <Content Include="Properties\wwwroot\js\site.js" />
+    <Content Include="Properties\wwwroot\js\tests\deangelicalcoli.test.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-grid.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-reboot.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap-utilities.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.min.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.min.css" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\css\bootstrap.rtl.min.css.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.min.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.bundle.min.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.min.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.esm.min.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.js.map" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.min.js" />
+    <Content Include="Properties\wwwroot\lib\bootstrap\js\bootstrap.min.js.map" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation-unobtrusive\jquery.validate.unobtrusive.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation-unobtrusive\jquery.validate.unobtrusive.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation-unobtrusive\LICENSE.txt" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\additional-methods.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\additional-methods.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\jquery.validate.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\dist\jquery.validate.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery-validation\LICENSE.md" />
+    <Content Include="Properties\wwwroot\lib\jquery\dist\jquery.js" />
+    <Content Include="Properties\wwwroot\lib\jquery\dist\jquery.min.js" />
+    <Content Include="Properties\wwwroot\lib\jquery\dist\jquery.min.map" />
+    <Content Include="Properties\wwwroot\lib\jquery\LICENSE.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.24" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.23" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.23" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.24" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.24">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.23" />
+    <PackageReference Include="QuestPDF" Version="2026.2.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CalkosManager.Application\CalkosManager.Application.csproj" />
+    <ProjectReference Include="..\CalkosManager.Domain\CalkosManager.Domain.csproj" />
+    <ProjectReference Include="..\CalkosManager.Infrastructure\CalkosManager.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Documentazione\" />
+    <Folder Include="wwwroot\js\tests\" />
+  </ItemGroup>
+
+
+
+</Project>

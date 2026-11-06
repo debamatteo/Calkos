@@ -1,0 +1,719 @@
+@* // 05/10/2026: configurazione test *@
+@inject EnvironmentSettings EnvSettings
+@* // 05/10/2026: configurazione test *@
+
+@using Calkos.Web.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@* Antiforgery CENTRALIZZATO 05/04/2026  *@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Calkos Admin</title>
+
+    <!--
+        LIBRERIE ESTERNE (CDN):
+        - Bootstrap 5.3.2: Framework CSS per il layout responsive, griglie e componenti UI (pulsanti, modali).
+        - Bootstrap Icons 1.11.1: Set di icone vettoriali utilizzate per i menu e i pulsanti d'azione.
+    -->
+    @* 03/11/2026 MODIFICA: SRI (integrity + crossorigin) *@
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" integrity="sha384-4LISF5TTJX/fLmGSxO53rV4miRxdg84mZsxmO8Rx5jGtp/LbrixFETvWa5a6sESd" crossorigin="anonymous" />
+    @* 16/10/2026 *@
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" integrity="sha384-ElnGX1+feu5KEucSXJLJE9peLXQ3kZDXmq9a2q6nS26zB8zJ7j6ZlljCktlrgsUx" crossorigin="anonymous" />
+    <!--
+        FILE LOCALI E VERSIONAMENTO:
+        - site.css: Stili personalizzati globali del progetto.
+        - Calkos.web.styles.css: Isolamento CSS (CSS Isolation) generato da ASP.NET Core per i componenti.
+        - asp-append-version="true": Carica una nuova versione del file se il contenuto cambia (evita problemi di cache).
+    -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Calkos.web.styles.css" asp-append-version="true" />
+
+
+    <style>
+
+        /* --- 05/10/2026: AMBIENTE DI TEST - SFONDO AZZURRO TOTALE --- */
+        /* --- 05/10/2026: SFONDO AZZURRO INTERA PAGINA IN AMBIENTE DI TEST --- */
+
+        /* Quando IsTest è true, applica l'azzurro a body, sidebar, header e contenuto */
+        body.is-test-env,
+        body.is-test-env .sidebar,
+        body.is-test-env .admin-header,
+        body.is-test-env .main-content {
+            background-color: #e7f5ff !important;
+        }
+
+            /* Bordo superiore azzurro identificativo sulla sidebar */
+            body.is-test-env .sidebar {
+                border-top: 4px solid #0dcaf0 !important;
+            }
+
+        /* Badge azzurro nell'header */
+        .test-badge-banner {
+            background-color: #0dcaf0 !important;
+            color: #000000 !important;
+            font-weight: bold;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+
+        /* --- LAYOUT GENERALE: Gestione dello spazio Sidebar + Contenuto --- */
+        body {
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .main-content {
+            margin-left: 200px; /* Spazio riservato alla sidebar fissa */
+            width: calc(100% - 200px);
+        }
+
+        /* --- SIDEBAR: Menu di navigazione laterale fisso --- */
+        .sidebar {
+            width: 200px;
+            background-color: #ffffff;
+            border-right: 1px solid #e5e5e5;
+            padding: 20px 0;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+        }
+
+            .sidebar .logo-area {
+                padding: 0 14px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                margin-bottom: 20px;
+            }
+
+                .sidebar .logo-area img {
+                    height: 40px;
+                    margin-bottom: 6px;
+                }
+
+            /* Nav-link: Stile per le voci di menu e stati hover/active */
+            .sidebar .nav-link {
+                color: #555;
+                padding: 8px 14px;
+                font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: 4px 10px;
+                border-radius: 6px;
+                transition: background-color 0.2s ease;
+            }
+
+                .sidebar .nav-link:hover {
+                    background-color: #f0f4ff;
+                }
+
+                .sidebar .nav-link.active {
+                    background-color: #e7f1ff;
+                    font-weight: 600;
+                    color: #0d6efd;
+                    border-left: 3px solid #0d6efd;
+                }
+
+        /* --- HEADER: Barra superiore con pulsante Home e Info Utente --- */
+        .admin-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- VALIDAZIONE: Stili per i messaggi di errore e campi obbligatori --- */
+        .required-label::after {
+            content: " *"; /* Aggiunge asterisco rosso ai label obbligatori */
+            color: #dc3545;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
+        /* Evidenziazione bordo campo in caso di errore di validazione ASP.NET */
+        .input-validation-error {
+            border: 2px solid #dc3545 !important;
+            background-color: #fff8f8 !important;
+        }
+
+        .input-readonly {
+            background-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+
+        .field-validation-error {
+            color: #dc3545;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            display: block;
+        }
+
+
+
+
+
+        /* Colonna Azioni sempre visibile a destra anche con scroll orizzontale */
+        .table-responsive th.col-azioni,
+        .table-responsive td.col-azioni {
+            position: sticky;
+            right: 0;
+            z-index: 2;
+        }
+
+        .table-responsive thead th.col-azioni {
+            z-index: 3;
+        }
+        /* Separatore visivo (pseudo-elemento, non tocca box-shadow e bordi di Bootstrap) */
+        .table-responsive th.col-azioni::before,
+        .table-responsive td.col-azioni::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -6px;
+            width: 6px;
+            pointer-events: none;
+            background: linear-gradient(to right, transparent, rgba(0, 0, 0, .08));
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </style>
+</head>
+
+<body class="@(EnvSettings.IsTest ? "is-test-env" : "")">
+    <!-- 05/10/2026 -->
+    <!-- Antiforgery CENTRALIZZATO 05/04/2026 -->
+    @* Genera il token per le chiamate AJAX *@
+    @{
+        var tokens = Antiforgery.GetAndStoreTokens(Context);
+    }
+    <input type="hidden" id="RequestVerificationToken" name="RequestVerificationToken" value="@tokens.RequestToken" />
+
+    @*     <h1 style="color:red; background:yellow; position:fixed; top:0; z-index:9999;">LAYOUT ADMIN ATTIVO</h1> *@
+    <!-- 05/10/2026: NAVIGAZIONE LATERALE CON CONTROLLO RUOLI -->
+    <!-- NAVIGAZIONE LATERALE CON CONTROLLO RUOLI -->
+
+    <div class="sidebar @(EnvSettings.IsTest ? "is-test-env" : "")">
+        <div class="logo-area">
+            <img src="~/img/logo.png" alt="Logo" />
+            <div class="fw-bold">Calkos Admin</div>
+        </div>
+
+       
+        @* 21/10/2026 *@
+
+        <nav class="nav flex-column">
+            @* ==== VISIBILE SOLO AD ADMIN ==== *@
+            @if (User.IsInRole("Admin"))
+            {
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"
+                   asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
+                   asp-area="Admin" asp-controller="Users" asp-action="Index">
+                    <i class="bi bi-people"></i> Gestione Utenti
+                </a>
+
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Roles" ? "active" : "")"
+                   asp-area="Admin" asp-controller="Roles" asp-action="Index">
+                    <i class="bi bi-shield-lock"></i> Gestione Ruoli
+                </a>
+            }
+
+            @* ==== VISIBILE AD ADMIN E OPERATORE ==== *@
+            @if (User.IsInRole("Admin") || User.IsInRole("Operatore"))
+            {
+                <!-- Sotto-menu Anagrafiche (Toggle tramite JS) -->
+                <div class="nav-link" style="cursor:pointer;" onclick="toggleAnagrafiche()">
+                    <i class="bi bi-collection"></i> Gestione Anagrafiche
+                    <i class="bi bi-caret-down-fill float-end" id="anagraficaArrow"></i>
+                </div>
+
+                <div id="anagraficheMenu" style="display:none; margin-left:20px;">
+                    <a class="nav-link" asp-area="Admin" asp-controller="Agenti" asp-action="Index">• Agenti</a>
+                    <a class="nav-link" asp-area="Admin" asp-controller="ProvvigioniAgenti" asp-action="Index">• Provvigioni Agenti</a>
+                    <a class="nav-link" asp-area="Admin" asp-controller="Mandatari" asp-action="Index">• Mandatari</a>
+                    <a class="nav-link" asp-area="Admin" asp-controller="Materiali" asp-action="Index">• Materiali</a>
+                    <a class="nav-link" asp-area="Admin" asp-controller="MaterialiDimensioni" asp-action="Index">• Dimensioni</a>
+                    <a class="nav-link" asp-area="Admin" asp-controller="TipoPagamento" asp-action="Index">• Pagamenti</a>
+                    <a class="nav-link" asp-area="Admin" asp-controller="UnitaMisura" asp-action="Index">• Unità Misura</a>
+                </div>
+            }
+
+            @* ==== VISIBILE AD AGENTE, ADMIN E OPERATORE ==== *@
+            @if (User.IsInRole("Agente") || User.IsInRole("Admin") || User.IsInRole("Operatore"))
+            {
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Clienti" ? "active" : "")"
+                   asp-area="Admin" asp-controller="Clienti" asp-action="Index">
+                    <i class="bi bi-person-lines-fill"></i> Clienti
+                </a>
+            }
+
+            @* ==== MODIFICA 22/10/2026 - INIZIO ==== Gestione Prospetti visibile anche all'Agente.
+               La pagina /Admin/Prospetti mostra gia' all'agente solo "Lista Ordini"; il controller
+               ha gia' [Authorize(Roles = "Admin,Operatore,Agente")]. *@
+            @if (User.IsInRole("Agente") || User.IsInRole("Operatore") || User.IsInRole("Admin"))
+            {
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Prospetti" ? "active" : "")"
+                   asp-area="Admin" asp-controller="Prospetti" asp-action="Index">
+                    <i class="bi bi-table"></i> Gestione Prospetti
+                </a>
+            }
+            @* ==== MODIFICA 22/10/2026 - FINE ==== *@
+
+            @* ==== GESTIONE OPERATIVA: solo Admin e Operatore ==== *@
+            @if (User.IsInRole("Operatore") || User.IsInRole("Admin"))
+            {
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "StatisticheGlobali" ? "active" : "")"
+                   asp-area="Admin" asp-controller="StatisticheGlobali" asp-action="Index">
+                    <i class="bi bi-graph-up"></i> Statistiche Globali
+                </a>
+            }
+        </nav>
+
+
+
+    </div>
+
+    <!-- AREA CONTENUTO PRINCIPALE -->
+    <div class="main-content">
+        <header class="admin-header">
+            <div>
+                <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-light btn-sm border">
+                    <i class="bi bi-house-door"></i> Home
+                </a>
+
+                <!-- 05/10/2026: Scritta visibile ambiente di TEST -->
+                @if (EnvSettings.IsTest)
+                {
+                    <span class="test-badge-banner">
+                        <i class="bi bi-bug-fill me-1"></i> AMBIENTE DI TEST
+                    </span>
+                }
+
+
+
+            </div>
+            <div>
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    <span class="me-3 text-muted">@User.Identity.Name</span>
+                    <form asp-area="Identity" asp-page="/Account/Logout" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                    </form>
+                }
+            </div>
+        </header>
+
+        <!-- RenderBody(): Placeholder dove viene iniettato il contenuto della View specifica -->
+        <main role="main" class="p-4">
+            @RenderBody()
+        </main>
+    </div>
+
+
+    <!-- MODALI DI CONFERMA: Template riutilizzabili per eliminazione e reset dati -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Conferma eliminazione</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">Sei sicuro di voler eliminare questa riga?</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Elimina</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmResetModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">Reset Fatturazione</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">Vuoi davvero resettare lo stato di fatturazione di questa riga?</div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button id="confirmResetBtn" class="btn btn-info">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalOperazioneCompletata" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Operazione completata</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Testo dinamico inserito da ListaOrdini -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!--
+        SCRIPTS LIBRERIE:
+        - jQuery 3.7.1: Necessaria per manipolazione DOM, chiamate AJAX e gestione eventi.
+        - Bootstrap JS Bundle: Include Popper.js, necessario per il corretto funzionamento di modali e dropdown.
+    -->
+    @* 03/11/2026 MODIFICA: SRI (integrity + crossorigin) *@
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25" integrity="sha384-nLoOnA/BDh8A/jxqtckg4DumuCGOBYUnNJLZdQz/zfYNp3wcjGSoWTAzgko06G/2" crossorigin="anonymous"></script>@* //19/10/2026 sweetalert2*@
+
+    @* ==== MODIFICA 15/10/2026 - INIZIO ==== Gestione sessione scaduta nelle chiamate AJAX/fetch *@
+    <script>window.CALKOS_LOGIN_URL = '@Url.Content("~/Identity/Account/Login")';</script>
+    <script src="~/js/sessione-scaduta.js" asp-append-version="true"></script>
+    @* ==== MODIFICA 15/10/2026 - FINE ==== *@
+
+    @* 10/08/2026 INIZIO*@
+    <script>
+        window.showSuccess = function(message) {
+            return Swal.fire({
+                icon: "success",
+                title: "Operazione completata",
+                text: message,
+                confirmButtonText: "OK"
+            });
+        };
+
+        window.showError = function(message) {
+            return Swal.fire({
+                icon: "error",
+                title: "Attenzione",
+                text: message,
+                confirmButtonText: "OK"
+            });
+        };
+
+        window.showWarning = function(titleOrMessage, message) {
+            let title = "Attenzione";
+            let text = titleOrMessage;
+
+            // Se vengono passati 2 parametri, il primo è il titolo e il secondo è il testo
+            if (message !== undefined) {
+                title = titleOrMessage;
+                text = message;
+            }
+
+            return Swal.fire({
+                icon: "warning",
+                title: title,
+                text: text,
+                confirmButtonText: "OK"
+            });
+        };
+
+        window.showHtmlMessage = function(title, html, icon = "info") {
+            return Swal.fire({
+                icon: icon,
+                title: title,
+                html: html,
+                confirmButtonText: "OK"
+            });
+        };
+
+        window.confirmAction = function (param1, param2) {
+            let title = "Conferma";
+            let message = "";
+
+            if (param2 !== undefined) {
+                // Chiamata a 2 parametri: confirmAction(title, message)
+                title = param1;
+                message = param2;
+            } else {
+                // Chiamata ad 1 parametro: confirmAction(message)
+                message = param1;
+            }
+
+            return Swal.fire({
+                icon: "question",
+                title: title,
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: "Sì, conferma",
+                cancelButtonText: "Annulla",
+                reverseButtons: true
+            });
+        };
+
+        window.escapeHtml = function(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        };
+
+
+        //funzione showAlert() 20/10/2026
+        function showAlert(message, type = "info") {
+            const container = document.getElementById("alert-container");
+            if (!container) return;
+
+            const alertEl = document.createElement("div");
+            alertEl.className = `alert alert-${type} alert-dismissible fade show shadow`;
+            alertEl.setAttribute("role", "alert");
+
+            const testo = document.createElement("div");
+            testo.textContent = message;
+            alertEl.appendChild(testo);
+
+            const chiudi = document.createElement("button");
+            chiudi.type = "button";
+            chiudi.className = "btn-close";
+            chiudi.setAttribute("data-bs-dismiss", "alert");
+            alertEl.appendChild(chiudi);
+
+            container.appendChild(alertEl);
+            setTimeout(() => alertEl.remove(), 4000);
+        };
+
+
+        window.confirmAndExecute = function(message, ajaxOptions) {
+            return Swal.fire({
+                icon: "question",
+                title: "Conferma",
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: "Sì",
+                cancelButtonText: "Annulla",
+                reverseButtons: true
+            }).then(result => {
+                if (result.isConfirmed) {
+                    return $.ajax(ajaxOptions);
+                }
+            });
+        };
+        window.toast = function(message, icon = "info") {
+            return Swal.fire({
+                toast: true,
+                position: "top-end",
+                icon: icon,
+                title: message,
+                showConfirmButton: false,
+                timer: 2000
+            });
+        };
+
+
+    </script>
+    @*  10/08/2026 FINE*@
+
+
+    @* 13/10/2026 INIZIO - Selezione automatica del valore al focus (tutte le maschere) *@
+    <script>
+        // ============================================================
+        // 13/10/2026 SELEZIONE AUTOMATICA DEL VALORE AL FOCUS
+        // ------------------------------------------------------------
+        // Quando l'utente entra in un campo testuale o numerico (click o TAB)
+        // il contenuto già presente viene selezionato per intero: digitando si
+        // SOSTITUISCE il valore invece di accodare cifre (es. "125" + "50" = "12550").
+        //
+        // - Handler DELEGATO sul document: vale anche per i campi creati dinamicamente
+        //   (es. blocco "Altri Campi") senza doverli registrare uno a uno.
+        // - Campo vuoto: nessun effetto (comportamento invariato).
+        // - Esclusi: readonly/disabled, checkbox, date, hidden, textarea (note lunghe)
+        //   e il campo di ricerca interno di Select2.
+        // - Per escludere un singolo campo: aggiungere l'attributo data-no-select-on-focus.
+        // - Un secondo click dentro un campo GIÀ focalizzato posiziona il cursore normalmente.
+        // - Definito UNA SOLA VOLTA qui nel layout: vale per tutte le maschere che usano questo
+        //   layout, quindi NON va ripetuto nelle singole view. La guardia
+        //   window.__selectOnFocusAttivo evita comunque la doppia registrazione.
+        // ============================================================
+        if (!window.__selectOnFocusAttivo) {
+            window.__selectOnFocusAttivo = true;
+
+            const TIPI_SELEZIONABILI = ["text", "number", "tel", "search"];
+            let focusDaMouse = false; // true solo se il focus nasce da un click (mousedown su campo non ancora attivo)
+
+            function isCampoSelezionabile(el) {
+                if (!el || el.tagName !== "INPUT") return false;
+                if (el.disabled || el.readOnly) return false;
+                if (el.hasAttribute("data-no-select-on-focus")) return false;
+                if (el.classList.contains("select2-search__field")) return false;
+                return TIPI_SELEZIONABILI.indexOf(el.type) !== -1;
+            }
+
+            // 1) Click: ricordiamo che il focus arriva dal mouse (solo se il campo non è già attivo)
+            $(document).on("mousedown", "input", function () {
+                focusDaMouse = isCampoSelezionabile(this) && document.activeElement !== this;
+            });
+
+            // 2) Focus (click o TAB): selezione completa se il campo contiene già un valore
+            $(document).on("focusin", "input", function () {
+                if (!isCampoSelezionabile(this)) return;
+                if (this.value === "") return;   // campo vuoto: nessuna modifica
+                this.select();                   // select() funziona anche su type="number"
+            });
+
+            // 3) Rilascio del mouse: Chrome/Safari deselezionano il testo al mouseup
+            //    posizionando il cursore. Lo impediamo solo per il click che ha dato il focus.
+            $(document).on("mouseup", "input", function (e) {
+                if (focusDaMouse) {
+                    focusDaMouse = false;
+                    e.preventDefault();
+                }
+            });
+        }
+        // 13/10/2026 FINE selezione automatica al focus
+    </script>
+    @* 13/10/2026 FINE *@
+
+
+
+
+
+
+
+
+    @* 
+    // ============================================================
+    // DEBUG SWITCH (ON/OFF) — abilita/disabilita TUTTI i log
+    // ============================================================
+    *@
+   @*  <script src="~/js/app-debug.js"></script> *@
+   @* 19/10/2026 *@
+@*     <environment include="Development">
+        <script src="~/js/app-debug.js"></script>
+    </environment>
+ *@
+    @* 26/10/2026 *@
+    <environment include="Development">
+        <script src="~/js/app-debug.js"></script>
+    </environment>
+    @* 26/10/2026: fuori da Development nessun log, ma log() deve esistere
+   (le viste lo chiamano in decine di punti) *@
+    <environment exclude="Development">
+        <script>window.log = function () { };</script>
+    </environment>
+
+
+
+    <!-- RenderSectionAsync: Inserisce script specifici definiti nelle singole view -->
+    @await RenderSectionAsync("Scripts", required: false)
+
+
+    <!-- 16/10/2026 LIBRERIE DATATABLES + BUTTONS EXCEL (GRATUITE) -->
+    @* 03/11/2026 MODIFICA: SRI (integrity + crossorigin) *@
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js" integrity="sha384-k5vbMeKHbxEZ0AEBTSdR7UjAgWCcUfrS8c0c5b2AfIh7olfhNkyCZYwOfzOQhauK" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js" integrity="sha384-PgPBH0hy6DTJwu7pTf6bkRqPlf/+pjUBExpr/eIfzszlGYFlF9Wi9VTAJODPhgCO" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js" integrity="sha384-D7Ifmm6VZVyjXndPxbvw6UXiK3Vixw1lgK5y+0pVVaQvzHPCpx8atng0IjL5wdcQ" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js" integrity="sha384-8Fm9OFhJ1epvcmDiJTZ2SFHHZoCp/xJ8Ld7wG7/aUwGni32fG7LIhsNTFfEtUaSv" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js" integrity="sha384-On4D3nN2gGDU45v05twd+TTLH8PL+2gbsGVpnKEpSfv7pDd1pgEJxxc4k7iWeg9d" crossorigin="anonymous"></script>
+
+
+    <!-- TOAST NOTIFICATION: Div nascosto per messaggi a centro schermo -->
+    <div id="globalToast" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#333; color:white; padding:20px 30px; border-radius:10px; font-size:1.2rem; z-index:99999; box-shadow:0 0 20px rgba(0,0,0,0.3); opacity:0; transition:opacity 0.4s ease;"></div>
+
+
+
+
+    <script>
+
+        // CONFIGURAZIONE ANTIFORGERY GLOBALE PER AJAX Antiforgery CENTRALIZZATO 05/04/2026
+                $.ajaxSetup({
+                    beforeSend: function (xhr) {
+                        var token = $('#RequestVerificationToken').val();
+                        if (token) {
+                            xhr.setRequestHeader("RequestVerificationToken", token);
+                        }
+                    }
+                });
+
+
+
+        // Funzione per mostrare messaggi temporanei (Successi/Errori)
+        function showToast(message) {
+            var toast = $("#globalToast");
+            toast.text(message);
+            toast.css("display", "block");
+            setTimeout(() => toast.css("opacity", "1"), 10);
+            setTimeout(() => {
+                toast.css("opacity", "0");
+                setTimeout(() => toast.css("display", "none"), 400);
+            }, 2500);
+        }
+
+        // Gestione apertura/chiusura menu Anagrafiche nella Sidebar
+        function toggleAnagrafiche() {
+            const menu = document.getElementById("anagraficheMenu");
+            const arrow = document.getElementById("anagraficaArrow");
+            if (menu.style.display === "none") {
+                menu.style.display = "block";
+                arrow.classList.replace("bi-caret-down-fill", "bi-caret-up-fill");
+            } else {
+                menu.style.display = "none";
+                arrow.classList.replace("bi-caret-up-fill", "bi-caret-down-fill");
+            }
+        }
+    
+            
+            
+            
+   </script>
+
+
+    @* ==== MODIFICA 16/10/2026 - INIZIO ====
+       Collega la gestione sessione scaduta alla jQuery DEFINITIVA: va fatto dopo la sezione
+       Scripts, perché alcune view (es. ListaOrdini) ricaricano jQuery. *@
+    <script>
+        if (window.CalkosSessione) window.CalkosSessione.collegaJQuery(window.jQuery);
+    </script>
+    @* ==== MODIFICA 16/10/2026 - FINE ==== *@
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,100 @@
+﻿@model CalkosManager.Domain.Entities.UnitaMisura
+@using System.Globalization
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Modifica Unità di Misura";
+}
+
+@functions {
+    // Helper per gestire la formattazione dei decimali (mantenuto per coerenza di stile con Agenti)
+    public string FormatDecimal(object? valore, int decimali = 2)
+    {
+        if (valore == null || valore == DBNull.Value) return string.Empty;
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+        {
+            return d.ToString("F" + decimali, CultureInfo.InvariantCulture);
+        }
+        return valore.ToString() ?? string.Empty;
+    }
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-secondary">
+        <i class="bi bi-pencil-square me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            @* Il Tag Helper asp-action genera automaticamente il token Antiforgery hidden.
+            *@
+            <form asp-action="Save" method="post">
+                @* Chiave primaria hidden per l'Update *@
+                <input type="hidden" asp-for="IdUnitaMisura" />
+
+                <div class="row g-3">
+                    @* Codice Unità di Misura (sola lettura in modifica?) *@
+                    <div class="col-md-4">
+                        <label asp-for="CodiceUnitaMisura" class="form-label fw-bold">Codice</label>
+                        <input asp-for="CodiceUnitaMisura" class="form-control text-uppercase" placeholder="es. KG" maxlength="10" />
+                        <span asp-validation-for="CodiceUnitaMisura" class="text-danger small"></span>
+                        <small class="text-muted">Abbreviazione tecnica (max 10 car.)</small>
+                    </div>
+
+                    @* Descrizione Estesa *@
+                    <div class="col-md-8">
+                        <label asp-for="UnitaMisuraDescrizione" class="form-label fw-bold">Descrizione</label>
+                        <input asp-for="UnitaMisuraDescrizione" class="form-control" placeholder="Inserisci la descrizione estesa" />
+                        <span asp-validation-for="UnitaMisuraDescrizione" class="text-danger small"></span>
+                    </div>
+
+                    @* Info di Audit (sola lettura per dare contesto) *@
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted">Ultimo Utente</label>
+                        <input class="form-control bg-light" value="@Model.Utente" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-muted">Data Inserimento</label>
+                        <input class="form-control bg-light" value="@Model.DataInserimento.ToString("dd/MM/yyyy HH:mm")" readonly />
+                    </div>
+                </div>
+
+                @* Sommario errori *@
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            // Auto-uppercase per il codice unità di misura
+            $('#CodiceUnitaMisura').on('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+        });
+    </script>
+}

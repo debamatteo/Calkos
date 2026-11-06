@@ -1,0 +1,443 @@
+﻿@model IEnumerable<CalkosManager.Domain.Entities.ProvvigioniAgenti>
+
+@inject CalkosManager.Application.Services.AgenteService AgenteService
+@inject CalkosManager.Application.Services.MandatarioService MandatarioService
+@inject CalkosManager.Application.Services.ClienteService ClienteService
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Gestione Provvigioni Agenti";
+
+    // Lookup per descrizioni con gestione null per evitare eccezioni durante il rendering
+    var agenti = AgenteService.GetAll()?.ToList() ?? new List<CalkosManager.Domain.Entities.Agente>();
+    var mandatari = MandatarioService.GetAll()?.ToList() ?? new List<CalkosManager.Domain.Entities.Mandatario>();
+    var clienti = ClienteService.GetAll()?.ToList() ?? new List<CalkosManager.Domain.Entities.Cliente>();
+}
+
+@* HEADER: sezione introduttiva della pagina con titolo e descrizione (Pattern Modello) *@
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-cash-coin text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Provvigioni Agenti</h1>
+        <small class="text-muted">Configurazione delle percentuali per Agente, Mandatario e Cliente</small>
+    </div>
+</div>
+@* 23/10/2026 Messaggio di esito del salvataggio (Create/Edit -> Save -> redirect a Index).
+   Leggere TempData["Success"] qui lo CONSUMA: non resta in memoria fino alla prossima pagina che lo legge. *@
+@if (TempData["Success"] is string messaggioSuccesso)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-1"></i> @messaggioSuccesso
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* TOOLBAR: pulsanti principali (Pattern Modello) *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <a asp-area="Admin" asp-controller="ProvvigioniAgenti" asp-action="Create"
+                   class="btn btn-primary fw-bold shadow-sm">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Nuova Provvigione
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+        </div>
+
+        <style>
+            /* STILE UNIFORMATO: Header Blu e righe pulite (Adattato da Modello) */
+            #provvigioniTable thead tr:first-child th {
+                background-color: #0d6efd !important;
+                color: white !important;
+                border: none !important;
+                padding: 12px 10px !important;
+            }
+
+            #provvigioniTable thead tr.filters th {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                padding: 8px !important;
+            }
+
+            #provvigioniTable tbody tr:hover {
+                background-color: #f0f7ff !important;
+                cursor: pointer;
+            }
+
+            .filters input {
+                width: 100%;
+                font-size: 0.75rem;
+                padding: 3px 6px;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+            }
+
+            .ps-custom {
+                padding-left: 1.2rem !important;
+            }
+
+            .badge-percent {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+                border: 1px solid #cfe2ff;
+                font-weight: 600;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="provvigioniTable" class="table table-hover align-middle w-100">
+                <thead>
+                    @* RIGA 1: intestazioni colonna *@
+                    <tr>
+                        <th style="display:none;">ID</th>                 @* Index 0 *@
+                        <th class="ps-custom">Agente</th>                @* Index 1 *@
+                        <th>Mandatario</th>                              @* Index 2 *@
+                        <th>Cliente</th>                                 @* Index 3 *@
+                        <th class="text-end" style="width: 130px;">% Provv.</th> @* Index 4 *@
+                        <th>Utente</th>                                  @* Index 5 *@
+                        <th class="text-center" style="width:140px;">Azioni</th> @* Index 6 *@
+                        <th style="display:none;">Ultima attività</th>    @* Index 7 - 30/10/2026 nascosta, serve per l'ordinamento *@
+                    </tr>
+
+                    @* RIGA 2: filtri — mappatura manuale data-col *@
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th class="ps-custom"><input type="text" placeholder="Filtra Agente..." data-col="1" /></th>
+                        <th><input type="text" placeholder="Filtra Mandatario..." data-col="2" /></th>
+                        <th><input type="text" placeholder="Filtra Cliente..." data-col="3" /></th>
+                        <th>
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="0.01" class="form-control" placeholder="%" data-col="4" />
+                            </div>
+                        </th>
+                        <th><input type="text" placeholder="Cerca..." data-col="5" /></th>
+                        <th></th>
+                        <th style="display:none;"></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        var agente = agenti.FirstOrDefault(a => a.IdAgente == p.IdAgente);
+                        var mandatario = mandatari.FirstOrDefault(m => m.IdMandatario == p.IdMandatario);
+                        var cliente = p.IdCliente.HasValue ? clienti.FirstOrDefault(c => c.IdCliente == p.IdCliente) : null;
+
+                        @* ==== MODIFICA 04/11/2026 - INIZIO ==== dati per l'avviso dopo l'eliminazione *@
+                        <tr data-id="@p.IdProvvigione" data-id-mandatario="@p.IdMandatario" data-id-cliente="@p.IdCliente"data-nome-mandatario="@(mandatario?.NomeMandatario)" data-nome-cliente="@(cliente?.RagioneSociale)">
+                            @* ==== MODIFICA 04/11/2026 - FINE ==== *@
+                            @* <tr data-id="@p.IdProvvigione"> *@
+                            <td style="display:none;">@p.IdProvvigione</td>
+                            <td class="fw-bold text-dark ps-custom">@(agente?.AgenteDescrizione ?? "N/D")</td>
+                            <td>@(mandatario?.NomeMandatario ?? "N/D")</td>
+                            <td>
+                                <span class="badge bg-light text-dark border fw-normal">
+                                    @(cliente?.RagioneSociale ?? "TUTTI")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="badge badge-percent">
+                                    @p.Percentuale.ToString("F2") %
+                                </span>
+                            </td>
+                            <td><small class="text-muted">@p.Utente</small></td>
+                            <td class="text-center text-nowrap">
+                                @* 26/10/2026 *@
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-action="Replica" asp-route-id="@p.IdProvvigione"
+                                       class="btn btn-link text-primary p-0 me-2" title="Replica">
+                                        <i class="bi bi-files fs-5"></i>
+                                    </a>
+                                }
+
+
+                                <a asp-action="Edit" asp-route-id="@p.IdProvvigione"
+                                   class="btn btn-link text-warning p-0 me-2"
+                                   title="Modifica">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-link text-danger p-0"
+                                        onclick="eliminaProvvigione(@p.IdProvvigione, this)"
+                                        title="Elimina">
+                                    <i class="bi bi-trash-fill fs-5"></i>
+                                </button>
+                            </td>
+                            @* 30/10/2026 data di ultima modifica, o di creazione se mai modificata, in formato ordinabile (colonna nascosta) *@
+                            <td style="display:none;">@((p.DataModifica ?? p.DataInserimento).ToString("yyyyMMddHHmmss"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        let idDaEliminare = 0; // ID della riga da eliminare (gestito al click su elimina)
+        let rigaDaRimuovere = null; // Riferimento alla riga DataTables da rimuovere dopo conferma
+
+        // ==== MODIFICA 30/10/2026 - INIZIO ====
+        // Chiave di memorizzazione dei filtri di questa pagina (sessionStorage)
+        function chiaveStatoProvvigioni() { return 'provvigioniTable_stato'; }
+        // ==== MODIFICA 30/10/2026 - FINE ====
+
+        $(document).ready(function () {
+
+            var table = $('#provvigioniTable').DataTable({
+                // 23/10/2026 Aggiunto 'B' (Buttons) al layout: stessa logica della view Clienti
+                dom: '<"d-flex justify-content-between align-items-center mb-2"lB>rtip',
+                // ==== MODIFICA 30/10/2026 - INIZIO ====
+                // Filtri, ordinamento e pagina vengono ricordati finché la scheda del browser resta aperta:
+                // entrando in "Nuova" / "Modifica" e tornando alla lista si ritrovano gli stessi filtri.
+                stateSave: true,
+                stateSaveCallback: function (settings, data) {
+                    try { sessionStorage.setItem(chiaveStatoProvvigioni(), JSON.stringify(data)); } catch (e) { }
+                },
+                stateLoadCallback: function () {
+                    try { var s = sessionStorage.getItem(chiaveStatoProvvigioni()); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+                },
+                // ==== MODIFICA 30/10/2026 - FINE ====
+                // 23/10/2026 Pulsante Esporta Excel (stessa configurazione della view Clienti)
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Esporta Excel',
+                        className: 'btn btn-success btn-sm fw-bold shadow-sm',
+                        filename: 'Provvigioni_Agenti',
+                        exportOptions: {
+                            // 'applied' = solo le righe che passano i filtri, su tutte le pagine (è anche il default)
+                            modifier: { search: 'applied' },
+                            columns: [1, 2, 3, 4, 5], // tutte tranne ID (0) e Azioni (6)
+                            format: {
+                                body: function (data, row, column, node) {
+                                    // Definire format.body SOSTITUISCE quello di default di Buttons (che toglie l'HTML):
+                                    // quindi lo rifacciamo qui. DOMParser non esegue script ed è sicuro.
+                                    var testo = new DOMParser().parseFromString(String(data), 'text/html').body.textContent || '';
+                                    testo = testo.replace(/\s+/g, ' ').trim(); // collassa spazi/a-capo lasciati da Razor
+
+                                    // Colonna % (indice 4): "80.50 %" -> "80.50" così Excel la tratta come numero
+                                    if (column === 4) {
+                                        var m = /^(\d+(?:[.,]\d+)?)\s*%$/.exec(testo);
+                                        if (m) return m[1].replace(',', '.');
+                                    }
+                                    return testo;
+                                }
+                            }
+                        }
+                    }
+                ],
+                orderCellsTop: true, // Abilita ordinamento sulle celle dell'header superiore
+                language: {
+                    url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" // Localizzazione italiana
+                },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false }, // Colonna ID nascosta e non ricercabile
+
+                    {
+                        targets: 3, // Colonna Cliente
+                        render: function (data, type, row) {
+                            // Per filtraggio/ordinamento rimuove HTML e usa solo testo
+                            if (type === 'filter' || type === 'sort') {
+                                var tmp = document.createElement('div');
+                                tmp.innerHTML = data;
+                                return tmp.textContent || tmp.innerText || '';
+                            }
+                            return data; // In visualizzazione mantiene HTML (badge, colori, ecc.)
+                        }
+                    },
+
+                    {
+                        targets: 4, // Colonna % provvigione
+                        render: function (data, type, row) {
+                            // Per filtraggio/ordinamento estrae solo il numero dal badge HTML
+                            if (type === 'filter' || type === 'sort') {
+                                var tmp = document.createElement('div');
+                                tmp.innerHTML = data;
+                                return (tmp.textContent || tmp.innerText || '').trim();
+                            }
+                            return data; // In visualizzazione mantiene HTML
+                        }
+                    },
+
+                    { targets: 6, orderable: false, searchable: false }, // Colonna azioni: niente sort, niente ricerca
+                    { targets: 7, visible: false, searchable: false }    // 30/10/2026 ultima attività: modifica o creazione (solo ordinamento)
+                ],
+                // 30/10/2026 era [[1, 'asc']] (agente): ora la provvigione creata/modificata per ultima compare per prima
+                order: [[7, 'desc'], [0, 'desc']]
+            });
+
+            // ==== MODIFICA 30/10/2026 - INIZIO ====
+            // Se i filtri sono stati ripristinati dalla memoria, li riscrivo nelle caselle di testo
+            table.columns().every(function () {
+                var valore = this.search();
+                if (valore) {
+                    if (this.index() === 4) valore = valore.replace(/\\\./g, '.'); // colonna %: tolgo l'escape del punto
+                    $('#provvigioniTable thead tr.filters input[data-col="' + this.index() + '"]').val(valore);
+                }
+            });
+            // ==== MODIFICA 30/10/2026 - FINE ====
+
+            // Filtri colonne — ricerca "contiene" (regex), senza ancoraggio ^
+            $('#provvigioniTable thead tr.filters input').on('keyup change', function () {
+                var colIndex = parseInt($(this).data('col')); // Indice colonna da filtrare
+                var val = $.trim(this.value); // Valore inserito nel filtro
+
+                if (!val) {
+                    // Reset filtro se input vuoto
+                    table.column(colIndex).search('', true, false).draw();
+                    return;
+                }
+
+                if (colIndex === 4) {
+                    // Colonna percentuale: escape del punto per regex
+                    var escaped = val.replace('.', '\\.');
+                    table.column(4).search(escaped, true, false).draw();
+                } else {
+                    // Ricerca generica "contiene"
+                    table.column(colIndex).search(val, true, false).draw();
+                }
+            });
+
+            // Evita che il click sui filtri triggeri ordinamento della colonna
+            $('.filters th').on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            // Doppio click sulla riga → apre pagina di modifica
+            $('#provvigioniTable tbody').on('dblclick', 'tr', function (e) {
+                // Evita trigger se si clicca su link o pulsanti
+                if ($(e.target).closest('a, button').length > 0) return;
+
+                var id = $(this).data('id'); // Recupera ID dalla riga
+                if (id) window.location.href = '@Url.Action("Edit", "ProvvigioniAgenti")/' + id;
+            });
+
+            // Conferma eliminazione → chiama funzione dedicata
+            $('#confirmDeleteBtn').on('click', function () {
+                eseguiEliminazione();
+            });
+
+        }); // fine document.ready
+
+        function resetFiltri() {
+            // Reset input filtri + reset ricerca DataTables
+            $('.filters input').val('');
+            $('#provvigioniTable').DataTable().search('').columns().search('').draw();
+        }
+
+        function eliminaProvvigione(id, btn) {
+            idDaEliminare = id; // Salva ID da eliminare
+            rigaDaRimuovere = $(btn).closest('tr'); // Salva riga DataTables da rimuovere
+
+            let info = rigaDaRimuovere.find('td:eq(1)').text().trim(); // Nome agente per conferma
+
+            // Messaggio nel modal di conferma
+            // 21/10/2026 P4-01: niente .html() con dati utente -> costruzione DOM
+            $('#confirmDeleteModal .modal-body').empty().append(
+                document.createTextNode("Sei sicuro di voler eliminare la provvigione per l'agente: "),
+                $('<br>'),
+                $('<strong>').text(info),
+                document.createTextNode('?')
+            );
+
+            // Mostra modal conferma
+            var myModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+            myModal.show();
+        }
+
+        function eseguiEliminazione() {
+            if (idDaEliminare === 0) return; // Nessun ID → esci
+
+            // Chiamata AJAX al controller
+            $.post('@Url.Action("Delete", "ProvvigioniAgenti")', { id: idDaEliminare })
+                .done(function (res) {
+                    // Chiude modal conferma
+                    var modalEl = document.getElementById('confirmDeleteModal');
+                    var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+
+        if (res.success) {
+            // ==== MODIFICA 04/11/2026 - INIZIO ====
+            var tbl = $('#provvigioniTable').DataTable();
+
+            // Leggo i dati della riga PRIMA di rimuoverla
+            var idMand  = $(rigaDaRimuovere).data('id-mandatario');
+            var idCli   = $(rigaDaRimuovere).data('id-cliente');
+            var nomeMand = $(rigaDaRimuovere).data('nome-mandatario');
+            var nomeCli  = $(rigaDaRimuovere).data('nome-cliente');
+
+            // Rimuove riga dalla DataTable senza ricaricare pagina
+            tbl.row(rigaDaRimuovere).remove().draw(false);
+
+            // Restano altre provvigioni per lo stesso cliente e mandatario? (se si', il legame serve ancora)
+            var restano = 0;
+            if (idCli) {
+                restano = tbl.rows().nodes().to$().filter(function () {
+                    return $(this).data('id-cliente') == idCli && $(this).data('id-mandatario') == idMand;
+                }).length;
+            }
+
+            var $body = $('#modalOperazioneCompletata .modal-body').empty().append(
+                document.createTextNode("Configurazione provvigionale eliminata con successo.")
+            );
+
+            // Avviso con link ai Mandatari (testi inseriti come testo: nessun rischio XSS)
+            if (idCli && restano === 0) {
+                $body.append(
+                    $('<hr>'),
+                    $('<small>').append(
+                        document.createTextNode('Il cliente '),
+                        $('<strong>').text(nomeCli),
+                        document.createTextNode(' resta collegato al mandatario '),
+                        $('<strong>').text(nomeMand),
+                        document.createTextNode('. Se non serve più, puoi rimuoverlo da '),
+                        // ==== MODIFICA 05/11/2026 - INIZIO ====
+                        $('<a>').attr('href', '@Url.Action("Edit", "Mandatari")/' + idMand + '?cerca=' + encodeURIComponent(nomeCli) + '#associazione-clienti')
+                                .text('Mandatari → Modifica → Associazione Clienti'),
+                        // ==== MODIFICA 05/11/2026 - FINE ====
+                        // $('<a>').attr('href', '@Url.Action("Edit", "Mandatari")/' + idMand)
+                        //         .text('Mandatari → Modifica → Associazione Clienti'),
+                        document.createTextNode('.')
+                    )
+                );
+            }
+
+            var successModal = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+            successModal.show();
+            // ==== MODIFICA 04/11/2026 - FINE ====
+
+            // --- vecchio codice (sostituito il 04/11/2026) ---
+            // $('#provvigioniTable').DataTable().row(rigaDaRimuovere).remove().draw(false);
+            // $('#modalOperazioneCompletata .modal-body').text("Configurazione provvigionale eliminata con successo.");
+            // var successModal = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+            // successModal.show();
+        }
+                    
+                    
+                    else {
+                        // Errore lato server
+                        alert(res.message || "Errore durante l'eliminazione.");
+                    }
+                })
+                .fail(function () {
+                    // Errore di comunicazione AJAX
+                    alert("Errore tecnico nella comunicazione con il server.");
+                })
+                .always(function () {
+                    // Reset variabili stato eliminazione
+                    idDaEliminare = 0;
+                    rigaDaRimuovere = null;
+                });
+        }
+    </script>
+}

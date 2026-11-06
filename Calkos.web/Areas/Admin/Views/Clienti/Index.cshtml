@@ -1,0 +1,374 @@
+@model IEnumerable<CalkosManager.Domain.Entities.Cliente>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    // Determiniamo se siamo in modalità "Cestino"
+    bool isTrash = ViewBag.IsTrashView ?? false;
+    ViewData["Title"] = isTrash ? "Clienti Eliminati" : "Gestione Anagrafica Clienti";
+}
+
+@* HEADER: sezione introduttiva della pagina con titolo e descrizione *@
+<div class="d-flex align-items-center mb-4">
+    <i class="bi @(isTrash ? "bi-trash3-fill text-danger" : "bi-people-fill text-primary") me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">@(isTrash ? "Clienti Eliminati" : "Anagrafica Clienti")</h1>
+        <small class="text-muted">@(isTrash ? "Visualizzazione record archiviati (Soft Deleted)" : "Ricerca sincronizzata tramite mappatura diretta delle colonne")</small>
+    </div>
+</div>
+
+
+@* 23/10/2026 Messaggio di esito del salvataggio (Create/Edit -> Save -> redirect a Index).
+   Leggere TempData["Success"] qui lo CONSUMA: non resta in memoria fino alla prossima pagina che lo legge. *@
+@if (TempData["Success"] is string messaggioSuccesso)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-1"></i> @messaggioSuccesso
+        @* ==== MODIFICA 30/10/2026 - INIZIO ==== 
+           Dopo la creazione di un cliente (solo Admin) il pulsante apre "Nuova provvigione" con Cliente e Mandatario gia' compilati *@
+        @if (TempData["IdClienteNuovo"] is string idClienteNuovoTxt && int.TryParse(idClienteNuovoTxt, out var idClienteNuovo) && User.IsInRole("Admin"))
+        {
+            <a asp-area="Admin" asp-controller="ProvvigioniAgenti" asp-action="Create" asp-route-idCliente="@idClienteNuovo"
+               class="btn btn-sm btn-success fw-bold ms-3">
+                <i class="bi bi-person-lines-fill me-1"></i> Collega a un agente
+            </a>
+        }
+        @* ==== MODIFICA 30/10/2026 - FINE ==== *@
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        @* TOOLBAR: pulsanti principali (nuovo cliente + reset filtri) *@
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                @if (!isTrash)
+                {
+                    <a asp-action="Create" class="btn btn-primary fw-bold shadow-sm">
+                        <i class="bi bi-person-plus-fill me-1"></i> Nuovo Cliente
+                    </a>
+                }
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFiltri()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filtri
+                </button>
+            </div>
+
+            @* Switch dinamico tra lista attiva e cestino Clienti Eliminati *@
+            <div>
+                <a asp-action="Index" asp-route-showDeleted="@(!isTrash)" class="btn @(isTrash ? "btn-outline-primary" : "btn-outline-danger") fw-bold shadow-sm">
+                    <i class="bi @(isTrash ? "bi-arrow-left" : "bi-trash3") me-1"></i>
+                    @(isTrash ? "Torna ai Clienti Attivi" : "Vedi Clienti Eliminati")
+                </a>
+            </div>
+        </div>
+
+        <style>
+            /* STILE MANDATARI: Header Blu e righe pulite */
+            #clientiTable thead tr:first-child th {
+                background-color: #0d6efd !important;
+                color: white !important;
+                border: none !important;
+                padding: 12px 10px !important;
+            }
+
+            #clientiTable thead tr.filters th {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                padding: 8px !important;
+            }
+
+            .filters input {
+                width: 100%;
+                font-size: 0.75rem;
+                padding: 4px 8px;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+            }
+
+            #clientiTable tbody tr:hover {
+                background-color: #f0f7ff !important;
+                cursor: pointer;
+            }
+
+            .ps-custom {
+                padding-left: 1.2rem !important;
+            }
+
+            .badge-piva {
+                background-color: #e7f1ff;
+                color: #0d6efd;
+                border: 1px solid #cfe2ff;
+                font-weight: 600;
+            }
+        </style>
+
+        <div class="table-responsive">
+            <table id="clientiTable" class="table table-hover align-middle w-100">
+                <thead>
+                    @* RIGA 1: intestazioni colonna *@
+                    <tr>
+                        <th style="display:none;">ID</th>
+                        <th class="ps-custom">Ragione Sociale</th>
+                        <th>Partita IVA / CF</th>
+                        <th>Indirizzo</th>
+                        <th>Città</th>
+                        <th>Prov.</th>
+                        <th>CAP</th>
+                        <th>Nazione</th>
+                        <th>Email</th>
+                        <th>Telefono</th>
+                        <th>Agente</th>
+                        <th>Tipo Pagamento</th>
+                        <th class="text-center" style="width:110px;">Azioni</th>
+                        <th style="display:none;">Ultima attività</th> @* 30/10/2026 colonna nascosta per l'ordinamento *@
+                    </tr>
+
+                    @* RIGA 2: filtri (data-col = indice colonna DataTables) *@
+                    <tr class="filters">
+                        <th style="display:none;"></th>
+                        <th class="ps-custom"><input type="text" placeholder="Filtra..." data-col="1" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="2" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="3" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="4" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="5" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="6" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="7" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="8" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="9" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="10" /></th>
+                        <th><input type="text" placeholder="Filtra..." data-col="11" /></th>
+                        <th></th>
+                        <th style="display:none;"></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        <tr data-id="@c.IdCliente">
+                            <td style="display:none;">@c.IdCliente</td>
+                            <td class="fw-bold text-dark ps-custom">@c.RagioneSociale</td>
+                            <td>
+                                <span class="badge badge-piva px-2 py-1">
+                                    @(string.IsNullOrWhiteSpace(c.PartitaIva) ? (c.CodiceFiscale ?? "-") : c.PartitaIva)
+                                </span>
+                            </td>
+                            <td>@c.Indirizzo</td>
+                            <td>@c.Citta</td>
+                            <td>@c.Provincia</td>
+                            <td>@c.CAP</td>
+                            <td>@c.Nazione</td>
+                            <td><small class="text-muted">@c.Email</small></td>
+                            <td class="text-nowrap">@c.Telefono</td>
+                            <td>@c.AgenteDescrizione</td>
+                            <td>@c.TipoPagamentoDescrizione</td>
+
+                            <td class="text-center text-nowrap">
+                                @if (isTrash)
+                                {
+                                    @* 21/10/2026 P4-01: rimosso onclick con Html.Raw (XSS). Dati passati via data-attribute, codificati da Razor *@
+                                    <button type="button" class="btn btn-link text-success p-0 js-ripristina-cliente" title="Ripristina Cliente"
+                                            data-id="@c.IdCliente" data-nome="@c.RagioneSociale">
+                                        <i class="bi bi-arrow-counterclockwise fs-5"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <a asp-action="Edit" asp-route-id="@c.IdCliente" class="btn btn-link text-warning p-0 me-2" title="Modifica">
+                                        <i class="bi bi-pencil-square fs-5"></i>
+                                    </a>
+                                    @* 21/10/2026 P4-01: rimosso onclick con Html.Raw (XSS). Dati passati via data-attribute, codificati da Razor *@
+                                    <button type="button" class="btn btn-link text-danger p-0 js-elimina-cliente" title="Elimina Cliente"
+                                            data-id="@c.IdCliente" data-nome="@c.RagioneSociale">
+                                        <i class="bi bi-trash-fill fs-5"></i>
+                                    </button>
+                                }
+                            </td>
+                            @* 30/10/2026 data di ultima modifica, o di creazione se mai modificato, in formato ordinabile *@
+                            <td style="display:none;">@((c.DataModifica ?? c.DataInserimento).ToString("yyyyMMddHHmmss"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // ==== MODIFICA 30/10/2026 - INIZIO ====
+        // Chiave di memorizzazione dei filtri: separata tra elenco attivi e Cestino
+        function chiaveStatoClienti() {
+            return 'clientiTable_' + (@(isTrash.ToString().ToLower()) ? 'cestino' : 'attivi');
+        }
+        // ==== MODIFICA 30/10/2026 - FINE ====
+
+        $(document).ready(function () {
+            // // INIZIALIZZAZIONE DATATABLES
+            // var table = $('#clientiTable').DataTable({
+            //     dom: '<"d-flex justify-content-between mb-2"l>rtip',
+            //     orderCellsTop: true,
+            //     language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
+            //     columnDefs: [
+            //         { targets: 0, visible: false, searchable: false },
+            //         { targets: 6, orderable: false, searchable: false }
+            //     ],
+            //     order: [[1, 'asc']]
+            // });
+        // 16/10/2026 INIZIALIZZAZIONE DATATABLES CON PULSANTE EXCEL
+            var table = $('#clientiTable').DataTable({
+                dom: '<"d-flex justify-content-between align-items-center mb-2"lB>rtip',
+                // ==== MODIFICA 30/10/2026 - INIZIO ====
+                // Filtri, ordinamento e pagina vengono ricordati finché la scheda del browser resta aperta:
+                // entrando in "Nuovo" / "Modifica" e tornando alla lista si ritrovano gli stessi filtri.
+                stateSave: true,
+                stateSaveCallback: function (settings, data) {
+                    try { sessionStorage.setItem(chiaveStatoClienti(), JSON.stringify(data)); } catch (e) { }
+                },
+                stateLoadCallback: function () {
+                    try { var s = sessionStorage.getItem(chiaveStatoClienti()); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+                },
+                // ==== MODIFICA 30/10/2026 - FINE ====
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Esporta Excel',
+                        className: 'btn btn-success btn-sm fw-bold shadow-sm',
+                        exportOptions: {
+                            //rows: ':visible', // Esporta SOLO i dati filtrati a schermo
+                            // 16/10/2026 'rows: "search"' non è valido (veniva letto come selettore jQuery e non trovava righe).
+                            // 'applied' = solo le righe che passano i filtri, su tutte le pagine (è anche il default).
+                            modifier: { search: 'applied' },
+                            columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] // tutte tranne ID (0) e Azioni (12)
+                        }
+                    }
+                ],
+                orderCellsTop: true,
+                language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json" },
+                columnDefs: [
+                    { targets: 0, visible: false, searchable: false },
+                    { targets: 12, orderable: false, searchable: false }, // 16/10/2026 era 6: Azioni è ora la colonna 12
+                    { targets: 13, visible: false, searchable: false }    // 30/10/2026 ultima attività (solo ordinamento)
+                ],
+                // 30/10/2026 era [[1, 'asc']]: ora il cliente creato/modificato per ultimo compare per primo
+                order: [[13, 'desc']]
+            });
+
+            // ==== MODIFICA 30/10/2026 - INIZIO ====
+            // Se i filtri sono stati ripristinati dalla memoria, li riscrivo nelle caselle di testo
+            table.columns().every(function () {
+                var valore = this.search();
+                if (valore) {
+                    $('#clientiTable thead tr.filters input[data-col="' + this.index() + '"]').val(valore);
+                }
+            });
+            // ==== MODIFICA 30/10/2026 - FINE ====
+            // FILTRI
+            $('#clientiTable thead tr.filters input').on('keyup change', function (e) {
+                e.stopPropagation();
+                var colIndex = $(this).data('col');
+                table.column(colIndex).search(this.value).draw();
+            });
+
+            $('.filters th').on('click', function(e) { e.stopPropagation(); });
+
+            // DOPPIO CLICK SULLA RIGA
+            $('#clientiTable tbody').on('dblclick', 'tr', function (e) {
+                if ($(e.target).closest('a, button').length > 0) return;
+                if (@(isTrash.ToString().ToLower())) return;
+
+                var id = $(this).data('id');
+                if (id) window.location.href = '@Url.Action("Edit", "Clienti")/' + id;
+            });
+
+            // 21/10/2026 P4-01: handler delegati al posto degli onclick inline
+            $('#clientiTable tbody').on('click', '.js-elimina-cliente', function () {
+                eliminaCliente($(this).attr('data-id'), $(this).attr('data-nome'), this);
+            });
+            $('#clientiTable tbody').on('click', '.js-ripristina-cliente', function () {
+                ripristinaCliente($(this).attr('data-id'), $(this).attr('data-nome'), this);
+            });
+        });
+
+        // RESET FILTRI
+        function resetFiltri() {
+            $('.filters input').val('');
+            $('#clientiTable').DataTable().search('').columns().search('').draw();
+        }
+
+        // --- ELIMINAZIONE CLIENTE ---
+        function eliminaCliente(id, nome, btn) {
+            $.get('@Url.Action("CheckRelazioni", "Clienti")', { id: id }, function (res) {
+
+                // 21/10/2026 P4-01: niente .html() con dati utente -> costruzione DOM / .text()
+                var $body = $('#confirmDeleteModal .modal-body');
+                if (res.message) {
+                    $body.text(res.message);
+                } else {
+                    $body.empty()
+                         .append(document.createTextNode('Sei sicuro di voler eliminare il cliente '))
+                         .append($('<b>').text(nome))
+                         .append(document.createTextNode('?'));
+                }
+
+                if (res.canDelete === false) {
+                    $('#confirmDeleteBtn').hide();
+                } else {
+                    $('#confirmDeleteBtn').show();
+                }
+
+                var modalConferma = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+                modalConferma.show();
+
+                $('#confirmDeleteBtn').off('click').on('click', function () {
+                    modalConferma.hide();
+                    // Il token Antiforgery viene ora aggiunto automaticamente agli header AJAX dal Layout
+                    $.post('@Url.Action("Delete", "Clienti")', { id: id }, function (response) {
+                        if (response.success) {
+                            aggiornaTabella(btn, "Cliente eliminato correttamente.");
+                        } else {
+                            alert(response.message);
+                        }
+                    });
+                });
+            });
+        }
+
+        // --- RIPRISTINO CLIENTE ---
+        function ripristinaCliente(id, nome, btn) {
+            $('#confirmResetModal .modal-title').text("Conferma Ripristino");
+            // 21/10/2026 P4-01: niente .html() con dati utente -> costruzione DOM
+            $('#confirmResetModal .modal-body').empty()
+                .append(document.createTextNode('Vuoi davvero ripristinare il cliente '))
+                .append($('<b>').text(nome))
+                .append(document.createTextNode('?'));
+
+            var modalRipristino = new bootstrap.Modal(document.getElementById('confirmResetModal'));
+            modalRipristino.show();
+
+            $('#confirmResetBtn').off('click').on('click', function () {
+                modalRipristino.hide();
+                // Il token Antiforgery viene ora aggiunto automaticamente agli header AJAX dal Layout
+                $.post('@Url.Action("Restore", "Clienti")', { id: id }, function (res) {
+                    if (res.success) {
+                        aggiornaTabella(btn, "Cliente ripristinato con successo.");
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            });
+        }
+
+        function aggiornaTabella(btn, messaggioSuccesso) {
+            $('#clientiTable').DataTable().row($(btn).closest('tr')).remove().draw(false);
+            $('#modalOperazioneCompletata .modal-body').text(messaggioSuccesso);
+            var modalSuccesso = new bootstrap.Modal(document.getElementById('modalOperazioneCompletata'));
+            modalSuccesso.show();
+        }
+    </script>
+}

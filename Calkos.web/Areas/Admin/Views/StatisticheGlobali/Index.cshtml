@@ -1,0 +1,517 @@
+@model Calkos.web.Models.Statistiche.StatisticheGlobaliViewModel
+@using CalkosManager.Application.DTO.Statistiche
+@{
+    ViewData["Title"] = "Statistiche Globali";
+    var anni = new SelectList(Model.AnniDisponibili);
+    var mandatari = ViewBag.Mandatari as List<SelectListItem> ?? new List<SelectListItem>();
+    var materiali = ViewBag.Materiali as List<SelectListItem> ?? new List<SelectListItem>();
+    var mesi = new[] { "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+                       "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre" };
+}
+
+@* ==== 23/09/2026 - STATISTICHE GLOBALI: report aggregati su tutti i mandatari ==== *@
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-graph-up me-2"></i>
+            Statistiche Globali - Tutti i mandatari
+        </h5>
+    </div>
+
+    <div class="card-body">
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" asp-validation-summary="All"></div>
+        }
+
+        <p class="text-muted small mb-4">
+            I report considerano solo gli ordini <strong>fatturati</strong>, per anno/mese di competenza del prospetto.
+        </p>
+
+        <form asp-action="Esporta" method="get" id="formStatisticheGlobali">
+            <div class="row g-4">
+
+                <!-- TIPO REPORT -->
+                <div class="col-md-5">
+                    <label asp-for="TipoReport" class="form-label fw-bold"></label>
+                    <select asp-for="TipoReport" id="TipoReport" class="form-select"
+                            asp-items="Html.GetEnumSelectList<TipoReportStatistiche>()"></select>
+                </div>
+
+                <!-- REPORT 1: SINGOLO ANNO -->
+                <div class="col-md-3 filtro-report" data-tipo="@((int)TipoReportStatistiche.FatturatoAnnuale)">
+                    <label asp-for="Anno" class="form-label fw-bold"></label>
+                    <select asp-for="Anno" class="form-select" asp-items="anni"></select>
+                </div>
+
+                <!-- REPORT 2: INTERVALLO ANNI -->
+                <div class="col-md-2 filtro-report" data-tipo="@((int)TipoReportStatistiche.ConfrontoAnni)">
+                    <label asp-for="AnnoDa" class="form-label fw-bold"></label>
+                    <select asp-for="AnnoDa" id="AnnoDa" class="form-select" asp-items="anni"></select>
+                </div>
+                <div class="col-md-2 filtro-report" data-tipo="@((int)TipoReportStatistiche.ConfrontoAnni)">
+                    <label asp-for="AnnoA" class="form-label fw-bold"></label>
+                    <select asp-for="AnnoA" id="AnnoA" class="form-select" asp-items="anni"></select>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-success w-100 py-2">
+                        <i class="bi bi-file-earmark-excel me-2"></i> Genera report Excel
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ==== ANALISI MERCE CONSEGNATA TRAMITE DDT ==== *@
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-truck me-2"></i>
+            Analisi Merce Consegnata Tramite DDT
+        </h5>
+    </div>
+    <div class="card-body">
+
+        @if (TempData["ErroreDdt"] is string erroreDdt)
+        {
+            <div class="alert alert-danger">@erroreDdt</div>
+        }
+
+        <p class="text-muted small mb-3">
+            Considera le righe con <strong>data di consegna</strong> valorizzata (anche se non ancora fatturate).
+            Tutti i filtri sono opzionali.
+        </p>
+
+        <form id="formFiltriDdt" class="mb-4" autocomplete="off">
+            <div class="row g-3 mb-3">
+                <div class="col-12">
+                    <span class="fw-bold me-3">Raggruppa per:</span>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="chkRaggMandatario" checked />
+                        <label class="form-check-label" for="chkRaggMandatario">Mandatario</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="chkRaggCliente" checked />
+                        <label class="form-check-label" for="chkRaggCliente">Cliente</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="chkRaggMateriale" checked />
+                        <label class="form-check-label" for="chkRaggMateriale">Materiale</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="chkRaggAnno" checked />
+                        <label class="form-check-label" for="chkRaggAnno">Anno</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="chkRaggMese" checked />
+                        <label class="form-check-label" for="chkRaggMese">Mese</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="chkRaggMisure" />
+                        <label class="form-check-label" for="chkRaggMisure">Misure (diametro / spessore / larghezza)</label>
+                    </div>
+                    <div class="form-text">
+                        Le colonne non selezionate vengono sommate. Compilando un filtro sulle misure, il raggruppamento per misure si attiva da solo.
+                        Le quantità non vengono mai sommate tra unità di misura diverse.
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold" for="ddtMandatario">Mandatario</label>
+                    <select name="IdMandatario" id="ddtMandatario" class="form-select" asp-items="mandatari">
+                        <option value="">-- Tutti --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold" for="ddtCliente">Cliente</label>
+                    <select name="IdCliente" id="ddtCliente" class="form-select" disabled>
+                        <option value="">Seleziona prima un mandatario</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold" for="ddtMateriale">Materiale</label>
+                    <select name="IdMateriale" id="ddtMateriale" class="form-select" asp-items="materiali">
+                        <option value="">-- Tutti --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold" for="ddtMese">Mese</label>
+                    <select name="Mese" id="ddtMese" class="form-select">
+                        <option value="">-- Tutti --</option>
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m">@mesi[m - 1]</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-0">
+                @* ==== 08/10/2026: Definizione e selezione dell'anno corrente in Razor ==== *@
+                @{
+                    var annoCorrenteStr = DateTime.Now.Year.ToString();
+                }
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold" for="ddtAnnoDa">Anno dal</label>
+                    <select name="AnnoDa" id="ddtAnnoDa" class="form-select">
+                        <option value="">-- Tutti --</option>
+                        @foreach (SelectListItem item in anni)
+                        {
+                            var valStr = (item.Value ?? item.Text ?? "").Trim();
+                            if (valStr == annoCorrenteStr)
+                            {
+                                <option value="@valStr" selected="selected">@item.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@valStr">@item.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold" for="ddtAnnoA">Anno al</label>
+                    <select name="AnnoA" id="ddtAnnoA" class="form-select">
+                        <option value="">-- Tutti --</option>
+                        @foreach (SelectListItem item in anni)
+                        {
+                            var valStr = (item.Value ?? item.Text ?? "").Trim();
+                            if (valStr == annoCorrenteStr)
+                            {
+                                <option value="@valStr" selected="selected">@item.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@valStr">@item.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold" for="ddtDiametro">Diametro (mm)</label>
+                    <input type="number" step="0.001" min="0" name="Diametro" id="ddtDiametro" class="form-control" placeholder="es. 12.000" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold" for="ddtSpessore">Spessore (mm)</label>
+                    <input type="number" step="0.001" min="0" name="Spessore" id="ddtSpessore" class="form-control" placeholder="es. 1.500" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold" for="ddtLarghezza">Larghezza (mm)</label>
+                    <input type="number" step="0.001" min="0" name="Larghezza" id="ddtLarghezza" class="form-control" placeholder="es. 100.000" />
+                </div>
+                <div class="col-md-6 d-flex align-items-end justify-content-end gap-2">
+                    <button type="submit" id="btnFiltraDdt" class="btn btn-primary" title="Applica i filtri">
+                        <i class="bi bi-search me-1"></i> Filtra
+                    </button>
+                    <button type="button" id="btnResetDdt" class="btn btn-outline-secondary" title="Azzera i filtri">
+                        <i class="bi bi-x-lg me-1"></i> Azzera
+                    </button>
+                    <button type="button" id="btnEsportaDdt" class="btn btn-outline-success" title="Esporta in Excel con i filtri correnti">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div id="totaliDdt" class="alert alert-secondary py-2 mb-3"></div>
+
+        <div class="table-responsive">
+            <table id="tblMerceConsegnataDdt" class="table table-striped table-bordered w-100">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mandatario</th>
+                        <th>Cliente</th>
+                        <th>Materiale</th>
+                        <th class="text-center">Anno</th>
+                        <th class="text-center">Mese</th>
+                        <th class="text-end">Diametro (mm)</th>
+                        <th class="text-end">Spessore (mm)</th>
+                        <th class="text-end">Larghezza (mm)</th>
+                        <th class="text-end">Quantità Totale</th>
+                        <th class="text-center">U.M.</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            // --- GESTIONE FORM STATISTICHE GLOBALI FATTURATO ---
+            const MAX_ANNI = @CalkosManager.Application.Services.StatisticheGlobaliService.MassimoAnniConfronto;
+
+            function aggiornaFiltri() {
+                const tipo = $("#TipoReport").val();
+                $(".filtro-report").each(function () {
+                    const attivo = String($(this).data("tipo")) === tipo;
+                    $(this).toggle(attivo).find("select").prop("disabled", !attivo);
+                });
+            }
+
+            $("#TipoReport").on("change", aggiornaFiltri);
+            aggiornaFiltri();
+
+            $("#formStatisticheGlobali").on("submit", function (e) {
+                if ($("#TipoReport").val() !== "@((int)TipoReportStatistiche.ConfrontoAnni)") return;
+
+                const da = parseInt($("#AnnoDa").val(), 10);
+                const a = parseInt($("#AnnoA").val(), 10);
+
+                if (da > a) {
+                    e.preventDefault();
+                    showWarning("L'anno iniziale non può essere successivo all'anno finale.");
+                } else if (a - da + 1 > MAX_ANNI) {
+                    e.preventDefault();
+                    showWarning("Il confronto può coprire al massimo " + MAX_ANNI + " anni.");
+                }
+            });
+
+            // --- GESTIONE TABELLA REPORT MERCE CONSEGNATA DDT ---
+            function avviso(msg) {
+                if (typeof showWarning === 'function') showWarning(msg); else alert(msg);
+            }
+
+            const urlClienti = '@Url.Action("ClientiPerMandatarioJson", "StatisticheGlobali", new { area = "Admin" })';
+
+            function aggiornaClienti() {
+                const $cli = $('#ddtCliente');
+                const idMand = $('#ddtMandatario').val();
+
+                if (!idMand) {
+                    $cli.html('<option value="">Seleziona prima un mandatario</option>').prop('disabled', true);
+                    return;
+                }
+
+                $cli.html('<option value="">Caricamento...</option>').prop('disabled', true);
+                $.getJSON(urlClienti, { idMandatario: idMand })
+                    .done(function (clienti) {
+                        let html = '<option value="">-- Tutti --</option>';
+                        clienti.forEach(function (c) {
+                            html += '<option value="' + c.id + '">' + $('<div>').text(c.text).html() + '</option>';
+                        });
+                        $cli.html(html).prop('disabled', false);
+                    })
+                    .fail(function () {
+                        $cli.html('<option value="">-- Tutti --</option>').prop('disabled', true);
+                        avviso('Impossibile caricare i clienti del mandatario.');
+                    });
+            }
+            $('#ddtMandatario').on('change', aggiornaClienti);
+
+            if (!$.fn.DataTable) {
+                console.error('DataTables non caricato: aggiungere jquery.dataTables al layout/sezione Scripts.');
+                $('#tblMerceConsegnataDdt').closest('.table-responsive')
+                    .before('<div class="alert alert-warning">Libreria DataTables non caricata: tabella non disponibile.</div>');
+                return;
+            }
+
+            $.fn.dataTable.ext.errMode = 'none';
+
+            const MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+            const SEL_RAGGRUPPA = ['#chkRaggMandatario', '#chkRaggCliente', '#chkRaggMateriale',
+                                   '#chkRaggAnno', '#chkRaggMese',
+                                   '#chkRaggMisure', '#chkRaggMisure', '#chkRaggMisure'];
+            const chk = function (sel) { return $(sel).is(':checked'); };
+
+            const fmt = function (v) {
+                return parseFloat(v).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+            };
+            const misura = function (v, type) {
+                if (v === null || v === undefined || v === '')
+                    return type === 'display' ? '<span class="text-muted">n.d.</span>' : '';
+                return type === 'display' ? fmt(v) : v;
+            };
+
+            const urlJson = '@Url.Action("ReportMerceConsegnataDdtJson", "StatisticheGlobali", new { area = "Admin" })';
+            const urlExcel = '@Url.Action("EsportaReportMerceConsegnataDdtExcel", "StatisticheGlobali", new { area = "Admin" })';
+
+            // ==== 08/10/2026: Impostazione anno corrente via JS ====
+            const annoCorrente = new Date().getFullYear().toString();
+
+            function impostaFiltriAnnoCorrente() {
+                $('#ddtAnnoDa, #ddtAnnoA').each(function () {
+                    const $sel = $(this);
+                    let trovato = false;
+
+                    $sel.find('option').each(function () {
+                        if ($(this).val().toString().trim() === annoCorrente) {
+                            trovato = true;
+                        }
+                    });
+
+                    if (trovato) {
+                        $sel.val(annoCorrente);
+                    }
+                });
+            }
+
+            impostaFiltriAnnoCorrente();
+
+            function leggiFiltri() {
+                return {
+                    IdMandatario: $('#ddtMandatario').val() || '',
+                    IdCliente: $('#ddtCliente').val() || '',
+                    IdMateriale: $('#ddtMateriale').val() || '',
+                    AnnoDa: $('#ddtAnnoDa').val() || '',
+                    AnnoA: $('#ddtAnnoA').val() || '',
+                    Mese: $('#ddtMese').val() || '',
+                    Diametro: $('#ddtDiametro').val() || '',
+                    Spessore: $('#ddtSpessore').val() || '',
+                    Larghezza: $('#ddtLarghezza').val() || '',
+                    RaggruppaPerMandatario: chk('#chkRaggMandatario') ? 1 : 0,
+                    RaggruppaPerCliente: chk('#chkRaggCliente') ? 1 : 0,
+                    RaggruppaPerMateriale: chk('#chkRaggMateriale') ? 1 : 0,
+                    RaggruppaPerAnno: chk('#chkRaggAnno') ? 1 : 0,
+                    RaggruppaPerMese: chk('#chkRaggMese') ? 1 : 0,
+                    RaggruppaPerMisure: chk('#chkRaggMisure') ? 1 : 0
+                };
+            }
+
+            function intervalloAnniValido() {
+                const da = parseInt($('#ddtAnnoDa').val(), 10);
+                const a = parseInt($('#ddtAnnoA').val(), 10);
+                if (!isNaN(da) && !isNaN(a) && da > a) {
+                    avviso('L\'anno iniziale non può essere successivo all\'anno finale.');
+                    return false;
+                }
+                return true;
+            }
+
+            $('#ddtDiametro, #ddtSpessore, #ddtLarghezza').on('input', function () {
+                if ($(this).val()) $('#chkRaggMisure').prop('checked', true);
+            });
+
+            function aggiornaTotali(api) {
+                const tot = {};
+                api.rows({ search: 'applied' }).data().each(function (r) {
+                    const um = r.unitaMisura || 'n.d.';
+                    tot[um] = (tot[um] || 0) + (parseFloat(r.quantitaTotale) || 0);
+                });
+
+                const chiavi = Object.keys(tot);
+                if (chiavi.length === 0) {
+                    $('#totaliDdt').text('Nessun dato per i filtri selezionati.');
+                    return;
+                }
+                const html = chiavi.map(function (um) {
+                    return '<strong>' + $('<div>').text(um).html() + '</strong>: ' + fmt(tot[um]);
+                }).join(' &nbsp;|&nbsp; ');
+                $('#totaliDdt').html('<span class="me-2">Totale consegnato:</span>' + html);
+            }
+
+            let dtMerceConsegnata = null;
+
+            function applicaVisibilita() {
+                if (!dtMerceConsegnata) return;
+                SEL_RAGGRUPPA.forEach(function (sel, i) {
+                    dtMerceConsegnata.column(i).visible(chk(sel), false);
+                });
+            }
+
+            $('#tblMerceConsegnataDdt')
+                .on('preXhr.dt', function () { $('#btnFiltraDdt').prop('disabled', true); })
+                .on('xhr.dt', function () { $('#btnFiltraDdt').prop('disabled', false); })
+                .on('error.dt', function (e, settings, techNote, message) {
+                    $('#btnFiltraDdt').prop('disabled', false);
+                    console.error('Errore DataTables DDT:', message);
+                    avviso('Impossibile caricare il report. Riprovare o contattare l\'assistenza.');
+                });
+
+            function inizializzaDataTables() {
+                dtMerceConsegnata = $('#tblMerceConsegnataDdt').DataTable({
+                    processing: true,
+                    serverSide: false,
+                    order: [],
+                    pageLength: 25,
+                    ajax: {
+                        url: urlJson,
+                        type: 'GET',
+                        cache: false,
+                        data: leggiFiltri,
+                        dataSrc: 'data'
+                    },
+                    columns: [
+                        { data: 'mandatario', defaultContent: '', visible: chk('#chkRaggMandatario') },
+                        { data: 'cliente', defaultContent: '', visible: chk('#chkRaggCliente') },
+                        { data: 'materiale', defaultContent: '', visible: chk('#chkRaggMateriale') },
+                        { data: 'anno', defaultContent: '', className: 'text-center', visible: chk('#chkRaggAnno') },
+                        {
+                            data: 'mese', defaultContent: '', className: 'text-center', visible: chk('#chkRaggMese'),
+                            render: function (v, type) {
+                                return type === 'display' && v >= 1 && v <= 12 ? MESI[v - 1] : v;
+                            }
+                        },
+                        { data: 'diametro', className: 'text-end', render: misura, visible: chk('#chkRaggMisure') },
+                        { data: 'spessore', className: 'text-end', render: misura, visible: chk('#chkRaggMisure') },
+                        { data: 'larghezza', className: 'text-end', render: misura, visible: chk('#chkRaggMisure') },
+                        {
+                            data: 'quantitaTotale',
+                            className: 'text-end fw-bold',
+                            render: function (v, type) {
+                                if (v === null || v === undefined) v = 0;
+                                return type === 'display' ? fmt(v) : v;
+                            }
+                        },
+                        { data: 'unitaMisura', defaultContent: '', className: 'text-center' }
+                    ],
+                    drawCallback: function () { aggiornaTotali(this.api()); },
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/it-IT.json'
+                    }
+                });
+            }
+
+            $('#formFiltriDdt').on('submit', function (e) {
+                e.preventDefault();
+                if (!intervalloAnniValido()) return;
+
+                if (!dtMerceConsegnata) {
+                    inizializzaDataTables();
+                } else {
+                    applicaVisibilita();
+                    dtMerceConsegnata.ajax.reload();
+                }
+            });
+
+            // ==== 08/10/2026: Reset completo, ripristino anno corrente e svuotamento tabella ====
+            $('#btnResetDdt').on('click', function (e) {
+                e.preventDefault();
+
+                $('#ddtMandatario, #ddtCliente, #ddtMateriale, #ddtMese, #ddtDiametro, #ddtSpessore, #ddtLarghezza').val('');
+                impostaFiltriAnnoCorrente();
+
+                $('#chkRaggMandatario, #chkRaggCliente, #chkRaggMateriale, #chkRaggAnno, #chkRaggMese').prop('checked', true);
+                $('#chkRaggMisure').prop('checked', false);
+
+                aggiornaClienti();
+
+                if (dtMerceConsegnata) {
+                    dtMerceConsegnata.destroy();
+                    $('#tblMerceConsegnataDdt tbody').empty();
+                    $('#totaliDdt').empty();
+                    dtMerceConsegnata = null;
+                }
+            });
+
+            $('#btnEsportaDdt').on('click', function (e) {
+                e.preventDefault();
+                if (!intervalloAnniValido()) return;
+                window.location.href = urlExcel + '?' + $.param(leggiFiltri());
+            });
+        });
+    </script>
+}

@@ -1,0 +1,318 @@
+﻿@model CalkosManager.Domain.Entities.Mandatario
+@using System.Globalization
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    bool isEdit = Model.IdMandatario > 0;
+    ViewData["Title"] = isEdit ? "Modifica Mandatario" : "Nuovo Mandatario";
+}
+
+@functions {
+    public string FormatDecimal(object? valore, int decimali = 2)
+    {
+        if (valore == null || valore == DBNull.Value) return string.Empty;
+        if (decimal.TryParse(valore.ToString(), out decimal d))
+        {
+            return d.ToString("F" + decimali, CultureInfo.InvariantCulture);
+        }
+        return valore.ToString() ?? string.Empty;
+    }
+}
+
+<style>
+    /* Altezza massima della lista clienti associati: oltre, compare la barra di scorrimento */
+    .clienti-scroll {
+        max-height: 650px;
+        overflow-y: auto;
+    }
+
+        /* Intestazione fissa durante lo scorrimento */
+        .clienti-scroll thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-color: #f8f9fa;
+            box-shadow: inset 0 -1px 0 #dee2e6;
+        }
+</style>
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi @(isEdit ? "bi-building-check" : "bi-building-add") me-2"></i> @ViewData["Title"]
+    </h3>
+
+    @* RIPRISTINATA ACTION ORIGINALE: Edit *@
+    <form asp-area="Admin" asp-controller="Mandatari" asp-action="Edit" method="post" id="formMandatario">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="IdMandatario" id="hfMandatarioId" />
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Dati Generali</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label asp-for="NomeMandatario" class="form-label fw-bold required-label"></label>
+                        <input asp-for="NomeMandatario" class="form-control" placeholder="Inserisci nome mandatario" />
+                        <span asp-validation-for="NomeMandatario" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="CodiceMandatario" class="form-label fw-bold required-label"></label>
+                        @* ==== MODIFICA 24/10/2026 - INIZIO: CodiceMandatario non modificabile in modifica ==== *@
+                        <input asp-for="CodiceMandatario" class="form-control @(isEdit ? "bg-light" : "")" placeholder="Inserisci codice identificativo" readonly="@isEdit" />
+                        @* ==== MODIFICA 24/10/2026 - FINE ==== *@
+                        <span asp-validation-for="CodiceMandatario" class="text-danger small"></span>
+                    </div>
+                    @* ==== MODIFICA 29/10/2026 - INIZIO ==== *@
+                    <div class="col-md-3">
+                        <label asp-for="Perc_Delta_Provvigione" class="form-label fw-bold">Perc. Delta Provvigione (%)</label>
+                        <i class="bi bi-info-circle-fill text-danger ms-2"
+                           title="Formato percentuale: 40 significa 40%, NON 0,40. Viene proposta in automatico nei nuovi ordini del mandatario."></i>
+                        <input asp-for="Perc_Delta_Provvigione" type="number" step="any" min="0" max="100"
+                               class="form-control" placeholder="es. 40" />
+                        <span asp-validation-for="Perc_Delta_Provvigione" class="text-danger small"></span>
+                    </div>
+                    @* ==== MODIFICA 29/10/2026 - FINE ==== *@  
+                    
+
+
+
+
+                    @* ==== MODIFICA 01/11/2026 - INIZIO ==== *@
+                    <div class="col-md-6">
+                        <label asp-for="IdUnitaMisuraDefault" class="form-label fw-bold">Unità di misura predefinita</label>
+                        <select asp-for="IdUnitaMisuraDefault" asp-items="ViewBag.UnitaMisura" class="form-select"></select>
+                        <div class="form-text">Proposta in automatico nei nuovi ordini del mandatario.</div>
+                    </div>
+
+                    @if (string.Equals(Model.CodiceMandatario, "SystemCore", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="col-md-6">
+                            <label asp-for="QuotaCentesimiPerKg" class="form-label fw-bold">Quota Euro cent/Kg (€)</label>
+                            <input asp-for="QuotaCentesimiPerKg" type="number" step="any" min="0" max="1000"
+                                   class="form-control" value="@FormatDecimal(Model.QuotaCentesimiPerKg, 4)" />
+                            <div class="form-text">0 = nessun valore automatico nei nuovi ordini.</div>
+                            <span asp-validation-for="QuotaCentesimiPerKg" class="text-danger small"></span>
+                        </div>
+                    }
+                    @* ==== MODIFICA 01/11/2026 - FINE ==== *@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                </div>
+            </div>
+        </div>
+        <div asp-validation-summary="ModelOnly" class="text-danger mt-3 small"></div>
+
+        @* Pulsanti spostati qui (prima della lista clienti) per restare sempre visibili senza scrollare *@
+        <div class="mb-4 pt-3 border-top d-flex justify-content-between">
+            <a asp-area="Admin" asp-controller="Mandatari" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Annulla
+            </a>
+            <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                <i class="bi bi-save"></i> Salva Mandatario
+            </button>
+        </div>
+        @if (isEdit)
+        {
+            @* ==== MODIFICA 05/11/2026 - INIZIO ==== id per aprire la pagina direttamente su questa sezione *@
+            <div id="associazione-clienti" class="card shadow-sm border-0 mb-4" style="scroll-margin-top: 80px;">
+                @* ==== MODIFICA 05/11/2026 - FINE ==== *@
+                @* <div class="card shadow-sm border-0 mb-4"> *@
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-people me-2 text-primary"></i>Associazione Clienti</h5>
+                </div>
+
+                <div class="card-body">
+                    <div class="row g-3 align-items-end mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Cerca Cliente</label>
+                            <div class="position-relative">
+                                <input id="clienteSearch" type="text" class="form-control" placeholder="Digita almeno 2 caratteri (Ragione Sociale, P.Iva...)" autocomplete="off" />
+                                <ul id="autocompleteResults" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; max-height: 200px; overflow-y: auto;"></ul>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button id="btnAddCliente" type="button" class="btn btn-dark w-100 fw-bold">
+                                <i class="bi bi-plus-lg"></i> Aggiungi Cliente
+                            </button>
+                        </div>
+                    </div>
+
+
+                    @* Filtro fuori dall'area scrollabile: resta sempre visibile sopra la lista *@
+                    <div class="filters mb-2">
+                        <input type="text" class="form-control form-control-sm" placeholder="Filtra nella lista..." />
+                    </div>
+
+                    @* Lista con barra di scorrimento verticale (header fisso) *@
+                    <div class="table-responsive clienti-scroll">
+                        <table id="clientiAssociatiTable" class="table table-hover align-middle border mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th style="width: 100px;" class="text-center">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientiAssociatiBody">
+                                @* Caricato via AJAX *@
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            const currentMandatarioId = $("#hfMandatarioId").val();
+
+            // Setup CSRF per AJAX
+            $.ajaxSetup({
+                headers: { "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val() }
+            });
+
+            // Prevenzione submit su INVIO negli input
+            $(document).on("keydown", "input", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // --- LOGICA AUTOCOMPLETE ---
+            $("#clienteSearch").on("keyup", function () {
+                let term = $(this).val();
+                if (term.length < 2) {
+                    $("#autocompleteResults").empty();
+                    return;
+                }
+                $.getJSON("/Admin/Clienti/Search", { term: term }, function (data) {
+                    $("#autocompleteResults").empty();
+                    data.forEach(function (item) {
+                        // 21/10/2026 P4-01: <li> costruito via DOM (niente HTML con dati utente)
+                        $("#autocompleteResults").append(
+                            $('<li>').addClass('list-group-item list-group-item-action cliente-item')
+                                .attr('data-id', item.id)
+                                .attr('data-text', item.text)
+                                .text(item.text)
+                        );
+                    });
+                });
+            });
+
+            $(document).on("click", ".cliente-item", function () {
+                // 21/10/2026 P4-01: lettura da attr() invece di data()
+                $("#clienteSearch").val($(this).attr('data-text')).data("selected-id", $(this).attr('data-id'));
+                $("#autocompleteResults").empty();
+            });
+
+            // --- AGGIUNTA CLIENTE ---
+            $("#btnAddCliente").on("click", function () {
+                let idCliente = $("#clienteSearch").data("selected-id");
+                if (!idCliente) {
+                    alert("Seleziona un cliente dall'elenco.");
+                    return;
+                }
+                $.post("/Admin/Mandatari/AddCliente", { idMandatario: currentMandatarioId, idCliente: idCliente }, function () {
+                    loadClientiAssociati();
+                    $("#clienteSearch").val("").data("selected-id", null);
+                });
+            });
+
+            // --- CARICAMENTO TABELLA ---
+            function loadClientiAssociati() {
+                if (currentMandatarioId == "0") return;
+                $.getJSON("/Admin/Mandatari/GetClienti", { idMandatario: currentMandatarioId }, function (data) {
+                    let $body = $("#clientiAssociatiBody").empty();
+                    if (data.length === 0) {
+                        $body.append("<tr><td colspan='2' class='text-center text-muted'>Nessun cliente associato</td></tr>");
+                        return;
+                    }
+                    data.forEach(function (c) {
+                        // 21/10/2026 P4-01: riga costruita via DOM, ragioneSociale inserita con .text()
+                        var idCli = c.idCliente;
+                        $body.append(
+                            $('<tr>')
+                                .append($('<td class="fw-bold">').text(c.ragioneSociale))
+                                .append(
+                                    $('<td class="text-center">').append(
+                                        $('<button type="button" class="btn btn-outline-danger btn-sm shadow-sm">')
+                                            .append($('<i class="bi bi-trash">'))
+                                            .on('click', function () { removeCliente(idCli); })
+                                    )
+                                )
+                        );
+                    });
+                    applicaFiltro();
+                });
+            }
+
+            // // Inizializzazione se in Edit
+            // if (currentMandatarioId != "0") loadClientiAssociati();
+
+
+        // ==== MODIFICA 05/11/2026 - INIZIO ====
+        // Arrivo dal link dell'avviso in Provvigioni Agenti: ?cerca=<cliente>#associazione-clienti
+        // Il nome viene scritto nel filtro con .val() (testo, nessun rischio XSS).
+        var cercaIniziale = new URLSearchParams(window.location.search).get('cerca');
+        if (cercaIniziale) $(".filters input").val(cercaIniziale);
+        // ==== MODIFICA 05/11/2026 - FINE ====
+
+        // Inizializzazione se in Edit
+        if (currentMandatarioId != "0") loadClientiAssociati();
+
+        // ==== MODIFICA 05/11/2026 - INIZIO ====
+        if (window.location.hash === '#associazione-clienti') {
+            var sezione = document.getElementById('associazione-clienti');
+            if (sezione) sezione.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        // ==== MODIFICA 05/11/2026 - FINE ====
+
+
+        });
+
+        // --- RIMOZIONE (Global per onclick) ---
+        function removeCliente(idCliente) {
+            if (confirm("Scollegare questo cliente dal mandatario?")) {
+                $.post("/Admin/Mandatari/RemoveCliente", {
+                    idMandatario: $("#hfMandatarioId").val(),
+                    idCliente: idCliente
+                }, function (res) {
+                    if (res.success) {
+                        location.reload();
+                    } else {
+                        alert(res.message);
+                    }
+                });
+            }
+        }
+
+        // --- FILTRO TABELLA ---
+        function applicaFiltro() {
+            let value = $(".filters input").val().toLowerCase();
+            $("#clientiAssociatiBody tr").each(function () {
+                let text = $(this).find("td:first").text().toLowerCase();
+                if (!text.includes("nessun cliente")) $(this).toggle(text.indexOf(value) > -1);
+            });
+        }
+
+        $(document).on("keyup", ".filters input", applicaFiltro);
+    </script>
+}

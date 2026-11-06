@@ -1,0 +1,33 @@
+﻿@{
+    ViewData["Title"] = "Pagina non trovata";
+    var timestamp = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+}
+
+<div class="container py-5 text-center">
+
+    <h1 class="display-4 fw-bold text-danger">404</h1>
+
+    <p class="fs-4 text-muted">La pagina che stai cercando non esiste.</p>
+
+    <!-- Descrizione tecnica utile per assistenza -->
+    <div class="alert alert-light border mt-4 text-start mx-auto" style="max-width: 600px;">
+        <h5 class="fw-bold">Dettagli errore</h5>
+        <p><strong>Codice:</strong> 404 - Not Found</p>
+        <p><strong>Descrizione:</strong> La risorsa richiesta non è stata trovata sul server.</p>
+        <p><strong>Data e ora:</strong> @timestamp</p>
+        <p><strong>URL richiesto:</strong> @Context.Request.Path</p>
+    </div>
+
+    <button class="btn btn-secondary mt-3" onclick="history.back()">
+        <i class="bi bi-arrow-left"></i> Torna indietro
+    </button>
+
+@*     <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-primary mt-3 ms-2">
+        <i class="bi bi-speedometer2"></i> Pannello Admin
+    </a> *@
+
+    <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary mt-3 ms-2">
+        <i class="bi bi-house-door"></i> Home
+    </a>
+
+</div>

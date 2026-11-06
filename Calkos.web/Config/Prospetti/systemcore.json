@@ -1,0 +1,162 @@
+{
+  "columns": [
+    {
+      "name": "NumeroOrdine",
+      "label": "Conferma ORD",
+      "visible": true,
+      "format": "text",
+      "width": 1,
+      "sortOrder": 2,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "NumeroDDT",
+      "label": "DDT",
+      "visible": true,
+      "format": "text",
+      "width": 1,
+      "sortOrder": 3,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "NumeroFattura",
+      "label": "Fattura",
+      "visible": true,
+      "format": "text",
+      "width": 1,
+      "sortOrder": 4,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "RagioneSociale",
+      "label": "Cliente",
+      "visible": true,
+      "format": "text",
+      "width": 3,
+      "sortOrder": 1,
+      "sortDirection": "asc"
+    },
+    {
+      "name": "UnitaMisura",
+      "label": "U.M.",
+      "visible": true,
+      "format": "text",
+      "width": 1
+    },
+    {
+      "name": "Quantita",
+      "label": "Q.tà",
+      "visible": true,
+      "format": "decimal:0.00",
+      "width": 1
+    },
+    {
+      "name": "DescrizioneMateriale",
+      "label": "Materiale",
+      "visible": true,
+      "format": "text",
+      "width": 2
+    },
+    {
+      "name": "CostoLavorazione",
+      "label": "Lavorazione",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+    {
+      "name": "PrezzoVendita",
+      "label": "Vendita",
+      "visible": true,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "PercentualeQuotaFissa",
+      "label": "% QuotaFissa",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "percent",
+      "width": 1
+    },
+
+    {
+      "name": "ValoreQuotaFissa",
+      "label": "Quota fissa € 0,10/€ 0,05",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 1
+    },
+
+    {
+      "name": "TotaleProvvigioneVariabile",
+      "label": "Totale provv variabile",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 2
+    },
+    {
+      "name": "TotaleProvvigione",
+      "label": "Totalone",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 2
+    },
+
+    {
+      "name": "TotaleProvvigioneDaFatturare",
+      "label": "Totale Provvigioni",
+      "visible": true,
+      "visibileAgente": false,
+      "format": "currency",
+      "width": 2
+    },
+    {
+      "name": "Fatturata",
+      "label": "Fatturata",
+      "visible": true,
+      "export": true,
+      "format": "boolean",
+      "width": 1
+    },
+    {
+      "name": "DataConsegnaIpotetica",
+      "label": "Prevista Consegna",
+      "visible": true,
+      "format": "date:dd/MM/yyyy",
+      "width": 1
+    },
+    {
+      "name": "DataConsegna",
+      "label": "Consegna",
+      "visible": true,
+      "format": "date:dd/MM/yyyy",
+      "width": 1
+    },
+    {
+      "name": "InRitardo",
+      "label": "Ritardo",
+      "visible": true,
+      "format": "boolean",
+      "width": 1
+    },
+    {
+      "name": "GiorniRitardo",
+      "label": "GG Ritardo",
+      "visible": true,
+      "format": "int",
+      "width": 1
+    },
+    {
+      "name": "DaFatturare",
+      "label": "Fatturare",
+      "visible": true,
+      "format": "boolean",
+      "width": 1
+    }
+  ]
+}

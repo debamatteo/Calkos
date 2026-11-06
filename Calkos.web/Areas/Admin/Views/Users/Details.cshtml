@@ -1,0 +1,191 @@
+﻿@model Calkos.Web.Models.Admin.UserDetailsViewModel
+
+@{
+    ViewData["Title"] = "Dettagli Utente";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-person-badge-fill text-info me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Dettagli Utente</h1>
+        <small class="text-muted">Informazioni complete sull'utente selezionato</small>
+    </div>
+</div>
+
+<!-- ==== MODIFICA 25/08/2026 ==== -->
+<form id="tokenForm">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <div class="mb-3">
+            <span class="text-muted">Email:</span>
+            <strong>@Model.Email</strong>
+        </div>
+
+        <div class="mb-3">
+            <span class="text-muted">User ID:</span>
+            <code>@Model.UserId</code>
+        </div>
+
+        <div class="mb-3">
+            <span class="text-muted">Ruoli assegnati:</span>
+            <div class="mt-1">
+                @if (Model.Roles.Any())
+                {
+                    foreach (var role in Model.Roles)
+                    {
+                        <span class="badge bg-primary me-1">@role</span>
+                    }
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Nessun ruolo</span>
+                }
+            </div>
+        </div>
+
+        <!-- ==== MODIFICA 25/08/2026 - INIZIO ==== -->
+        <div class="mb-3">
+            <span class="text-muted">Stato accesso:</span>
+            @if (Model.IsBloccato)
+            {
+                <span class="badge bg-danger">Bloccato</span>
+            }
+            else
+            {
+                <span class="badge bg-success">Attivo</span>
+            }
+        </div>
+        <!-- ==== MODIFICA 25/08/2026 - FINE ==== -->
+
+    </div>
+</div>
+
+<div class="d-flex justify-content-between">
+    <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Torna alla lista
+    </a>
+
+    <div>
+        <!-- ==== MODIFICA 25/08/2026 - INIZIO ==== -->
+        <!-- ==== MODIFICA 19/10/2026 - INIZIO ==== -->
+        <button class="btn btn-outline-danger me-2"
+                data-user-id="@Model.UserId" data-email="@Model.Email"
+                onclick="resetPassword(this.dataset.userId, this.dataset.email)">
+            <i class="bi bi-key-fill"></i> Reset Password
+        </button>
+        @if (Model.IsBloccato)
+        {
+            <button class="btn btn-outline-success me-2"
+                    data-user-id="@Model.UserId" data-email="@Model.Email"
+                    onclick="unlockUser(this.dataset.userId, this.dataset.email)">
+                <i class="bi bi-unlock-fill"></i> Sblocca
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-outline-dark me-2"
+                    data-user-id="@Model.UserId" data-email="@Model.Email"
+                    onclick="lockUser(this.dataset.userId, this.dataset.email)">
+                <i class="bi bi-lock-fill"></i> Blocca
+            </button>
+        }
+        <!-- ==== MODIFICA 25/08/2026 - FINE ==== -->
+
+        <a asp-area="Admin" asp-controller="Users" asp-action="ManageRoles" asp-route-id="@Model.UserId" class="btn btn-primary">
+            <i class="bi bi-shield-lock"></i> Gestisci Ruoli
+        </a>
+    </div>
+</div>
+
+<!-- ==== MODIFICA 25/08/2026 - INIZIO ==== -->
+<script>
+    // ==== MODIFICA 25/08/2026 - INIZIO ====
+    const urlResetPassword = '@Url.Action("ResetUserPassword", "Users", new { area = "Admin" })';
+    const urlLockUser = '@Url.Action("LockUser", "Users", new { area = "Admin" })';
+    const urlUnlockUser = '@Url.Action("UnlockUser", "Users", new { area = "Admin" })';
+
+    function getAntiforgeryToken() {
+        const input = document.querySelector('input[name="__RequestVerificationToken"]');
+        return input ? input.value : '';
+    }
+
+    // Funzione generica per chiamate POST AJAX (usata per Lock e Unlock)
+    function postAjax(url, userId, confirmMessage, reloadOnSuccess) {
+        if (!confirm(confirmMessage)) return;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getAntiforgeryToken()
+            },
+            body: JSON.stringify({ UserId: userId })
+        })
+        .then(async response => {
+            const d = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(d.message || ('Errore nella richiesta (' + response.status + ')'));
+            return d;
+        })
+        .then(d => {
+            if (d.message) alert(d.message);
+            if (reloadOnSuccess) location.reload();
+        })
+        .catch(err => {
+            console.error(err);
+            alert(err.message);
+        });
+
+    }
+
+    @* // 26/08/2026 Funzione dedicata per il Reset Password con copia negli appunti *@
+    function resetPassword(userId, email) {
+        if (!confirm("Sei sicuro di voler resettare la password di " + email + "?")) return;
+
+        fetch(urlResetPassword, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getAntiforgeryToken()
+            },
+            body: JSON.stringify({ UserId: userId })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Errore nella richiesta (' + response.status + ')');
+            return response.json();
+        })
+        .then(data => {
+            // Se il backend restituisce tempPassword la copiamo negli appunti
+            if (data.tempPassword) {
+                navigator.clipboard.writeText(data.tempPassword)
+                    .then(() => {
+                        alert("Password generata e COPIATA NEGLI APPUNTI!\n\nPassword: " + data.tempPassword);
+                    })
+                    .catch(() => {
+                        // Fallback se il browser blocca la clipboard (es. connessione HTTP)
+                        prompt("Copia la nuova password da Comunicare all' utente (Ctrl+C):", data.tempPassword);
+                    });
+            } else if (data.message) {
+                // Gestione nel caso il backend usi ancora la proprietà 'message'
+                prompt("Copia la risposta dal server (Ctrl+C):", data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Errore nella richiesta di reset password.");
+        });
+    }
+
+    function lockUser(userId, email) {
+        postAjax(urlLockUser, userId, "Bloccare l'accesso di " + email + "?", true);
+    }
+
+    function unlockUser(userId, email) {
+        postAjax(urlUnlockUser, userId, "Sbloccare l'accesso di " + email + "?", true);
+    }
+    // ==== MODIFICA 25/08/2026 - FINE ====
+</script>
+<!-- ==== MODIFICA 25/08/2026 - FINE ==== -->

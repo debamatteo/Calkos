@@ -1,0 +1,12 @@
+C:\Lavoro\Calkos\CalkosManager.Domain\bin\Debug\net8.0\CalkosManager.Domain.deps.json
+C:\Lavoro\Calkos\CalkosManager.Domain\bin\Debug\net8.0\CalkosManager.Domain.dll
+C:\Lavoro\Calkos\CalkosManager.Domain\bin\Debug\net8.0\CalkosManager.Domain.pdb
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\CalkosManager.Domain.csproj.AssemblyReference.cache
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\CalkosManager.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\CalkosManager.Domain.AssemblyInfoInputs.cache
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\CalkosManager.Domain.AssemblyInfo.cs
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\CalkosManager.Domain.csproj.CoreCompileInputs.cache
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\CalkosManager.Domain.dll
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\refint\CalkosManager.Domain.dll
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\CalkosManager.Domain.pdb
+C:\Lavoro\Calkos\CalkosManager.Domain\obj\Debug\net8.0\ref\CalkosManager.Domain.dll

@@ -1,0 +1,109 @@
+﻿@model CalkosManager.Domain.Entities.Mandatario
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuovo Mandatario";
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi bi-building-add me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <form asp-area="Admin" asp-controller="Mandatari" asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+                        <label asp-for="NomeMandatario" class="form-label fw-bold required-label"></label>
+                        <input asp-for="NomeMandatario" class="form-control" placeholder="Inserisci nome mandatario" />
+                        <span asp-validation-for="NomeMandatario" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label asp-for="CodiceMandatario" class="form-label fw-bold required-label"></label>
+                        <input asp-for="CodiceMandatario" class="form-control" placeholder="Inserisci codice" />
+                        <span asp-validation-for="CodiceMandatario" class="text-danger small"></span>
+                    </div>
+
+
+                    @* ==== MODIFICA 29/10/2026 - INIZIO ==== *@
+                    <div class="col-md-3">
+                        <label asp-for="Perc_Delta_Provvigione" class="form-label fw-bold">Perc. Delta Provvigione (%)</label>
+                        <i class="bi bi-info-circle-fill text-danger ms-2"
+                           title="Formato percentuale: 40 significa 40%, NON 0,40. Viene proposta in automatico nei nuovi ordini del mandatario."></i>
+                        <input asp-for="Perc_Delta_Provvigione" type="number" step="any" min="0" max="100"
+                               class="form-control" placeholder="es. 40" />
+                        <span asp-validation-for="Perc_Delta_Provvigione" class="text-danger small"></span>
+                    </div>
+                    @* ==== MODIFICA 29/10/2026 - FINE ==== *@             
+                
+
+                    @* ==== MODIFICA 01/11/2026 - INIZIO ==== *@
+                    <div class="col-md-6">
+                        <label asp-for="IdUnitaMisuraDefault" class="form-label fw-bold">Unità di misura predefinita</label>
+                        <select asp-for="IdUnitaMisuraDefault" asp-items="ViewBag.UnitaMisura" class="form-select"></select>
+                        <div class="form-text">Proposta in automatico nei nuovi ordini del mandatario.</div>
+                    </div>
+                    @* ==== MODIFICA01/11/2026  - FINE ==== *@
+
+
+
+   
+                </div>
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mt-3 small"></div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-area="Admin" asp-controller="Mandatari" asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Mandatario
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+        });
+    </script>
+}
+@* 
+  ✔ Usa il layout Admin
+Quindi eredita sidebar, header, stile, ecc.
+
+✔ Form semplice e pulito
+Solo i campi necessari:
+
+NomeMandatario
+
+CodiceMandatario
+
+✔ Pulsanti corretti
+Salva → POST su /Admin/Mandatari/Create
+
+Annulla → torna alla Index dell’area Admin
+
+✔ Validazione integrata
+Grazie a:
+
+csharp
+<partial name="_ValidationScriptsPartial" /> *@

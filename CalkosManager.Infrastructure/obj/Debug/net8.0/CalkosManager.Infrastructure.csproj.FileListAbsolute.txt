@@ -1,0 +1,17 @@
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\bin\Debug\net8.0\CalkosManager.Infrastructure.deps.json
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\bin\Debug\net8.0\CalkosManager.Infrastructure.dll
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\bin\Debug\net8.0\CalkosManager.Infrastructure.pdb
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\bin\Debug\net8.0\CalkosManager.Application.dll
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\bin\Debug\net8.0\CalkosManager.Domain.dll
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\bin\Debug\net8.0\CalkosManager.Application.pdb
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\bin\Debug\net8.0\CalkosManager.Domain.pdb
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosManager.Infrastructure.csproj.AssemblyReference.cache
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosManager.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosManager.Infrastructure.AssemblyInfoInputs.cache
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosManager.Infrastructure.AssemblyInfo.cs
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosManager.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosMa.60DAE05B.Up2Date
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosManager.Infrastructure.dll
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\refint\CalkosManager.Infrastructure.dll
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\CalkosManager.Infrastructure.pdb
+C:\Lavoro\Calkos\CalkosManager.Infrastructure\obj\Debug\net8.0\ref\CalkosManager.Infrastructure.dll

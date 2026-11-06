@@ -1,0 +1,83 @@
+﻿@model CalkosManager.Domain.Entities.Materiale
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = Model.IdMateriale == 0 ? "Nuovo Materiale" : "Modifica Materiale";
+}
+
+<div class="container-fluid">
+
+    @* HEADER PAGINA *@
+    <h3 class="mt-4 mb-3 fw-bold text-secondary">
+        <i class="bi bi-box-seam me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            @*
+              FORM PRINCIPALE
+              Il Tag Helper <form> genera automaticamente il token antifrode.
+            *@
+            <form asp-area="Admin" asp-controller="Materiali" asp-action="Save" method="post">
+
+                @* ID nascosto: determina se è un update o un insert *@
+                <input type="hidden" asp-for="IdMateriale" />
+
+                <div class="row g-3">
+
+                    @* Codice Materiale *@
+                    <div class="col-md-6">
+                        <label asp-for="CodiceMateriale" class="form-label fw-bold required-label">Codice Materiale</label>
+                        <input asp-for="CodiceMateriale" class="form-control" placeholder="Inserisci codice" />
+                        <span asp-validation-for="CodiceMateriale" class="text-danger small"></span>
+                    </div>
+
+                    @* Descrizione Materiale *@
+                    <div class="col-md-6">
+                        <label asp-for="DescrizioneMateriale" class="form-label fw-bold required-label">Descrizione</label>
+                        <input asp-for="DescrizioneMateriale" class="form-control" placeholder="Inserisci descrizione" />
+                        <span asp-validation-for="DescrizioneMateriale" class="text-danger small"></span>
+                    </div>
+
+                </div>
+
+                @* VALIDAZIONE MODELLO *@
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mt-3 small"></div>
+
+                @* FOOTER FORM *@
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Materiale
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+
+    @* Script di validazione lato client *@
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function () {
+
+            /**
+             * CONFIGURAZIONE ANTIFORGERY
+             * Recupera il token generato automaticamente dal Tag Helper del form.
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+        });
+    </script>
+}

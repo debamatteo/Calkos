@@ -1,0 +1,435 @@
+﻿
+  / .config                                            
+  / .github                                            
+  / Areas                                              
+  / bin                                                
+  / Config                                             
+  / Controllers                                        
+  / Documentazione                                     
+  / Helpers                                            
+  / Identity                                           
+  / Migrations                                         
+  / Models                                             
+  / node_modules                                       
+  / obj                                                
+  / Properties                                         
+  / Services                                           
+  / Views                                              
+  / wwwroot                                            
+  .gitattributes                                       
+  .gitignore                                           
+  1-struttura_progetto.txt                             
+  appsettings.Development.json                         
+  appsettings.json                                     
+  Calkos.web.csproj                                    
+  Calkos.web.csproj.user                               
+  Calkos.web.sln                                       
+  GeneraStruttura.bat                                  
+  package-lock.json                                    
+  package.json                                         
+  Program.cs                                           
+  ScaffoldingReadMe.txt                                
+  struttura_progetto.txt                               
+    dotnet-tools.json                                  
+    / workflows                                        
+    / Admin                                            
+    / Identity                                         
+      / Controllers                                    
+      / Views                                          
+        AgentiController.cs                            
+        ClientiController.cs                           
+        DashboardController.cs                         
+        MandatariController.cs                         
+        MaterialiController.cs                         
+        MaterialiDimensioniController.cs               
+        ProspettiCobralController.cs                   
+        ProspettiController.cs                         
+        ProspettiCSTController.cs                      
+        ProspettiDeAngeliController.cs                 
+        ProspettiElektraWireController.cs              
+        ProspettiGuerzoniController.cs                 
+        ProspettiHitechController.cs                   
+        ProspettiSystemCoreController.cs               
+        ProspettiSystemPController.cs                  
+        ProspettiTradingAndConsultingController.cs     
+        ProspettiXXXController.cs                      
+        ProvvigioniAgentiController.cs                 
+        RolesController.cs                             
+        TipoPagamentoController.cs                     
+        UnitaMisuraController.cs                       
+        UsersController.cs                             
+        / Agenti                                       
+        / Clienti                                      
+        / Dashboard                                    
+        / Mandatari                                    
+        / Materiali                                    
+        / MaterialiDimensioni                          
+        / Prospetti                                    
+        / ProspettiCobral                              
+        / ProspettiCST                                 
+        / ProspettiDeAngeli                            
+        / ProspettiElektraWire                         
+        / ProspettiGuerzoni                            
+        / ProspettiHitech                              
+        / ProspettiSystemCore                          
+        / ProspettiSystemP                             
+        / ProspettiTradingAndConsulting                
+        / ProvvigioniAgenti                            
+        / Roles                                        
+        / Shared                                       
+        / Test                                         
+        / TipoPagamento                                
+        / UnitaMisura                                  
+        / Users                                        
+        _ViewImports.cshtml                            
+        _ViewStart.cshtml                              
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Index.cshtml                                 
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Errori.cshtml                                
+          Index.cshtml                                 
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          DettaglioOrdine.cshtml                       
+          Importa.cshtml                               
+          ListaOrdini.cshtml                           
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Create.cshtml                                
+          Delete.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          ReportStatistiche.cshtml                     
+          _AdminLayout.cshtml                          
+          DataTables.cshtml                            
+          pippo.cshtml                                 
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Create.cshtml                                
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          Create.cshtml                                
+          Delete.cshtml                                
+          Details.cshtml                               
+          Edit.cshtml                                  
+          Index.cshtml                                 
+          ManageRoles.cshtml                           
+      / Pages                                          
+        / Account                                      
+        / Shared                                       
+        _ValidationScriptsPartial.cshtml               
+        _ViewImports.cshtml                            
+        _ViewStart.cshtml                              
+          / Manage                                     
+          AccessDenied.cshtml                          
+          AccessDenied.cshtml.cs                       
+          ForceChangePassword.cshtml                   
+          ForceChangePassword.cshtml.cs                
+          Login.cshtml                                 
+          Login.cshtml.cs                              
+          Logout.cshtml                                
+          Logout.cshtml.cs                             
+          Register.cshtml                              
+          Register.cshtml.cs                           
+          _ViewImports.cshtml                          
+            ChangePassword.cshtml                      
+            ChangePassword.cshtml.cs                   
+            Email.cshtml                               
+            Email.cshtml.cs                            
+            Index.cshtml                               
+            Index.cshtml.cs                            
+            ManageNavPages.cs                          
+            _ManageNav.cshtml                          
+            _ViewImports.cshtml                        
+          _StatusMessage.cshtml                        
+    / Prospetti                                        
+      cobral.json                                      
+      cst.json                                         
+      deangeli.json                                    
+      elektrawire.json                                 
+      guerzoni.json                                    
+      hitech.json                                      
+      systemcore.json                                  
+      systemp.json                                     
+      tradingandconsulting.json                        
+    AdminController.cs                                 
+    DashboardProvvigioniController.cs                  
+    ErrorController.cs                                 
+    HomeController.cs                                  
+    ExcelHelper.cs                                     
+    Utility.cs                                         
+    ApplicationDbContext.cs                            
+    IdentitySeeder.cs                                  
+    UserSeeder.cs                                      
+    20260304135445_InitialIdentity.cs                  
+    20260304135445_InitialIdentity.Designer.cs         
+    20260305222013_AddRequirePasswordChange.cs         
+    20260305222013_AddRequirePasswordChange.Designer.cs
+    ApplicationDbContextModelSnapshot.cs               
+    / Admin                                            
+    / Dashboard                                        
+    / DTO                                              
+    / Prospetti                                        
+    ApplicationUser.cs                                 
+    ErrorViewModel.cs                                  
+      ManageUserRoleItemViewModel.cs                   
+      ManageUserRolesViewModel.cs                      
+      UserDetailsViewModel.cs                          
+      UserWithRolesViewModel.cs                        
+      DashboardProvvigioniViewModel.cs                 
+      DashboardRigaDTO.cs                              
+      RigaCliente.cs                                   
+      AgenteSelectItem.cs                              
+      ProvvigioneAgenteSelectItem.cs                   
+      ProspettoCobralListaViewModel.cs                 
+      ProspettoConfig.cs                               
+      ProspettoCSTListaViewModel.cs                    
+      ProspettoDeAngeliListaViewModel.cs               
+      ProspettoElektraWireListaViewModel.cs            
+      ProspettoGuerzoniListaViewModel.cs               
+      ProspettoHitechListaViewModel.cs                 
+      ProspettoSystemCoreListaViewModel.cs             
+      ProspettoSystemPListaViewModel.cs                
+      ProspettoTradingAndConsultingListaViewModel.cs   
+      RigaReportAnnuale.cs                             
+    / PublishProfiles                                  
+    / wwwroot                                          
+    launchSettings.json                                
+      FolderProfile.pubxml                             
+      FolderProfile.pubxml.user                        
+      / css                                            
+      / img                                            
+      / js                                             
+      / lib                                            
+      / tempCobral                                     
+      / tempCST                                        
+      / tempDeAngeli                                   
+      / tempElektraWire                                
+      / tempGuerzoni                                   
+      / tempHitech                                     
+      / tempSystemCore                                 
+      / tempSystemP                                    
+      / tempTradingAndConsulting                       
+      favicon.ico                                      
+        site.css                                       
+        logo.png                                       
+        / tests                                        
+        app-debug.js                                   
+        deangelicalcoli.js                             
+        site.js                                        
+          deangelicalcoli.test.js                      
+        / bootstrap                                    
+        / jquery                                       
+        / jquery-validation                            
+        / jquery-validation-unobtrusive                
+          / css                                        
+          / js                                         
+            bootstrap-grid.css                         
+            bootstrap-grid.css.map                     
+            bootstrap-grid.min.css                     
+            bootstrap-grid.min.css.map                 
+            bootstrap-grid.rtl.css                     
+            bootstrap-grid.rtl.css.map                 
+            bootstrap-grid.rtl.min.css                 
+            bootstrap-grid.rtl.min.css.map             
+            bootstrap-reboot.css                       
+            bootstrap-reboot.css.map                   
+            bootstrap-reboot.min.css                   
+            bootstrap-reboot.min.css.map               
+            bootstrap-reboot.rtl.css                   
+            bootstrap-reboot.rtl.css.map               
+            bootstrap-reboot.rtl.min.css               
+            bootstrap-reboot.rtl.min.css.map           
+            bootstrap-utilities.css                    
+            bootstrap-utilities.css.map                
+            bootstrap-utilities.min.css                
+            bootstrap-utilities.min.css.map            
+            bootstrap-utilities.rtl.css                
+            bootstrap-utilities.rtl.css.map            
+            bootstrap-utilities.rtl.min.css            
+            bootstrap-utilities.rtl.min.css.map        
+            bootstrap.css                              
+            bootstrap.css.map                          
+            bootstrap.min.css                          
+            bootstrap.min.css.map                      
+            bootstrap.rtl.css                          
+            bootstrap.rtl.css.map                      
+            bootstrap.rtl.min.css                      
+            bootstrap.rtl.min.css.map                  
+            bootstrap.bundle.js                        
+            bootstrap.bundle.js.map                    
+            bootstrap.bundle.min.js                    
+            bootstrap.bundle.min.js.map                
+            bootstrap.esm.js                           
+            bootstrap.esm.js.map                       
+            bootstrap.esm.min.js                       
+            bootstrap.esm.min.js.map                   
+            bootstrap.js                               
+            bootstrap.js.map                           
+            bootstrap.min.js                           
+            bootstrap.min.js.map                       
+          / dist                                       
+          LICENSE.txt                                  
+            jquery.js                                  
+            jquery.min.js                              
+            jquery.min.map                             
+          / dist                                       
+          LICENSE.md                                   
+            additional-methods.js                      
+            additional-methods.min.js                  
+            jquery.validate.js                         
+            jquery.validate.min.js                     
+          jquery.validate.unobtrusive.js               
+          jquery.validate.unobtrusive.min.js           
+          LICENSE.txt                                  
+        
+    / Export                                           
+    / Prospetti                                        
+    DashboardProvvigioniService.cs                     
+      / Templates                                      
+      ExcelExportService.cs                            
+      PdfExportService.cs                              
+        AgentiPdfTemplate.cs                           
+        ClientiPdfTemplate.cs                          
+      ProspettoConfigService.cs                        
+    / DashboardProvvigioni                             
+    / Error                                            
+    / Home                                             
+    / Shared                                           
+    _ViewImports.cshtml                                
+    _ViewStart.cshtml                                  
+      Index.cshtml                                     
+      _TabellaProvvigioni.cshtml                       
+      GenericError.cshtml                              
+      NotFound.cshtml                                  
+      ServerError.cshtml                               
+      Index.cshtml                                     
+      Privacy.cshtml                                   
+      Error.cshtml                                     
+      _Layout.cshtml                                   
+      _Layout.cshtml.css                               
+      _LoginPartial.cshtml                             
+      _ValidationScriptsPartial.cshtml                 
+    / css                                              
+    / img                                              
+    / js                                               
+    / lib                                              
+    / tempCobral                                       
+    / tempCST                                          
+    / tempDeAngeli                                     
+    / tempElektraWire                                  
+    / tempGuerzoni                                     
+    / tempHitech                                       
+    / tempSystemCore                                   
+    / tempSystemP                                      
+    / tempTradingAndConsulting                         
+    favicon.ico                                        
+      site.css                                         
+      logo.png                                         
+      / tests                                          
+      app-debug.js                                     
+      deangelicalcoli.js                               
+      site.js                                          
+        deangelicalcoli.test.js                        
+      / bootstrap                                      
+      / jquery                                         
+      / jquery-validation                              
+      / jquery-validation-unobtrusive                  
+        / css                                          
+        / js                                           
+          bootstrap-grid.css                           
+          bootstrap-grid.css.map                       
+          bootstrap-grid.min.css                       
+          bootstrap-grid.min.css.map                   
+          bootstrap-grid.rtl.css                       
+          bootstrap-grid.rtl.css.map                   
+          bootstrap-grid.rtl.min.css                   
+          bootstrap-grid.rtl.min.css.map               
+          bootstrap-reboot.css                         
+          bootstrap-reboot.css.map                     
+          bootstrap-reboot.min.css                     
+          bootstrap-reboot.min.css.map                 
+          bootstrap-reboot.rtl.css                     
+          bootstrap-reboot.rtl.css.map                 
+          bootstrap-reboot.rtl.min.css                 
+          bootstrap-reboot.rtl.min.css.map             
+          bootstrap-utilities.css                      
+          bootstrap-utilities.css.map                  
+          bootstrap-utilities.min.css                  
+          bootstrap-utilities.min.css.map              
+          bootstrap-utilities.rtl.css                  
+          bootstrap-utilities.rtl.css.map              
+          bootstrap-utilities.rtl.min.css              
+          bootstrap-utilities.rtl.min.css.map          
+          bootstrap.css                                
+          bootstrap.css.map                            
+          bootstrap.min.css                            
+          bootstrap.min.css.map                        
+          bootstrap.rtl.css                            
+          bootstrap.rtl.css.map                        
+          bootstrap.rtl.min.css                        
+          bootstrap.rtl.min.css.map                    
+          bootstrap.bundle.js                          
+          bootstrap.bundle.js.map                      
+          bootstrap.bundle.min.js                      
+          bootstrap.bundle.min.js.map                  
+          bootstrap.esm.js                             
+          bootstrap.esm.js.map                         
+          bootstrap.esm.min.js                         
+          bootstrap.esm.min.js.map                     
+          bootstrap.js                                 
+          bootstrap.js.map                             
+          bootstrap.min.js                             
+          bootstrap.min.js.map                         
+        / dist                                         
+        LICENSE.txt                                    
+          jquery.js                                    
+          jquery.min.js                                
+          jquery.min.map                               
+        / dist                                         
+        LICENSE.md                                     
+          additional-methods.js                        
+          additional-methods.min.js                    
+          jquery.validate.js                           
+          jquery.validate.min.js                       
+        jquery.validate.unobtrusive.js                 
+        jquery.validate.unobtrusive.min.js             
+        LICENSE.txt                                    
+  

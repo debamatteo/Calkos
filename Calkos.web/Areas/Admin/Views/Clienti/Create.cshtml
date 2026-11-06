@@ -1,0 +1,303 @@
+@model CalkosManager.Domain.Entities.Cliente
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Nuovo Cliente";
+    // Determiniamo se la Sede Operativa è vuota al caricamento della pagina
+    bool stessaSede = string.IsNullOrWhiteSpace(Model.SO_Indirizzo)
+                   && string.IsNullOrWhiteSpace(Model.SO_Citta);
+
+}
+
+<div class="container-fluid">
+    <h3 class="mt-4 mb-3 fw-bold text-primary">
+        <i class="bi bi-person-badge-fill me-2"></i> @ViewData["Title"]
+    </h3>
+
+    <form asp-area="Admin" asp-controller="Clienti" asp-action="Save" method="post">
+        @Html.AntiForgeryToken()
+
+        @* Assicura la corretta gestione dell'ID per il salvataggio/modifica centralizzato *@
+        <input type="hidden" asp-for="IdCliente" />
+
+        @* 30/10/2026 Avvisi di errore/duplicato IN ALTO e ben visibili (prima erano in fondo, in piccolo) *@
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger fw-bold shadow-sm" role="alert"></div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+
+                <div class="row g-3">
+
+                    <!-- RIGA 1: Ragione Sociale -->
+                    @* 30/10/2026 Tolta la DDL "Agente" (Clienti.IdAgente dismesso): l'agente si associa dalle Provvigioni Agenti *@
+                    <div class="col-12">
+                        <label asp-for="RagioneSociale" class="form-label fw-bold required-label"></label>
+                        <input asp-for="RagioneSociale" class="form-control" placeholder="Inserisci ragione sociale" autocomplete="off" />
+                        <span asp-validation-for="RagioneSociale" class="text-danger small"></span>
+                        @* 30/10/2026 avviso nomi simili, riempito dallo script in fondo *@
+                        <div id="boxNomiSimili" class="alert alert-warning mt-2 py-2 small d-none"></div>
+                    </div>
+
+
+
+                    <div class="col-md-4">
+                        <label asp-for="IdTipoPagamentoDefault" class="form-label fw-bold"></label>
+                        <select asp-for="IdTipoPagamentoDefault" class="form-select select2" asp-items="ViewBag.TipoPagamento">
+                            <option value="">-- Seleziona Tipo Pagamento --</option>
+                        </select>
+                    </div>
+
+                    @* 14/10/2026 Mandatario: elenco completo, visibile a tutti i ruoli. Salvato in MandatariClienti *@
+                    <div class="col-md-4">
+@*                         <label asp-for="IdMandatario" class="form-label fw-bold"></label>
+                        <select asp-for="IdMandatario" class="form-select select2" asp-items="ViewBag.Mandatari">
+                            <option value="">-- Nessun Mandatario --</option>
+                        </select> *@
+
+                        <label asp-for="IdMandatario" class="form-label fw-bold @(ViewBag.MandatarioObbligatorio == true ? "required-label" : "")"></label>
+                        <select asp-for="IdMandatario" class="form-select select2" asp-items="ViewBag.Mandatari">
+                            <option value="">@(ViewBag.MandatarioObbligatorio == true ? "-- Seleziona Mandatario --" : "-- Nessun Mandatario --")</option>
+                        </select>
+                        <span asp-validation-for="IdMandatario" class="text-danger small"></span>
+                    </div>
+
+
+
+                    <!-- RIGA 2: P.IVA + CF -->
+                    <div class="col-md-6">
+                        <label asp-for="PartitaIva" class="form-label fw-bold"></label>
+                        <input asp-for="PartitaIva" class="form-control" maxlength="11" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="CodiceFiscale" class="form-label fw-bold"></label>
+                        <input asp-for="CodiceFiscale" class="form-control" maxlength="16" />
+                    </div>
+
+                    <!-- RIGA 3: Indirizzo + Città + Provincia + CAP -->
+                    <h5 class="text-primary border-bottom pb-2 fw-bold mb-3">
+                        <i class="bi bi-geo-alt-fill me-1"></i> Sede Legale
+                    </h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-5">
+                            <label asp-for="Indirizzo" class="form-label fw-bold">Indirizzo</label>
+                            <input asp-for="Indirizzo" class="form-control" placeholder="Via/Piazza e civico" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="Citta" class="form-label fw-bold">Città</label>
+                            <input asp-for="Citta" class="form-control" />
+                        </div>
+                        <div class="col-md-1">
+                            <label asp-for="Provincia" class="form-label fw-bold">PR</label>
+                            <input asp-for="Provincia" class="form-control text-center text-uppercase" maxlength="2" />
+                        </div>
+                        <div class="col-md-1">
+                            <label asp-for="CAP" class="form-label fw-bold">CAP</label>
+                            <input asp-for="CAP" class="form-control" maxlength="5" />
+                        </div>
+                        <div class="col-md-2">
+                            <label asp-for="Nazione" class="form-label fw-bold">Nazione</label>
+                            <input asp-for="Nazione" class="form-control" />
+                        </div>
+                    </div>
+
+
+                    <!-- SEZIONE 3: SEDE OPERATIVA -->
+                    <div class="d-flex align-items-center border-bottom pb-2 mb-3">
+                        <h5 class="text-primary fw-bold mb-0 me-4">
+                            <i class="bi bi-truck me-1"></i> Sede Operativa
+                        </h5>
+                        @* Se nel database sono presenti i dati della Sede Operativa (es. SO_Indirizzo non è vuoto), la variabile stessaSede diventa false. *@
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="chkStessaSede" @(stessaSede ? "checked" : "")>
+                            <label class="form-check-label fw-bold text-dark" for="chkStessaSede">
+                                La Sede Operativa coincide con la Sede Legale
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- BLOCCO DINAMICO NASCONDIBILE -->
+                    <div id="divSedeOperativa" class="row g-3 mb-4" style="@(stessaSede ? "display:none;" : "")">
+                        <div class="col-md-5">
+                            <label asp-for="SO_Indirizzo" class="form-label fw-bold">Indirizzo Operativo</label>
+                            <input asp-for="SO_Indirizzo" class="form-control" placeholder="Via/Piazza e civico" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="SO_Citta" class="form-label fw-bold">Città Operativa</label>
+                            <input asp-for="SO_Citta" class="form-control" />
+                        </div>
+                        <div class="col-md-1">
+                            <label asp-for="SO_Provincia" class="form-label fw-bold">PR</label>
+                            <input asp-for="SO_Provincia" class="form-control text-center text-uppercase" maxlength="2" />
+                        </div>
+                        <div class="col-md-1">
+                            <label asp-for="SO_CAP" class="form-label fw-bold">CAP</label>
+                            <input asp-for="SO_CAP" class="form-control" maxlength="5" />
+                        </div>
+                        <div class="col-md-2">
+                            <label asp-for="SO_Nazione" class="form-label fw-bold">Nazione</label>
+                            <input asp-for="SO_Nazione" class="form-control" />
+                        </div>
+                    </div>
+
+
+                    <!-- RIGA 4: Email + Telefono -->
+                    <h5 class="text-primary border-bottom pb-2 fw-bold mb-3">
+                        <i class="bi bi-telephone-fill me-1"></i> Contatti & Note
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-bold">Email / PEC</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input asp-for="Email" type="email" class="form-control" placeholder="esempio@dominio.it" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Telefono" class="form-label fw-bold">Telefono</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input asp-for="Telefono" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Note" class="form-label fw-bold">Note aggiuntive</label>
+                            <textarea asp-for="Note" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+
+
+
+                    @* 21/10/2026 SEZIONE 5: REFERENTE *@
+                    <h5 class="text-primary border-bottom pb-2 fw-bold mb-3 mt-4">
+                        <i class="bi bi-person-lines-fill me-1"></i> Referente
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="Referente" class="form-label fw-bold"></label>
+                            <input asp-for="Referente" class="form-control" maxlength="150" placeholder="Nome e cognome" />
+                            <span asp-validation-for="Referente" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="TelefonoReferente" class="form-label fw-bold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                <input asp-for="TelefonoReferente" class="form-control" maxlength="20" />
+                            </div>
+                            <span asp-validation-for="TelefonoReferente" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="EmailReferente" class="form-label fw-bold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input asp-for="EmailReferente" type="email" class="form-control" maxlength="100" placeholder="esempio@dominio.it" />
+                            </div>
+                            <span asp-validation-for="EmailReferente" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="NoteReferente" class="form-label fw-bold"></label>
+                            <textarea asp-for="NoteReferente" class="form-control" rows="2" maxlength="500"></textarea>
+                            <span asp-validation-for="NoteReferente" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+
+
+
+
+
+
+
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Annulla
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="bi bi-save"></i> Salva Cliente
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            /**
+             * CENTRALIZZAZIONE ANTIFORGERY (Coerenza Progetto)
+             */
+            $.ajaxSetup({
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+                }
+            });
+
+            if ($.fn.select2) {
+                $('.select2').select2({
+                    theme: 'bootstrap-5',
+                    width: '100%'
+                });
+            }
+
+            // GESTIONE DINAMICA MOSTRA/NASCONDI SEDE OPERATIVA
+            $('#chkStessaSede').on('change', function () {
+                var isChecked = $(this).is(':checked');
+                var $divSO = $('#divSedeOperativa');
+
+                if (isChecked) {
+                    // Se coincide, nascondiamo la sezione con animazione e SVUOTIAMO i campi per il DB
+                    $divSO.slideUp(200, function() {
+                        $divSO.find('input').val('');
+                        // Ripristiniamo il valore di default per la nazione
+                        $('#SO_Nazione').val('Italia');
+                    });
+                } else {
+                    // Se non coincide, mostriamo i campi da compilare
+                    $divSO.slideDown(200);
+                }
+            });
+
+
+        // 30/10/2026 Avviso "nomi simili" mentre si scrive (GET senza antiforgery)
+        var timerSimili = null;
+        $('#RagioneSociale').on('input', function () {
+            var term = $(this).val().trim();
+            var $box = $('#boxNomiSimili');
+            clearTimeout(timerSimili);
+            if (term.length < 3) { $box.addClass('d-none').empty(); return; }
+
+            timerSimili = setTimeout(function () {
+                $.getJSON('@Url.Action("NomiSimili", "Clienti", new { area = "Admin" })', { term: term })
+                    .done(function (righe) {
+                        $box.empty();
+                        if (!righe.length) { $box.addClass('d-none'); return; }
+
+                        $box.append($('<div class="fw-bold mb-1">').text('Attenzione: esistono già nomi simili'));
+                        var $ul = $('<ul class="mb-0">');
+                        var nascosti = 0;
+                        righe.forEach(function (r) {
+                            if (r.visibile) {
+                                var $li = $('<li>');
+                                var url = '@Url.Action("Edit", "Clienti", new { area = "Admin" })' + '?id=' + r.idCliente;
+                                $li.append($('<a>').attr('href', url).text(r.nome));
+                                if (r.archiviato) $li.append(' (nel Cestino)');
+                                $ul.append($li);
+                            } else { nascosti++; }
+                        });
+                        $box.append($ul);
+                        if (nascosti > 0)
+                            $box.append($('<div class="mt-1">').text('Esiste già un cliente con un nome simile non associato al tuo profilo: contatta l\'amministratore prima di crearlo.'));
+                        $box.removeClass('d-none');
+                    })
+                    .fail(function () { $box.addClass('d-none').empty(); });
+            }, 400);
+        });
+
+        });
+    </script>
+}

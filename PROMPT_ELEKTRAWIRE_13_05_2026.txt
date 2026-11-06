@@ -1,0 +1,29 @@
+Dato che ho diversi mandatari con lo stesso problema, creami un prompt da dare anche ad altre AI affinché applichino ESATTAMENTE lo stesso ragionamento e la stessa modifica che hai fatto tu.
+
+Il prompt deve essere:
+
+* tassativo
+* preciso
+* senza errori
+* completo
+* coerente con il codice originale
+* funzionante al 100%
+
+TASSATIVO:
+
+* non modificare i miei commenti
+* non cambiare la logica esistente se non richiesto
+* non omettere parti di codice
+* non semplificare il codice
+* non introdurre modifiche aggiuntive non richieste
+
+L’AI deve applicare la stessa identica logica, gli stessi controlli e lo stesso comportamento finale già applicato nella modifica precedente.
+
+Prima di restituire il codice, deve verificare:
+
+* che non manchi nulla rispetto all’originale
+* che il codice sia coerente
+* che non siano stati introdotti errori o regressioni
+* che il risultato finale sia compilabile e funzionante al 100%
+
+Restituisci direttamente il codice completo già corretto e pronto all’uso.

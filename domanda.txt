@@ -1,0 +1,10 @@
+Sto creando un progetto ASP.NET Core MVC che deve fare dei calcoli numerici e commerciali e salvare i dati in un database SQL Server. I calcoli possono essere fatti sia in JavaScript (lato client) che in C# (lato server).
+
+Ho un grande dubbio sulla strategia migliore da usare per gestire i decimali (virgole e punti) in modo che il software funzioni indipendentemente dalla nazione o dalla lingua dell'utente.
+
+Nello specifico ti chiedo:
+1. Come devo comportarmi con la gestione della Cultura (Culture) nell'applicazione?
+2. Se un utente italiano scrive un numero con la virgola (es. 10,55), come fa il sistema a non rompersi se JavaScript o il database si aspettano il punto?
+3. Una volta salvato il dato, come faccio a visualizzarlo correttamente con la virgola o con il punto in base al paese dell'utente?
+
+Qual è la strategia migliore, più comoda e sicura per gestire tutto questo flusso senza fare confusione e senza bug di conversione?

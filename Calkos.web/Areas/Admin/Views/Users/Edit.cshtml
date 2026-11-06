@@ -1,0 +1,79 @@
+﻿@model Calkos.Web.Models.Admin.UserEditViewModel
+
+@{
+    // 05/11/2026 Impostato da UsersController.Edit quando si torna da "Nuovo agente"
+    var agenteAppenaCreato = (ViewBag.AgenteAppenaCreato as bool?) == true;
+}
+
+<h2>Modifica Utente</h2>
+
+@* 05/11/2026 Avvisi: errore dai ruoli (TempData) e conferma agente creato *@
+@if (TempData["Errore"] != null)
+{
+    <div class="alert alert-danger">@TempData["Errore"]</div>
+}
+@if (agenteAppenaCreato)
+{
+    <div class="alert alert-success">
+        Agente creato e selezionato. Premi <strong>Salva</strong> per collegarlo all'utente.
+    </div>
+}
+
+@* 05/11/2026 Il form invia a Admin/Users/Edit (senza i parametri della pagina corrente) *@
+<form method="post" id="formModificaUtente" asp-area="Admin" asp-controller="Users" asp-action="Edit">
+    @* 19/10/2026 *@
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+        <label>Email</label>
+        <input asp-for="Email" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="IdAgente" class="form-label">Agente collegato</label>
+        @* 31/10/2026 Pulsante per creare un nuovo agente e tornare qui (returnUrl locale) *@
+        <div class="input-group">
+            <a id="linkNuovoAgente" asp-area="Admin" asp-controller="Agenti" asp-action="Create"
+               asp-route-returnUrl="@Url.Action("Edit", "Users", new { area = "Admin", id = Model.Id })"
+               class="btn btn-outline-primary">
+                <i class="bi bi-person-plus"></i> Nuovo agente
+            </a>
+            <select asp-for="IdAgente" asp-items="ViewBag.Agenti" class="form-select">
+                <option value="">-- Nessuno --</option>
+            </select>
+        </div>
+    </div>
+
+    @* ==== MODIFICA 05/11/2026 - INIZIO ==== Ruoli (stessa logica della pagina "Assegnazione Ruoli") *@
+    <div class="mb-3">
+        <label class="form-label">Ruoli</label>
+        @for (int i = 0; i < Model.Roles.Count; i++)
+        {
+            <div class="form-check form-switch">
+                <input class="form-check-input" asp-for="Roles[i].IsSelected" />
+                <label class="form-check-label" asp-for="Roles[i].IsSelected">@Model.Roles[i].RoleName</label>
+                <input type="hidden" asp-for="Roles[i].RoleId" />
+                <input type="hidden" asp-for="Roles[i].RoleName" />
+            </div>
+        }
+        <div class="form-text">Il ruolo Agente richiede un agente collegato.</div>
+    </div>
+    @* ==== MODIFICA 05/11/2026 - FINE ==== *@
+
+    <button type="submit" class="btn btn-primary">Salva</button>
+    <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="btn btn-outline-secondary">Annulla</a>
+</form>
+
+<script>
+    // 05/11/2026 "Nuovo agente" esce dalla pagina: se ci sono modifiche non salvate si chiede conferma
+    (function () {
+        const form = document.getElementById('formModificaUtente');
+        const link = document.getElementById('linkNuovoAgente');
+        let modificato = false;
+        form.addEventListener('change', function () { modificato = true; });
+        link.addEventListener('click', function (e) {
+            if (modificato && !confirm("Hai modifiche non salvate: andando avanti andranno perse. Continuare?"))
+                e.preventDefault();
+        });
+    })();
+</script>

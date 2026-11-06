@@ -1,0 +1,341 @@
+﻿@using Calkos.web.Models.Admin
+@using Calkos.Web.Models.Admin
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model IEnumerable<UserWithRolesViewModel>
+
+@{
+    ViewData["Title"] = "Gestione Utenti";
+    // ==== MODIFICA 05/11/2026 - INIZIO ====
+    // Dati per la finestra "Agente e Ruoli" (preparati da UsersController.Index)
+    var agentiDisponibili = (ViewBag.Agenti as IEnumerable<SelectListItem>) ?? Enumerable.Empty<SelectListItem>();
+    var ruoliDisponibili = (ViewBag.Ruoli as List<ManageUserRoleItemViewModel>) ?? new List<ManageUserRoleItemViewModel>();
+    // ==== MODIFICA 05/11/2026 - FINE ====
+}
+
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-people-fill text-primary me-3" style="font-size: 2.5rem;"></i>
+    <div>
+        <h1 class="h3 mb-0 fw-bold">Gestione Utenti</h1>
+        <small class="text-muted">Visualizza, modifica e gestisci gli utenti registrati</small>
+    </div>
+    @* 19/10/2026 *@
+    @if (TempData["Errore"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Errore"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+</div>
+
+<div class="mb-3 text-end">
+    <a asp-area="Admin" asp-controller="Users" asp-action="Create" class="btn btn-success">
+        <i class="bi bi-person-plus"></i> Nuovo Utente
+    </a>
+</div>
+
+<div class="card shadow-sm">
+
+    <form id="tokenForm">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    @* ==== MODIFICA 05/11/2026: larghezze riviste e nuova colonna Agente ==== *@
+                    <th style="width: 25%">Email</th>
+                    <th style="width: 15%">Agente</th>
+                    <th style="width: 15%">Ruoli</th>
+                    <!-- ==== MODIFICA 25/08/2026 ==== -->
+                    <th style="width: 10%">Stato</th>
+                    <th style="width: 35%" class="text-end">Azioni</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    @* 05/11/2026 Edit *@
+                    <tr data-edit-url="@Url.Action("Edit", "Users", new { area = "Admin", id = user.UserId })"
+                        style="cursor: pointer;"
+                        title="Doppio click per modificare">
+                        <td><i class="bi bi-person-circle me-2"></i>@user.Email</td>
+
+                        @* 05/11/2026 Agente collegato *@
+                        <td>
+                            @if (user.IdAgente.HasValue)
+                            {
+                                <span class="badge bg-info text-dark">@user.AgenteDescrizione</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (user.Roles.Any())
+                            {
+                                foreach (var role in user.Roles)
+                                {
+                                    <span class="badge bg-primary me-1">@role</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Nessun ruolo</span>
+                            }
+                        </td>
+
+                        <!-- ==== MODIFICA 25/08/2026 - INIZIO ==== -->
+                        <td>
+                            @if (user.IsBloccato)
+                            {
+                                <span class="badge bg-danger">Bloccato</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Attivo</span>
+                            }
+                        </td>
+                        <!-- ==== MODIFICA 25/08/2026 - FINE ==== -->
+
+                        <td class="text-end">
+                            @* 05/11/2026 Sostituisce il link a ManageRoles: agente e ruoli si gestiscono insieme *@
+                            <button type="button" class="btn btn-sm btn-outline-primary me-2"
+                                    data-bs-toggle="modal" data-bs-target="#modalAgenteRuolo"
+                                    data-user-id="@user.UserId" data-email="@user.Email"
+                                    data-id-agente="@user.IdAgente" data-roles="@string.Join("|", user.Roles)">
+                                <i class="bi bi-shield-lock"></i> Agente e Ruoli
+                            </button>
+                            <a asp-area="Admin" asp-controller="Users" asp-action="Edit" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-warning me-2">
+                                <i class="bi bi-pencil-square"></i> Modifica
+                            </a>
+
+
+                            <a asp-area="Admin" asp-controller="Users" asp-action="Details" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-secondary me-2">
+                                <i class="bi bi-info-circle"></i> Dettagli
+                            </a>
+                            <a asp-area="Admin" asp-controller="Users" asp-action="Delete" asp-route-id="@user.UserId" class="btn btn-sm btn-outline-danger me-2">
+                                <i class="bi bi-trash"></i> Elimina
+                            </a>
+
+                            <!-- ==== MODIFICA 25/08/2026 - INIZIO ====
+                                 Prima passava l'Email a un endpoint inesistente. Ora passa
+                                 lo UserId, coerente con tutte le altre azioni della riga. -->
+                            @* 19/10/2026 *@
+                            <button class="btn btn-sm btn-outline-danger me-2"
+                                    data-user-id="@user.UserId" data-email="@user.Email"
+                                    onclick="resetPassword(this.dataset.userId, this.dataset.email)">
+                                <i class="bi bi-key-fill"></i> Reset Password
+                            </button>
+
+                            @if (user.IsBloccato)
+                            {
+                                <button class="btn btn-sm btn-outline-success"
+                                        data-user-id="@user.UserId" data-email="@user.Email"
+                                        onclick="unlockUser(this.dataset.userId, this.dataset.email)">
+                                    <i class="bi bi-unlock-fill"></i> Sblocca
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-outline-dark"
+                                        data-user-id="@user.UserId" data-email="@user.Email"
+                                        onclick="lockUser(this.dataset.userId, this.dataset.email)">
+                                    <i class="bi bi-lock-fill"></i> Blocca
+                                </button>
+                            }
+                            <!-- ==== MODIFICA 25/08/2026 - FINE ==== -->
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* ==== MODIFICA 05/11/2026 - INIZIO ====
+   Finestra "Agente e Ruoli". Invia allo STESSO endpoint della pagina Modifica (POST Admin/Users/Edit),
+   quindi controlli e regole sono identici. In caso di errore si arriva alla pagina Modifica con il messaggio. *@
+<div class="modal fade" id="modalAgenteRuolo" tabindex="-1" aria-labelledby="modalAgenteRuoloLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-area="Admin" asp-controller="Users" asp-action="Edit" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAgenteRuoloLabel">Agente e Ruoli</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="Id" id="modalUserId" />
+                <input type="hidden" name="Email" id="modalEmail" />
+
+                <p class="mb-3"><span class="text-muted">Utente:</span> <strong id="modalEmailLabel"></strong></p>
+
+                <div class="mb-3">
+                    <label class="form-label" for="modalIdAgente">Agente collegato</label>
+                    <select name="IdAgente" id="modalIdAgente" class="form-select">
+                        <option value="">-- Nessuno --</option>
+                        @foreach (var a in agentiDisponibili)
+                        {
+                            <option value="@a.Value">@a.Text</option>
+                        }
+                    </select>
+                </div>
+
+                <label class="form-label">Ruoli</label>
+                @for (int i = 0; i < ruoliDisponibili.Count; i++)
+                {
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="Roles[@i].IsSelected" value="true"
+                               id="modalRuolo_@i" data-role-name="@ruoliDisponibili[i].RoleName" />
+                        <input type="hidden" name="Roles[@i].IsSelected" value="false" />
+                        <label class="form-check-label" for="modalRuolo_@i">@ruoliDisponibili[i].RoleName</label>
+                        <input type="hidden" name="Roles[@i].RoleId" value="@ruoliDisponibili[i].RoleId" />
+                        <input type="hidden" name="Roles[@i].RoleName" value="@ruoliDisponibili[i].RoleName" />
+                    </div>
+                }
+                <div class="form-text">Il ruolo Agente richiede un agente collegato.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Salva</button>
+            </div>
+        </form>
+    </div>
+</div>
+@* ==== MODIFICA 05/11/2026 - FINE ==== *@
+
+<script>
+    // ==== MODIFICA 25/08/2026 - INIZIO ====
+    const urlResetPassword = '@Url.Action("ResetUserPassword", "Users", new { area = "Admin" })';
+    const urlLockUser = '@Url.Action("LockUser", "Users", new { area = "Admin" })';
+    const urlUnlockUser = '@Url.Action("UnlockUser", "Users", new { area = "Admin" })';
+
+    function getAntiforgeryToken() {
+        const input = document.querySelector('input[name="__RequestVerificationToken"]');
+        return input ? input.value : '';
+    }
+
+
+
+
+
+        // Doppio click sulla riga -> vai ai Dettagli
+    document.querySelectorAll('tbody tr[data-details-url]').forEach(row => {
+        row.addEventListener('dblclick', e => {
+            // Ignora il doppio click su bottoni e link
+            if (e.target.closest('a, button')) return;
+            window.location.href = row.dataset.detailsUrl;
+        });
+    });
+
+
+
+
+
+
+    // Funzione generica per chiamate POST AJAX (usata per Lock e Unlock)
+    function postAjax(url, userId, confirmMessage, reloadOnSuccess) {
+        if (!confirm(confirmMessage)) return;
+        @* //19/10/2026 *@
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getAntiforgeryToken()
+            },
+            body: JSON.stringify({ UserId: userId })
+        })
+        .then(async response => {
+            const d = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(d.message || ('Errore nella richiesta (' + response.status + ')'));
+            return d;
+        })
+        .then(d => {
+            if (d.message) alert(d.message);
+            if (reloadOnSuccess) location.reload();
+        })
+        .catch(err => {
+            console.error(err);
+            alert(err.message);
+        });
+    }
+
+    @* // 26/08/2026 Funzione dedicata per il Reset Password con copia negli appunti *@
+    function resetPassword(userId, email) {
+        if (!confirm("Sei sicuro di voler resettare la password di " + email + "?")) return;
+
+        fetch(urlResetPassword, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getAntiforgeryToken()
+            },
+            body: JSON.stringify({ UserId: userId })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Errore nella richiesta (' + response.status + ')');
+            return response.json();
+        })
+        .then(data => {
+            // Se il backend restituisce tempPassword la copiamo negli appunti
+            if (data.tempPassword) {
+                navigator.clipboard.writeText(data.tempPassword)
+                    .then(() => {
+                        alert("Password generata e COPIATA NEGLI APPUNTI!\n\nPassword: " + data.tempPassword);
+                    })
+                    .catch(() => {
+                        // Fallback se il browser blocca la clipboard (es. connessione HTTP)
+                        prompt("Copia la nuova password da Comunicare all' utente (Ctrl+C):", data.tempPassword);
+                    });
+            } else if (data.message) {
+                // Gestione nel caso il backend usi ancora la proprietà 'message'
+                prompt("Copia la risposta dal server (Ctrl+C):", data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Errore nella richiesta di reset password.");
+        });
+    }
+
+    function lockUser(userId, email) {
+        postAjax(urlLockUser, userId, "Bloccare l'accesso di " + email + "?", true);
+    }
+
+    function unlockUser(userId, email) {
+        postAjax(urlUnlockUser, userId, "Sbloccare l'accesso di " + email + "?", true);
+    }
+    // ==== MODIFICA 25/08/2026 - FINE ====
+
+
+     // ==== 05/11/2026 DOPPIO CLICK SULLA RIGA -> apre la pagina Modifica ====
+    document.querySelectorAll('tbody tr[data-edit-url]').forEach(function (row) {
+        row.addEventListener('dblclick', function (e) {
+            // Se il doppio click è su un bottone o un link, non fare nulla
+            if (e.target.closest('a, button')) return;
+            window.location.href = row.dataset.editUrl;
+        });
+    });
+
+    // ==== MODIFICA 05/11/2026 - INIZIO ==== Riempie la finestra "Agente e Ruoli" con i dati della riga cliccata
+    const modalAgenteRuolo = document.getElementById('modalAgenteRuolo');
+    modalAgenteRuolo.addEventListener('show.bs.modal', function (event) {
+        const btn = event.relatedTarget;               // il pulsante che ha aperto la finestra
+        if (!btn) return;
+
+        const ruoliUtente = (btn.dataset.roles || '').split('|').filter(Boolean);
+
+        document.getElementById('modalUserId').value = btn.dataset.userId;
+        document.getElementById('modalEmail').value = btn.dataset.email;
+        document.getElementById('modalEmailLabel').textContent = btn.dataset.email;
+        document.getElementById('modalIdAgente').value = btn.dataset.idAgente || '';
+
+        modalAgenteRuolo.querySelectorAll('input[type=checkbox][data-role-name]').forEach(function (cb) {
+            cb.checked = ruoliUtente.includes(cb.dataset.roleName);
+        });
+    });
+    // ==== MODIFICA 05/11/2026 - FINE ====
+</script>
