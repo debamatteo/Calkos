@@ -1,0 +1,16 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio user files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# .NET Core / NuGet
+project.lock.json
+project.assets.json
+*.nuget.props
+*.nuget.targets
+.vs/
