@@ -640,9 +640,9 @@ app.UseHttpsRedirection();
 // --- BLOCCO TEMPORANEO CARTELLE DI IMPORT SOTTO wwwroot ---
 // Da rimuovere quando i file saranno salvati fuori dalla web root (Pacchetto 3).
 // Se dopo la patch un link "temp…" in una vista smette di funzionare, va sostituito con un download passato da un controller.
-var cartelleBloccate = new[]
+var cartelleBloccate = new[]//09/11/2027 
 {
-    "/tempCobra,/tempCST", "/tempDeAngeli", "/tempElektraWire", "/tempGuerzoni",
+    "/tempCobral", "/tempCST", "/tempDeAngeli", "/tempElektraWire", "/tempGuerzoni",
     "/tempHitech", "/tempSystemCore", "/tempSystemP", "/tempTradingAndConsulting"
 };
 app.Use(async (context, next) =>

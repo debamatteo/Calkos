@@ -130,11 +130,13 @@ namespace Calkos.web.Areas.Identity.Pages.Account
                 return Page();
             }
 
+            // ==== MODIFICA 10/11/2026 - INIZIO ==== "Remember me" rimosso dalla vista: il login non è mai persistente
             var result = await _signInManager.PasswordSignInAsync(
                 user.UserName,
                 Input.Password,
-                Input.RememberMe,
+                isPersistent: false,   // era: Input.RememberMe
                 lockoutOnFailure: true);
+            // ==== MODIFICA 10/11/2026 - FINE ====
 
             if (!result.Succeeded)
             {
