@@ -19,7 +19,7 @@ namespace CalkosManager.Domain.Entities
         // Campo calcolato lato SQL (sola lettura in C#)
         public string? AgenteDescrizione { get; set; }
 
-        [StringLength(11, ErrorMessage = "La Partita IVA deve essere di massimo 11 caratteri")]
+        [StringLength(30, ErrorMessage = "La Partita IVA deve essere di massimo 30 caratteri")]//11/11/2026 partita iva può essere 11 caratteri, ma in alcuni casi esteri può arrivare a 30 caratteri per gli stranieri
         public string? PartitaIva { get; set; }
 
         [StringLength(16, ErrorMessage = "Il Codice Fiscale deve essere di massimo 16 caratteri")]

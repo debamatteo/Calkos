@@ -540,33 +540,33 @@ namespace CalkosManager.Infrastructure.Repositories
             };
 
             cmd.Parameters.Add("@IdCliente", SqlDbType.Int).Value = cliente.IdCliente;
-            cmd.Parameters.Add("@RagioneSociale", SqlDbType.VarChar).Value = cliente.RagioneSociale;
-            cmd.Parameters.Add("@CodiceFiscale", SqlDbType.VarChar).Value = (object?)cliente.CodiceFiscale ?? DBNull.Value;
-            cmd.Parameters.Add("@PartitaIva", SqlDbType.VarChar).Value = (object?)cliente.PartitaIva ?? DBNull.Value;
-            cmd.Parameters.Add("@Indirizzo", SqlDbType.VarChar).Value = (object?)cliente.Indirizzo ?? DBNull.Value;
-            cmd.Parameters.Add("@Citta", SqlDbType.VarChar).Value = (object?)cliente.Citta ?? DBNull.Value;
-            cmd.Parameters.Add("@Provincia", SqlDbType.Char).Value = (object?)cliente.Provincia ?? DBNull.Value;
-            cmd.Parameters.Add("@CAP", SqlDbType.Char).Value = (object?)cliente.CAP ?? DBNull.Value;
-            cmd.Parameters.Add("@Nazione", SqlDbType.VarChar).Value = (object?)cliente.Nazione ?? "Italia";//23/09/2026
+            cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar, 150).Value = cliente.RagioneSociale;
+            cmd.Parameters.Add("@CodiceFiscale", SqlDbType.NVarChar, 16).Value = (object?)cliente.CodiceFiscale ?? DBNull.Value;
+            cmd.Parameters.Add("@PartitaIva", SqlDbType.NVarChar, 30).Value = (object?)cliente.PartitaIva ?? DBNull.Value;
+            cmd.Parameters.Add("@Indirizzo", SqlDbType.NVarChar, 255).Value = (object?)cliente.Indirizzo ?? DBNull.Value;
+            cmd.Parameters.Add("@Citta", SqlDbType.NVarChar, 100).Value = (object?)cliente.Citta ?? DBNull.Value;
+            cmd.Parameters.Add("@Provincia", SqlDbType.NVarChar, 50).Value = (object?)cliente.Provincia ?? DBNull.Value;
+            cmd.Parameters.Add("@CAP", SqlDbType.NVarChar, 15).Value = (object?)cliente.CAP ?? DBNull.Value;
+            cmd.Parameters.Add("@Nazione", SqlDbType.NVarChar, 100).Value = (object?)cliente.Nazione ?? "Italia";//23/09/2026
 
             // Sede Operativa //23/09/2026
-            cmd.Parameters.Add("@SO_Indirizzo", SqlDbType.VarChar).Value = (object?)cliente.SO_Indirizzo ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Citta", SqlDbType.VarChar).Value = (object?)cliente.SO_Citta ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Provincia", SqlDbType.Char).Value = (object?)cliente.SO_Provincia ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_CAP", SqlDbType.Char).Value = (object?)cliente.SO_CAP ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Nazione", SqlDbType.VarChar).Value = (object?)cliente.SO_Nazione ?? "Italia";
+            cmd.Parameters.Add("@SO_Indirizzo", SqlDbType.NVarChar, 255).Value = (object?)cliente.SO_Indirizzo ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_Citta", SqlDbType.NVarChar, 100).Value = (object?)cliente.SO_Citta ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_Provincia", SqlDbType.NVarChar, 50).Value = (object?)cliente.SO_Provincia ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_CAP", SqlDbType.NVarChar, 15).Value = (object?)cliente.SO_CAP ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_Nazione", SqlDbType.NVarChar, 100).Value = (object?)cliente.SO_Nazione ?? "Italia";
 
 
-            cmd.Parameters.Add("@Email", SqlDbType.VarChar).Value = (object?)cliente.Email ?? DBNull.Value;
-            cmd.Parameters.Add("@Telefono", SqlDbType.VarChar).Value = (object?)cliente.Telefono ?? DBNull.Value;
-            cmd.Parameters.Add("@Note", SqlDbType.NVarChar).Value = (object?)cliente.Note ?? DBNull.Value;
+            cmd.Parameters.Add("@Email", SqlDbType.NVarChar, 100).Value = (object?)cliente.Email ?? DBNull.Value;
+            cmd.Parameters.Add("@Telefono", SqlDbType.NVarChar, 20).Value = (object?)cliente.Telefono ?? DBNull.Value;
+            cmd.Parameters.Add("@Note", SqlDbType.NVarChar, -1).Value = (object?)cliente.Note ?? DBNull.Value;
             cmd.Parameters.Add("@IdAgente", SqlDbType.Int).Value = (object?)cliente.IdAgente ?? DBNull.Value;
-            cmd.Parameters.Add("@Utente", SqlDbType.NVarChar).Value = (object?)cliente.Utente ?? DBNull.Value;
+            cmd.Parameters.Add("@Utente", SqlDbType.NVarChar, 100).Value = (object?)cliente.Utente ?? DBNull.Value;
             cmd.Parameters.Add("@IdTipoPagamentoDefault", SqlDbType.Int).Value = (object?)cliente.IdTipoPagamentoDefault ?? DBNull.Value;//26/08/2026
             //21/10/2026
-            cmd.Parameters.Add("@Referente", SqlDbType.VarChar, 150).Value = (object?)cliente.Referente ?? DBNull.Value;
-            cmd.Parameters.Add("@TelefonoReferente", SqlDbType.VarChar, 20).Value = (object?)cliente.TelefonoReferente ?? DBNull.Value;
-            cmd.Parameters.Add("@EmailReferente", SqlDbType.VarChar, 100).Value = (object?)cliente.EmailReferente ?? DBNull.Value;
+            cmd.Parameters.Add("@Referente", SqlDbType.NVarChar, 150).Value = (object?)cliente.Referente ?? DBNull.Value;
+            cmd.Parameters.Add("@TelefonoReferente", SqlDbType.NVarChar, 20).Value = (object?)cliente.TelefonoReferente ?? DBNull.Value;
+            cmd.Parameters.Add("@EmailReferente", SqlDbType.NVarChar, 100).Value = (object?)cliente.EmailReferente ?? DBNull.Value;
             cmd.Parameters.Add("@NoteReferente", SqlDbType.NVarChar, 500).Value = (object?)cliente.NoteReferente ?? DBNull.Value;
 
             // ==== MODIFICA 30/10/2026 - INIZIO ====
@@ -631,28 +631,28 @@ namespace CalkosManager.Infrastructure.Repositories
             };
 
             // Mappatura parametri identica all'Update ma senza IdCliente (è Identity)
-            cmd.Parameters.Add("@RagioneSociale", SqlDbType.VarChar, 150).Value = cliente.RagioneSociale;
-            cmd.Parameters.Add("@CodiceFiscale", SqlDbType.VarChar, 16).Value = (object?)cliente.CodiceFiscale ?? DBNull.Value;
-            cmd.Parameters.Add("@PartitaIva", SqlDbType.VarChar, 11).Value = (object?)cliente.PartitaIva ?? DBNull.Value;
+            cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar, 150).Value = cliente.RagioneSociale;
+            cmd.Parameters.Add("@CodiceFiscale", SqlDbType.NVarChar, 16).Value = (object?)cliente.CodiceFiscale ?? DBNull.Value;
+            cmd.Parameters.Add("@PartitaIva", SqlDbType.NVarChar, 30).Value = (object?)cliente.PartitaIva ?? DBNull.Value;//11/11/2026 partita iva può essere 11 caratteri, ma in alcuni casi esteri può arrivare a 30 caratteri per gli stranieri
 
             // Sede Legale
-            cmd.Parameters.Add("@Indirizzo", SqlDbType.VarChar, 255).Value = (object?)cliente.Indirizzo ?? DBNull.Value;
-            cmd.Parameters.Add("@Citta", SqlDbType.VarChar, 100).Value = (object?)cliente.Citta ?? DBNull.Value;
-            cmd.Parameters.Add("@Provincia", SqlDbType.Char, 2).Value = (object?)cliente.Provincia ?? DBNull.Value;
-            cmd.Parameters.Add("@CAP", SqlDbType.Char, 5).Value = (object?)cliente.CAP ?? DBNull.Value;
-            cmd.Parameters.Add("@Nazione", SqlDbType.VarChar, 100).Value = (object?)cliente.Nazione ?? "Italia";//23/09/2026 default Italia
+            cmd.Parameters.Add("@Indirizzo", SqlDbType.NVarChar, 255).Value = (object?)cliente.Indirizzo ?? DBNull.Value;
+            cmd.Parameters.Add("@Citta", SqlDbType.NVarChar, 100).Value = (object?)cliente.Citta ?? DBNull.Value;
+            cmd.Parameters.Add("@Provincia", SqlDbType.NVarChar, 50).Value = (object?)cliente.Provincia ?? DBNull.Value;//11/11/2026 Provincia può essere estera, quindi tolto il maxlength a 2 e messo a 50
+            cmd.Parameters.Add("@CAP", SqlDbType.NVarChar, 15).Value = (object?)cliente.CAP ?? DBNull.Value; //@* 11/11/2026 Cap messo a 15 per gestire estero *@
+            cmd.Parameters.Add("@Nazione", SqlDbType.NVarChar, 100).Value = (object?)cliente.Nazione ?? "Italia";//23/09/2026 default Italia
 
             // Sede Operativa //23/09/2026
-            cmd.Parameters.Add("@SO_Indirizzo", SqlDbType.VarChar, 255).Value = (object?)cliente.SO_Indirizzo ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Citta", SqlDbType.VarChar, 100).Value = (object?)cliente.SO_Citta ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Provincia", SqlDbType.Char, 2).Value = (object?)cliente.SO_Provincia ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_CAP", SqlDbType.Char, 5).Value = (object?)cliente.SO_CAP ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Nazione", SqlDbType.VarChar, 100).Value = (object?)cliente.SO_Nazione ?? "Italia";
+            cmd.Parameters.Add("@SO_Indirizzo", SqlDbType.NVarChar, 255).Value = (object?)cliente.SO_Indirizzo ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_Citta", SqlDbType.NVarChar, 100).Value = (object?)cliente.SO_Citta ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_Provincia", SqlDbType.NVarChar, 50).Value = (object?)cliente.SO_Provincia ?? DBNull.Value; //11/11/2026 Provincia può essere estera, quindi tolto il maxlength a 2 e messo a 50
+            cmd.Parameters.Add("@SO_CAP", SqlDbType.NVarChar, 15).Value = (object?)cliente.SO_CAP ?? DBNull.Value; //@* 11/11/2026 Cap messo a 15 per gestire estero *@
+            cmd.Parameters.Add("@SO_Nazione", SqlDbType.NVarChar, 100).Value = (object?)cliente.SO_Nazione ?? "Italia";
 
 
 
-            cmd.Parameters.Add("@Email", SqlDbType.VarChar, 100).Value = (object?)cliente.Email ?? DBNull.Value;
-            cmd.Parameters.Add("@Telefono", SqlDbType.VarChar, 20).Value = (object?)cliente.Telefono ?? DBNull.Value;
+            cmd.Parameters.Add("@Email", SqlDbType.NVarChar, 100).Value = (object?)cliente.Email ?? DBNull.Value;
+            cmd.Parameters.Add("@Telefono", SqlDbType.NVarChar, 20).Value = (object?)cliente.Telefono ?? DBNull.Value;
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, -1).Value = (object?)cliente.Note ?? DBNull.Value;
             cmd.Parameters.Add("@IdAgente", SqlDbType.Int).Value = (object?)cliente.IdAgente ?? DBNull.Value;
             cmd.Parameters.Add("@Utente", SqlDbType.NVarChar, 100).Value = (object?)cliente.Utente ?? DBNull.Value;
@@ -660,9 +660,9 @@ namespace CalkosManager.Infrastructure.Repositories
 
             // ==== MODIFICA 30/10/2026 - INIZIO ====
             // I campi del referente erano previsti dalla SP (default NULL) ma non venivano passati: in inserimento andavano persi.
-            cmd.Parameters.Add("@Referente", SqlDbType.VarChar, 150).Value = (object?)cliente.Referente ?? DBNull.Value;
-            cmd.Parameters.Add("@TelefonoReferente", SqlDbType.VarChar, 20).Value = (object?)cliente.TelefonoReferente ?? DBNull.Value;
-            cmd.Parameters.Add("@EmailReferente", SqlDbType.VarChar, 100).Value = (object?)cliente.EmailReferente ?? DBNull.Value;
+            cmd.Parameters.Add("@Referente", SqlDbType.NVarChar, 150).Value = (object?)cliente.Referente ?? DBNull.Value;
+            cmd.Parameters.Add("@TelefonoReferente", SqlDbType.NVarChar, 20).Value = (object?)cliente.TelefonoReferente ?? DBNull.Value;
+            cmd.Parameters.Add("@EmailReferente", SqlDbType.NVarChar, 100).Value = (object?)cliente.EmailReferente ?? DBNull.Value;
             cmd.Parameters.Add("@NoteReferente", SqlDbType.NVarChar, 500).Value = (object?)cliente.NoteReferente ?? DBNull.Value;
 
             try
@@ -949,34 +949,34 @@ namespace CalkosManager.Infrastructure.Repositories
 
             cmd.Parameters.Add("@IdAgente", SqlDbType.Int).Value = idAgente;
             cmd.Parameters.Add("@IdMandatario", SqlDbType.Int).Value = (object?)cliente.IdMandatario ?? DBNull.Value;
-            cmd.Parameters.Add("@RagioneSociale", SqlDbType.VarChar, 150).Value = cliente.RagioneSociale;
-            cmd.Parameters.Add("@CodiceFiscale", SqlDbType.VarChar, 16).Value = (object?)cliente.CodiceFiscale ?? DBNull.Value;
-            cmd.Parameters.Add("@PartitaIva", SqlDbType.VarChar, 11).Value = (object?)cliente.PartitaIva ?? DBNull.Value;
+            cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar, 150).Value = cliente.RagioneSociale;
+            cmd.Parameters.Add("@CodiceFiscale", SqlDbType.NVarChar, 16).Value = (object?)cliente.CodiceFiscale ?? DBNull.Value;
+            cmd.Parameters.Add("@PartitaIva", SqlDbType.NVarChar, 30).Value = (object?)cliente.PartitaIva ?? DBNull.Value;//11/11/2026 partita iva può essere 11 caratteri, ma in alcuni casi esteri può arrivare a 30 caratteri per gli stranieri
 
             // Sede legale
-            cmd.Parameters.Add("@Indirizzo", SqlDbType.VarChar, 255).Value = (object?)cliente.Indirizzo ?? DBNull.Value;
-            cmd.Parameters.Add("@Citta", SqlDbType.VarChar, 100).Value = (object?)cliente.Citta ?? DBNull.Value;
-            cmd.Parameters.Add("@Provincia", SqlDbType.Char, 2).Value = (object?)cliente.Provincia ?? DBNull.Value;
-            cmd.Parameters.Add("@CAP", SqlDbType.Char, 5).Value = (object?)cliente.CAP ?? DBNull.Value;
-            cmd.Parameters.Add("@Nazione", SqlDbType.VarChar, 100).Value = (object?)cliente.Nazione ?? "Italia";
+            cmd.Parameters.Add("@Indirizzo", SqlDbType.NVarChar, 255).Value = (object?)cliente.Indirizzo ?? DBNull.Value;
+            cmd.Parameters.Add("@Citta", SqlDbType.NVarChar, 100).Value = (object?)cliente.Citta ?? DBNull.Value;
+            cmd.Parameters.Add("@Provincia", SqlDbType.NVarChar, 50).Value = (object?)cliente.Provincia ?? DBNull.Value; //11/11/2026 Provincia può essere estera, quindi tolto il maxlength a 2 e messo a 50
+            cmd.Parameters.Add("@CAP", SqlDbType.NVarChar, 15).Value = (object?)cliente.CAP ?? DBNull.Value; //@* 11/11/2026 Cap messo a 15 per gestire estero *@
+            cmd.Parameters.Add("@Nazione", SqlDbType.NVarChar, 100).Value = (object?)cliente.Nazione ?? "Italia";
 
             // Sede operativa
-            cmd.Parameters.Add("@SO_Indirizzo", SqlDbType.VarChar, 255).Value = (object?)cliente.SO_Indirizzo ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Citta", SqlDbType.VarChar, 100).Value = (object?)cliente.SO_Citta ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Provincia", SqlDbType.Char, 2).Value = (object?)cliente.SO_Provincia ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_CAP", SqlDbType.Char, 5).Value = (object?)cliente.SO_CAP ?? DBNull.Value;
-            cmd.Parameters.Add("@SO_Nazione", SqlDbType.VarChar, 100).Value = (object?)cliente.SO_Nazione ?? "Italia";
+            cmd.Parameters.Add("@SO_Indirizzo", SqlDbType.NVarChar, 255).Value = (object?)cliente.SO_Indirizzo ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_Citta", SqlDbType.NVarChar, 100).Value = (object?)cliente.SO_Citta ?? DBNull.Value;
+            cmd.Parameters.Add("@SO_Provincia", SqlDbType.NVarChar, 50).Value = (object?)cliente.SO_Provincia ?? DBNull.Value; //11/11/2026 Provincia può essere estera, quindi tolto il maxlength a 2 e messo a 50
+            cmd.Parameters.Add("@SO_CAP", SqlDbType.NVarChar, 15).Value = (object?)cliente.SO_CAP ?? DBNull.Value; //@* 11/11/2026 Cap messo a 15 per gestire estero *@
+            cmd.Parameters.Add("@SO_Nazione", SqlDbType.NVarChar, 100).Value = (object?)cliente.SO_Nazione ?? "Italia";
 
             // Contatti e note
-            cmd.Parameters.Add("@Email", SqlDbType.VarChar, 100).Value = (object?)cliente.Email ?? DBNull.Value;
-            cmd.Parameters.Add("@Telefono", SqlDbType.VarChar, 20).Value = (object?)cliente.Telefono ?? DBNull.Value;
+            cmd.Parameters.Add("@Email", SqlDbType.NVarChar, 100).Value = (object?)cliente.Email ?? DBNull.Value;
+            cmd.Parameters.Add("@Telefono", SqlDbType.NVarChar, 20).Value = (object?)cliente.Telefono ?? DBNull.Value;
             cmd.Parameters.Add("@Note", SqlDbType.NVarChar, -1).Value = (object?)cliente.Note ?? DBNull.Value;
             cmd.Parameters.Add("@IdTipoPagamentoDefault", SqlDbType.Int).Value = (object?)cliente.IdTipoPagamentoDefault ?? DBNull.Value;
 
             // Referente
-            cmd.Parameters.Add("@Referente", SqlDbType.VarChar, 150).Value = (object?)cliente.Referente ?? DBNull.Value;
-            cmd.Parameters.Add("@TelefonoReferente", SqlDbType.VarChar, 20).Value = (object?)cliente.TelefonoReferente ?? DBNull.Value;
-            cmd.Parameters.Add("@EmailReferente", SqlDbType.VarChar, 100).Value = (object?)cliente.EmailReferente ?? DBNull.Value;
+            cmd.Parameters.Add("@Referente", SqlDbType.NVarChar, 150).Value = (object?)cliente.Referente ?? DBNull.Value;
+            cmd.Parameters.Add("@TelefonoReferente", SqlDbType.NVarChar, 20).Value = (object?)cliente.TelefonoReferente ?? DBNull.Value;
+            cmd.Parameters.Add("@EmailReferente", SqlDbType.NVarChar, 100).Value = (object?)cliente.EmailReferente ?? DBNull.Value;
             cmd.Parameters.Add("@NoteReferente", SqlDbType.NVarChar, 500).Value = (object?)cliente.NoteReferente ?? DBNull.Value;
 
             cmd.Parameters.Add("@Utente", SqlDbType.NVarChar, 100).Value = (object?)cliente.Utente ?? DBNull.Value;
@@ -1028,7 +1028,7 @@ namespace CalkosManager.Infrastructure.Repositories
                 CommandType = CommandType.StoredProcedure
             };
 
-            cmd.Parameters.Add("@Term", SqlDbType.VarChar, 150).Value = term.Length > 150 ? term[..150] : term;
+            cmd.Parameters.Add("@Term", SqlDbType.NVarChar, 150).Value = term.Length > 150 ? term[..150] : term;
             cmd.Parameters.Add("@IdAgente", SqlDbType.Int).Value = (object?)idAgente ?? DBNull.Value;
             cmd.Parameters.Add("@Max", SqlDbType.Int).Value = max;
 

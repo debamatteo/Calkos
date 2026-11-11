@@ -49,7 +49,7 @@
                     @* P.IVA e CF *@
                     <div class="col-md-6">
                         <label asp-for="PartitaIva" class="form-label fw-bold">Partita IVA</label>
-                        <input asp-for="PartitaIva" class="form-control" maxlength="11" />
+                        <input asp-for="PartitaIva" class="form-control" maxlength="30" /> <!-- 11/11/2026 partita iva può essere 11 caratteri, ma in alcuni casi esteri può arrivare a 30 caratteri per gli stranieri -->
                         <span asp-validation-for="PartitaIva" class="text-danger small"></span>
                     </div>
                     <div class="col-md-6">

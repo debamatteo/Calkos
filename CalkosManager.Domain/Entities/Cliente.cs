@@ -16,7 +16,7 @@ namespace CalkosManager.Domain.Entities
         [StringLength(16, ErrorMessage = "Il Codice Fiscale deve essere di 16 caratteri")]
         public string? CodiceFiscale { get; set; }
 
-        [StringLength(11, ErrorMessage = "La Partita IVA deve essere di 11 caratteri")]
+        [StringLength(30, ErrorMessage = "La Partita IVA deve essere di 30 caratteri")]//messo a 30  in quanto seon previsti clienti starnieri con partita iva più lunga di 11 caratteri
         public string? PartitaIva { get; set; }
 
         #region SEDE LEGALE (Campi Storici + Nazione)
@@ -30,11 +30,11 @@ namespace CalkosManager.Domain.Entities
         public string? Citta { get; set; }
 
         [Display(Name = "Sede Legale - Provincia")]
-        [StringLength(2, MinimumLength = 2, ErrorMessage = "La provincia della sede legale deve essere di 2 caratteri")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "La provincia della sede legale deve essere compresa tra 2 e 50 caratteri")]
         public string? Provincia { get; set; }
 
         [Display(Name = "Sede Legale - CAP")]
-        [StringLength(5, MinimumLength = 5, ErrorMessage = "Il CAP della sede legale deve essere di 5 caratteri")]
+        [StringLength(15, MinimumLength = 5, ErrorMessage = "Il CAP della sede legale deve essere compreso tra 5 e 15 caratteri")]
         public string? CAP { get; set; }
 
         [Display(Name = "Sede Legale - Nazione")]
@@ -54,11 +54,13 @@ namespace CalkosManager.Domain.Entities
         public string? SO_Citta { get; set; }
 
         [Display(Name = "Sede Operativa - Provincia")]
-        [StringLength(2, MinimumLength = 2, ErrorMessage = "La provincia della sede operativa deve essere di 2 caratteri")]
+        // ==== MODIFICA 11/11/2026 - INIZIO ====
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "La provincia della sede operativa deve essere compresa tra 2 e 50 caratteri")]
         public string? SO_Provincia { get; set; }
+        // ==== MODIFICA 11/11/2026 - FINE ====
 
         [Display(Name = "Sede Operativa - CAP")]
-        [StringLength(5, MinimumLength = 5, ErrorMessage = "Il CAP della sede operativa deve essere di 5 caratteri")]
+        [StringLength(15, MinimumLength = 5, ErrorMessage = "Il CAP della sede operativa deve essere compreso tra 5 e 15 caratteri")] // 11/11/2026 Cap messo a 15 per gestire estero
         public string? SO_CAP { get; set; }
 
         [Display(Name = "Sede Operativa - Nazione")]

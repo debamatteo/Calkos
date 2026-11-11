@@ -69,7 +69,7 @@
                     @* Seconda Riga: P.IVA e CF *@
                     <div class="col-md-6">
                         <label asp-for="PartitaIva" class="form-label fw-bold">Partita IVA</label>
-                        <input asp-for="PartitaIva" class="form-control" maxlength="11" placeholder="11 cifre" />
+                        <input asp-for="PartitaIva" class="form-control" maxlength="30" placeholder="30 cifre" /> <!-- 11/11/2026 partita iva può essere 11 caratteri, ma in alcuni casi esteri può arrivare a 30 caratteri per gli stranieri -->
                         <span asp-validation-for="PartitaIva" class="text-danger small"></span>
                     </div>
                     <div class="col-md-6">
@@ -94,11 +94,11 @@
                         </div>
                         <div class="col-md-1">
                             <label asp-for="Provincia" class="form-label fw-bold">PR</label>
-                            <input asp-for="Provincia" class="form-control text-center text-uppercase" maxlength="2" />
+                            <input asp-for="Provincia" class="form-control text-center text-uppercase" maxlength="50" /> @* 11/11/2026 Provincia può essere estera, quindi tolto il maxlength a 2 e messo a 50 *@
                         </div>
                         <div class="col-md-1">
                             <label asp-for="CAP" class="form-label fw-bold">CAP</label>
-                            <input asp-for="CAP" class="form-control" maxlength="5" />
+                            <input asp-for="CAP" class="form-control" maxlength="15" /> @* 11/11/2026 Cap messo a 15 per gestire estero *@
                         </div>
                         <div class="col-md-2">
                             <label asp-for="Nazione" class="form-label fw-bold">Nazione</label>
@@ -133,11 +133,11 @@
                         </div>
                         <div class="col-md-1">
                             <label asp-for="SO_Provincia" class="form-label fw-bold">PR</label>
-                            <input asp-for="SO_Provincia" class="form-control text-center text-uppercase" maxlength="2" />
+                            <input asp-for="SO_Provincia" class="form-control text-center text-uppercase" maxlength="50" /> @* 11/11/2026 Provincia può essere estera, quindi tolto il maxlength a 2 e messo a 50 *@
                         </div>
                         <div class="col-md-1">
                             <label asp-for="SO_CAP" class="form-label fw-bold">CAP</label>
-                            <input asp-for="SO_CAP" class="form-control" maxlength="5" />
+                            <input asp-for="SO_CAP" class="form-control" maxlength="15" /> @* 11/11/2026 Cap messo a 15 per gestire estero *@
                         </div>
                         <div class="col-md-2">
                             <label asp-for="SO_Nazione" class="form-label fw-bold">Nazione</label>
