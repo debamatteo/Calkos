@@ -538,7 +538,7 @@ namespace CalkosManager.Infrastructure.Repositories
             {
                 CommandType = CommandType.StoredProcedure
             };
-
+            //11/11/2026 NVarChar
             cmd.Parameters.Add("@IdCliente", SqlDbType.Int).Value = cliente.IdCliente;
             cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar, 150).Value = cliente.RagioneSociale;
             cmd.Parameters.Add("@CodiceFiscale", SqlDbType.NVarChar, 16).Value = (object?)cliente.CodiceFiscale ?? DBNull.Value;
